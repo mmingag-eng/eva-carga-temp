@@ -1,0 +1,702 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Simulador de Motores Otto</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: panel de datos a la izquierda · banco de pruebas (motor + diagrama de fases) al centro · instrumentos a la derecha · gráficas abajo */
+:root{
+  --bg:#eef1f4; --panel:#ffffff; --panel2:#f6f8fa; --line:#d5dbe2; --fg:#16202b; --muted:#5d6b7a;
+  --accent:#d9480f; --accent2:#0b7a75; --steel:#7d8a99; --steel2:#a9b4c0; --metal:#c9d1da; --dark:#2b3644;
+  --g-adm:#5aa9e6; --g-comp:#5b6ee1; --g-comb:#f08c2e; --g-esc:#9aa3ad; --ideal:#4b5563; --real:#d9480f; --temp:#c2255c;
+  --ok:#2b8a3e; --warn:#e67700; --bad:#c92a2a;
+  --f-display:"Saira Condensed","Arial Narrow",Arial,sans-serif;
+  --f-body:"Source Sans 3","Segoe UI",Arial,sans-serif;
+  --f-mono:"JetBrains Mono",Consolas,"Courier New",monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f141a; --panel:#17202a; --panel2:#1d2834; --line:#2c3a48; --fg:#e6ebf0; --muted:#97a5b4;
+  --accent:#ff7b3a; --accent2:#2bb3ac; --steel:#8b99a8; --steel2:#5d6b7a; --metal:#3a4756; --dark:#c9d1da;
+  --g-adm:#4c9ad8; --g-comp:#6f80ee; --g-comb:#ff9a3c; --g-esc:#6c7681; --ideal:#aeb8c4; --real:#ff7b3a; --temp:#f06595;
+  --ok:#51cf66; --warn:#fcc419; --bad:#ff6b6b; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f141a; --panel:#17202a; --panel2:#1d2834; --line:#2c3a48; --fg:#e6ebf0; --muted:#97a5b4;
+  --accent:#ff7b3a; --accent2:#2bb3ac; --steel:#8b99a8; --steel2:#5d6b7a; --metal:#3a4756; --dark:#c9d1da;
+  --g-adm:#4c9ad8; --g-comp:#6f80ee; --g-comb:#ff9a3c; --g-esc:#6c7681; --ideal:#aeb8c4; --real:#ff7b3a; --temp:#f06595;
+  --ok:#51cf66; --warn:#fcc419; --bad:#ff6b6b; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:14px;line-height:1.45}
+.wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:14px 28px;max-width:1500px;margin:0 auto}
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:10px 24px;border-bottom:2px solid var(--fg);padding-bottom:10px;margin-bottom:14px}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(28px,4vw,42px);letter-spacing:.01em;line-height:1;margin:0;text-wrap:balance}
+h1 small{display:block;font-family:var(--f-body);font-weight:600;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-top:6px}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button,select,input{font:inherit;color:inherit}
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:7px 12px;cursor:pointer;font-weight:600}
+.btn:hover{border-color:var(--accent)} .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.seg button{border:0;background:var(--panel);padding:7px 10px;cursor:pointer;font-weight:600;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--fg);color:var(--bg)}
+.grid{display:grid;grid-template-columns:300px minmax(0,1fr) 270px;gap:14px;align-items:start}
+@media (max-width:1180px){.grid{grid-template-columns:280px minmax(0,1fr)}.inst{grid-column:1/-1}}
+@media (max-width:760px){.grid{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;min-width:0}
+.card h2{font-family:var(--f-display);font-weight:600;font-size:19px;letter-spacing:.02em;margin:0;padding:10px 14px 8px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.card h2 span{font-family:var(--f-body);font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
+/* entradas */
+.inputs{max-height:none}
+details{border-bottom:1px solid var(--line)} details:last-child{border-bottom:0}
+summary{cursor:pointer;padding:9px 14px;font-weight:700;font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);list-style:none;display:flex;justify-content:space-between}
+summary::after{content:"+";font-family:var(--f-mono)} details[open] summary::after{content:"–"}
+.fields{display:grid;gap:9px;padding:2px 14px 14px}
+.f label{display:flex;justify-content:space-between;gap:8px;font-size:13px;margin-bottom:3px}
+.f label b{font-weight:600}
+.f .row{display:grid;grid-template-columns:minmax(0,1fr) 78px;gap:8px;align-items:center}
+.f input[type=number]{width:100%;padding:4px 6px;border:1px solid var(--line);border-radius:5px;background:var(--panel2);font-family:var(--f-mono);font-size:13px;text-align:right}
+.f input[type=range]{width:100%;accent-color:var(--accent)}
+.f select{width:100%;padding:5px 6px;border:1px solid var(--line);border-radius:5px;background:var(--panel2)}
+.unit{font-family:var(--f-mono);font-size:11px;color:var(--muted)}
+.preset{padding:12px 14px;border-bottom:1px solid var(--line);display:grid;gap:6px}
+.preset label{font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.preset select{padding:6px;border:1px solid var(--line);border-radius:5px;background:var(--panel2)}
+.note{font-size:12px;color:var(--muted)}
+/* banco */
+.bench{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:0}
+@media (max-width:980px){.bench{grid-template-columns:minmax(0,1fr)}}
+.bench canvas{width:100%;display:block}
+.stroke{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border-top:1px solid var(--line);flex-wrap:wrap}
+.stroke .name{font-family:var(--f-display);font-weight:700;font-size:26px;letter-spacing:.03em;line-height:1}
+.stroke .ang{font-family:var(--f-mono);font-size:14px;color:var(--muted)}
+.scrub{display:flex;gap:10px;align-items:center;padding:0 14px 12px;flex-wrap:wrap}
+.scrub input[type=range]{flex:1 1 220px;accent-color:var(--accent)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--muted);padding:0 14px 12px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+/* instrumentos */
+.inst .tiles{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line)}
+@media (max-width:1180px) and (min-width:761px){.inst .tiles{grid-template-columns:repeat(4,1fr)}}
+.tile{background:var(--panel);padding:10px 12px;min-width:0}
+.tile .k{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.tile .v{font-family:var(--f-mono);font-size:20px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tile .v small{font-size:11px;color:var(--muted);font-weight:400;margin-left:3px}
+.tile .s{font-size:11px;color:var(--muted);font-family:var(--f-mono)}
+.status{padding:10px 14px;border-top:1px solid var(--line);display:grid;gap:6px}
+.pill{display:inline-flex;align-items:center;gap:6px;font-weight:700;font-size:12px;padding:3px 9px;border-radius:999px;border:1px solid currentColor}
+.pill.ok{color:var(--ok)} .pill.warn{color:var(--warn)} .pill.bad{color:var(--bad)}
+.livebox{padding:10px 14px;border-top:1px solid var(--line);font-family:var(--f-mono);font-size:12.5px;display:grid;grid-template-columns:auto auto;gap:3px 10px;font-variant-numeric:tabular-nums}
+.livebox span:nth-child(odd){color:var(--muted);font-family:var(--f-body)}
+.livebox span:nth-child(even){text-align:right}
+/* gráficas */
+.charts{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:14px;margin-top:14px}
+@media (max-width:980px){.charts{grid-template-columns:minmax(0,1fr)}}
+.chartbox{overflow-x:auto}
+.charts canvas{width:100%;display:block}
+@media (max-width:640px){.charts canvas{min-width:620px}}
+.tabs{display:flex;gap:4px;flex-wrap:wrap}
+.tabs button{border:1px solid var(--line);background:var(--panel2);padding:4px 10px;border-radius:5px;cursor:pointer;font-size:12px;font-weight:700;color:var(--muted)}
+.tabs button[aria-selected="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.foot{margin-top:16px;font-size:12px;color:var(--muted);display:grid;gap:4px;max-width:120ch}
+.sr{position:absolute;left:-9999px}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+</style>
+</head><body>
+<div class="wrap">
+<header class="top">
+  <h1>Simulador de Motores Otto<small>Introducción a Motores · ISTS · ciclo teórico y real, grado a grado</small></h1>
+  <div class="toolbar" role="toolbar" aria-label="Controles de la simulación">
+    <button class="btn primary" id="play" type="button">Pausa</button>
+    <div class="seg" role="group" aria-label="Velocidad">
+      <button type="button" data-speed="1">Lento</button><button type="button" data-speed="3" aria-pressed="true">Normal</button><button type="button" data-speed="8">Rápido</button>
+    </div>
+    <div class="seg" role="group" aria-label="Unidad de presión">
+      <button type="button" data-unit="bar" aria-pressed="true">bar</button><button type="button" data-unit="kgf">kgf/cm²</button>
+    </div>
+    <button class="btn" id="copy" type="button">Copiar resultados</button>
+    <button class="btn" id="reset" type="button">Restablecer</button>
+  </div>
+</header>
+
+<div class="grid">
+  <!-- DATOS DE ENTRADA -->
+  <section class="card inputs" aria-labelledby="hIn">
+    <h2 id="hIn">Datos del motor <span>editable</span></h2>
+    <div class="preset">
+      <label for="preset">Cargar motor de referencia</label>
+      <select id="preset"></select>
+      <div class="note" id="presetNote"></div>
+    </div>
+    <div id="groups"></div>
+  </section>
+
+  <!-- BANCO: MOTOR + DIAGRAMA DE FASES -->
+  <section class="card" aria-labelledby="hBench">
+    <h2 id="hBench">Banco de pruebas <span id="benchSub">corte del cilindro · diagrama de fases</span></h2>
+    <div class="bench">
+      <canvas id="cvMotor" width="560" height="520" aria-label="Animación del motor"></canvas>
+      <canvas id="cvFases" width="440" height="520" aria-label="Diagrama circular de la distribución"></canvas>
+    </div>
+    <div class="stroke"><div class="name" id="strokeName">ADMISIÓN</div><div class="ang" id="strokeAng">θ = 0°</div></div>
+    <div class="scrub"><label for="theta" class="note">Ángulo del cigüeñal</label><input id="theta" type="range" min="0" max="719" step="1" value="0"></div>
+    <div class="legend">
+      <span><i style="background:var(--g-adm)"></i>Mezcla fresca</span><span><i style="background:var(--g-comp)"></i>Mezcla comprimida</span>
+      <span><i style="background:var(--g-comb)"></i>Combustión</span><span><i style="background:var(--g-esc)"></i>Gases quemados</span>
+    </div>
+  </section>
+
+  <!-- INSTRUMENTOS -->
+  <aside class="card inst" aria-labelledby="hInst">
+    <h2 id="hInst">Resultados <span id="instSub">por ciclo</span></h2>
+    <div class="tiles" id="tiles"></div>
+    <div class="status" id="status"></div>
+    <div class="livebox" id="live" aria-live="off"></div>
+  </aside>
+</div>
+
+<div class="charts">
+  <section class="card">
+    <h2><span style="font-family:var(--f-display);font-size:19px;letter-spacing:.02em;color:var(--fg);text-transform:none">Presión y temperatura</span>
+      <div class="tabs" role="tablist" aria-label="Gráfica principal">
+        <button role="tab" aria-selected="true" data-tab="pt">P y T frente a θ</button>
+        <button role="tab" aria-selected="false" data-tab="curvas">Curvas características</button>
+        <button role="tab" aria-selected="false" data-tab="wiebe">Combustión</button>
+      </div></h2>
+    <div class="chartbox"><canvas id="cvMain" width="900" height="380" aria-label="Gráfica principal"></canvas></div>
+  </section>
+  <section class="card">
+    <h2>Diagrama P–V <span>teórico frente a real</span></h2>
+    <div class="chartbox"><canvas id="cvPV" width="600" height="380" aria-label="Diagrama presión-volumen"></canvas></div>
+  </section>
+</div>
+
+<div class="foot">
+  <div><b>Modelo.</b> Ciclo teórico: Otto de aire estándar (k = 1,4) con el mismo calor que el real. Ciclo real: modelo de una zona grado a grado, ley de Wiebe para la combustión (a = 5, m = 2), k = 1,32, lazo de bombeo, gases residuales, llenado según el régimen y pérdidas mecánicas orientativas. Es un modelo didáctico: los resultados son del orden de los reales, pero no sustituyen al banco de pruebas.</div>
+  <div><b>Referencias.</b> Çengel y Boles (2012), <i>Termodinámica</i>; Payri y Desantes (2011), <i>Motores de combustión interna alternativos</i>; Escudero Fernández et al. (2011), <i>Motores</i>. Datos de las maquetas: valores de referencia, verifíquelos en el manual del fabricante.</div>
+  <div>Inspirado en el «Simulador de Motores» en Flash usado en clase; esta versión es un desarrollo nuevo, en español y con ingreso de datos.</div>
+</div>
+</div>
+<script>
+// ===== MODELO DEL MOTOR (compartido por la app y las pruebas) =====
+const FUELS = {
+  gas87: { name: 'Gasolina Extra (87 oct.)', afr: 14.7, pci: 43.4e6, tlim: 1000 },
+  gas92: { name: 'Gasolina Súper (92 oct.)', afr: 14.7, pci: 43.4e6, tlim: 1060 },
+  e100:  { name: 'Etanol E100', afr: 9.0, pci: 26.8e6, tlim: 1180 },
+  glp:   { name: 'GLP', afr: 15.6, pci: 46.1e6, tlim: 1160 },
+};
+function simulate(inp, nOverride) {
+  const n = nOverride || inp.n;
+  const R = 287, k = 1.32, kid = 1.4, cvAir = 718;
+  const fuel = FUELS[inp.fuel];
+  const r = inp.L / 2, lam = r / inp.lb;
+  const Sp = Math.PI * Math.pow(inp.D / 10, 2) / 4;      // cm2
+  const Vu = Sp * inp.L / 10, Vc = Vu / (inp.Rc - 1);   // cm3
+  const N = 720, th = [], V = [];
+  for (let i = 0; i < N; i++) {
+    const t = i * Math.PI / 180;
+    const x = r * ((1 - Math.cos(t)) + (1 / lam) * (1 - Math.sqrt(1 - lam * lam * Math.sin(t) ** 2)));
+    th.push(i); V.push(Vc + Sp * x / 10);
+  }
+  const rpmF = n / 6000;
+  const Patm = inp.Patm, Tatm = inp.Tatm + 273.15;
+  const Padm = Patm * (1 - 0.92 * Math.pow(1 - inp.mariposa / 100, 2)) * (1 - 0.05 * rpmF * rpmF);  // kPa, colector
+  const Pesc = Patm * (1.05 + 0.25 * rpmF * rpmF);
+  const xr = Math.min(0.3, (1 / inp.Rc) * Math.pow(Pesc / Padm, 1 / k));
+  const T1 = (1 - xr) * (Tatm + 15) + xr * 850;
+  const IVC = Math.round(180 + inp.RCA), EVO = Math.round(540 - inp.AAE);
+  const nopt = 1500 + 60 * inp.RCA;                         // régimen de mejor llenado (sintonía del RCA)
+  const fill = Math.max(0.55, 1.05 - 0.5 * Math.pow((n - nopt) / 6000, 2));
+  const mtot = fill * Padm * 1e3 * V[180] * 1e-6 / (R * T1);
+  const pIVC = mtot * R * T1 / (V[IVC] * 1e-6) / 1e5;           // bar al cierre de la admisión
+  const mair = (1 - xr) * mtot;
+  const rhoAtm = Patm * 1e3 / (R * Tatm);
+  const etaV = mair / (rhoAtm * Vu * 1e-6);
+  const lamb = inp.lambda;
+  const mf = mair / (lamb * fuel.afr);
+  const misfire = lamb > 1.5 || lamb < 0.6;
+  let Q = (lamb < 1 ? mair / fuel.afr : mf) * fuel.pci * inp.util / 100;
+  if (misfire) Q = 0;
+  const dur = inp.dur * (1 + 1.5 * (lamb - 1) ** 2);
+  const ts = 360 - inp.avance;
+  const wiebe = t => { const z = Math.max(0, (t - ts) / dur); return 1 - Math.exp(-5 * Math.pow(z, 3)); };
+  const p = new Array(N).fill(0), T = new Array(N).fill(0), xb = new Array(N).fill(0);
+  const P1 = Padm / 100;                                   // bar
+  for (let i = 0; i <= IVC; i++) { p[i] = P1 + (Pesc / 100 - P1) * Math.exp(-i / 15); T[i] = T1; }
+  for (let i = 180; i <= IVC; i++) p[i] = P1 + (pIVC - P1) * (i - 180) / Math.max(1, IVC - 180);
+  for (let i = IVC; i < EVO; i++) {
+    const dV = (V[i + 1] - V[i]) * 1e-6, Vm = 0.5 * (V[i] + V[i + 1]) * 1e-6;
+    xb[i + 1] = wiebe(i + 1); xb[i] = wiebe(i);
+    const dQ = Q * (xb[i + 1] - xb[i]);
+    const pa = p[i] * 1e5;
+    p[i + 1] = (pa + ((k - 1) * dQ - k * pa * dV) / Vm) / 1e5;
+    T[i + 1] = p[i + 1] * 1e5 * V[i + 1] * 1e-6 / (mtot * R);
+  }
+  const pE = p[EVO], TE = T[EVO], pe = Pesc / 100;
+  for (let i = EVO + 1; i < N; i++) {
+    p[i] = pe + (pE - pe) * Math.exp(-(i - EVO) / 18);
+    T[i] = Math.max(TE * Math.pow(p[i] / pE, (k - 1) / k), 600);
+    xb[i] = 1;
+  }
+  for (let i = 0; i < N; i++) if (i >= EVO) xb[i] = misfire ? 0 : 1;
+  // trabajo indicado (bar·cm3 -> J: x0.1)
+  let W = 0;
+  for (let i = 0; i < N; i++) { const j = (i + 1) % N; W += 0.5 * (p[i] + p[j]) * (V[j] - V[i]) * 0.1; }
+  const pmi = W / (Vu * 0.1);
+  const pmf = (75 + 10 * n / 1000 + 3 * (n / 1000) ** 2) / 100;   // bar, pérdidas mecánicas (orientativo)
+  const pme = pmi - pmf;
+  const Pe = pme * 1e5 * Vu * 1e-6 * inp.cil * n / 120;           // W
+  const Pi = W * inp.cil * n / 120;
+  const omega = 2 * Math.PI * n / 60;
+  const fuelH = mf * inp.cil * n / 2 * 60;                         // kg/h
+  const Qfuel = mf * fuel.pci * inp.cil * n / 120;                 // W
+  // ciclo ideal (Otto aire estándar)
+  const pid = new Array(N), Tid = new Array(N);
+  const V1 = V[180], V2 = V[360];
+  const T2 = T1 * Math.pow(V1 / V2, kid - 1), P2 = P1 * Math.pow(V1 / V2, kid);
+  const T3 = T2 + Q / (mtot * cvAir), P3 = P2 * T3 / T2;
+  for (let i = 0; i < N; i++) {
+    if (i < 180 || i >= 540) { pid[i] = P1; Tid[i] = T1; }
+    else if (i < 360) { pid[i] = P1 * Math.pow(V1 / V[i], kid); Tid[i] = T1 * Math.pow(V1 / V[i], kid - 1); }
+    else { pid[i] = P3 * Math.pow(V2 / V[i], kid); Tid[i] = T3 * Math.pow(V2 / V[i], kid - 1); }
+  }
+  let im = 0; for (let i = 1; i < N; i++) if (p[i] > p[im]) im = i;
+  const Tu = T1 * Math.pow(p[im] / P1, (k - 1) / k);               // gas sin quemar al pico
+  const knock = misfire ? 0 : Tu / fuel.tlim;
+  return {
+    th, V, p, T, xb, pid, Tid, Vu, Vc, Vt: Vu * inp.cil, Sp, lam, Padm, Pesc, P1, T1, xr, IVC, EVO, ts, dur,
+    mair, mf, Q, etaV, W, pmi, pmf, pme, Pe, Pi, Me: Pe / omega, Mi: Pi / omega,
+    etai: Qfuel > 0 ? Pi / Qfuel : 0, etae: Qfuel > 0 ? Pe / Qfuel : 0, etaid: 1 - 1 / Math.pow(inp.Rc, kid - 1),
+    ge: Pe > 0 ? fuelH / (Pe / 1000) * 1000 : NaN, fuelH, pmax: p[im], thmax: im, Tmax: Math.max(...T),
+    pidmax: Math.max(...pid), Tidmax: Math.max(...Tid), knock, Tu, misfire, vm: inp.L / 1000 * n / 30, n,
+  };
+}
+// ===================== INTERFAZ =====================
+const FIELDS = [
+  { g: 'Geometría', open: true, items: [
+    ['D', 'Diámetro (alesaje) D', 'mm', 50, 110, 0.5],
+    ['L', 'Carrera L', 'mm', 50, 110, 0.5],
+    ['lb', 'Longitud de la biela l', 'mm', 90, 200, 1],
+    ['cil', 'Número de cilindros', '', 1, 8, 1],
+    ['Rc', 'Relación de compresión Rc', ':1', 6, 14, 0.1] ] },
+  { g: 'Operación', open: true, items: [
+    ['n', 'Régimen n', 'rpm', 800, 7000, 50],
+    ['mariposa', 'Apertura de la mariposa', '%', 5, 100, 1],
+    ['Patm', 'Presión atmosférica', 'kPa', 60, 105, 0.1],
+    ['Tatm', 'Temperatura ambiente', '°C', 0, 40, 1] ] },
+  { g: 'Combustible y mezcla', open: false, items: [
+    ['fuel', 'Combustible', '', 0, 0, 0],
+    ['lambda', 'Factor lambda λ (1 = estequiométrica)', '', 0.6, 1.6, 0.01],
+    ['util', 'Calor útil (combustión y pérdidas)', '%', 50, 95, 1] ] },
+  { g: 'Encendido y combustión', open: true, items: [
+    ['avance', 'Avance del encendido', '° aPMS', 0, 50, 1],
+    ['dur', 'Duración de la combustión', '°', 20, 100, 1] ] },
+  { g: 'Distribución (cotas)', open: false, items: [
+    ['AAA', 'AAA: avance apertura admisión', '°', 0, 40, 1],
+    ['RCA', 'RCA: retraso cierre admisión', '°', 0, 80, 1],
+    ['AAE', 'AAE: avance apertura escape', '°', 20, 80, 1],
+    ['RCE', 'RCE: retraso cierre escape', '°', 0, 40, 1] ] },
+];
+const DEFAULT = { D: 84, L: 81, lb: 135, cil: 4, Rc: 9.9, n: 3000, mariposa: 100, Patm: 101.3, Tatm: 20, fuel: 'gas92', lambda: 1.0, util: 80, avance: 25, dur: 50, AAA: 10, RCA: 40, AAE: 45, RCE: 10 };
+const PRESETS = {
+  guia:   { name: 'Motor de la guía (Unidad 4): 84 × 81 mm', v: { D: 84, L: 81, lb: 135, cil: 4, Rc: 9.9 }, note: 'Datos de los ejercicios de la guía didáctica.' },
+  g13b:   { name: 'Suzuki G13B (banco del taller)', v: { D: 74, L: 75.5, lb: 126, cil: 4, Rc: 9.5 }, note: 'Ficha de referencia; biela estimada (λ ≈ 0,30).' },
+  cb20:   { name: 'Daihatsu CB-20 (maqueta)', v: { D: 76, L: 73, lb: 122, cil: 3, Rc: 9.5 }, note: 'Ficha de referencia; biela estimada (λ ≈ 0,30).' },
+  a14:    { name: 'Nissan A14 (maqueta)', v: { D: 76, L: 77, lb: 128, cil: 4, Rc: 9.0 }, note: 'Ficha de referencia; biela estimada (λ ≈ 0,30).' },
+  g4ed:   { name: 'Hyundai G4ED 1.6 (maqueta)', v: { D: 76.5, L: 87, lb: 145, cil: 4, Rc: 10.0 }, note: 'Ficha de referencia; biela estimada (λ ≈ 0,30).' },
+  monza:  { name: 'Chevrolet Monza 2.0 (maqueta)', v: { D: 86, L: 86, lb: 143, cil: 4, Rc: 9.2 }, note: 'Ficha de referencia de la familia GM 2.0.' },
+};
+const PLACES = { mar: ['Nivel del mar', 101.3, 20], loja: ['Loja (≈ 2 060 m)', 79.0, 16], quito: ['Quito (≈ 2 850 m)', 72.0, 14] };
+let inp = { ...DEFAULT };
+try { const s = JSON.parse(localStorage.getItem('simOtto') || 'null'); if (s) inp = { ...DEFAULT, ...s }; } catch (e) {}
+let R = null, theta = 0, playing = !window.matchMedia('(prefers-reduced-motion: reduce)').matches, speed = 3, unit = 'bar', tab = 'pt', curves = null;
+const $ = id => document.getElementById(id);
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const fmt = (x, d = 1) => (isFinite(x) ? x.toLocaleString('es-EC', { minimumFractionDigits: d, maximumFractionDigits: d }) : '—');
+const pU = p => unit === 'bar' ? p : p * 1.01972;
+const pLab = () => unit === 'bar' ? 'bar' : 'kgf/cm²';
+
+function buildInputs() {
+  const host = $('groups');
+  FIELDS.forEach(grp => {
+    const d = document.createElement('details'); if (grp.open) d.open = true;
+    d.innerHTML = `<summary>${grp.g}</summary><div class="fields"></div>`;
+    const box = d.querySelector('.fields');
+    grp.items.forEach(([key, lab, un, mn, mx, st]) => {
+      const f = document.createElement('div'); f.className = 'f';
+      if (key === 'fuel') {
+        f.innerHTML = `<label for="in_fuel"><b>${lab}</b></label><select id="in_fuel">${Object.entries(FUELS).map(([k, v]) => `<option value="${k}">${v.name}</option>`).join('')}</select>`;
+      } else {
+        f.innerHTML = `<label for="in_${key}"><b>${lab}</b><span class="unit">${un}</span></label>
+          <div class="row"><input type="range" id="rg_${key}" min="${mn}" max="${mx}" step="${st}" aria-label="${lab}"><input type="number" id="in_${key}" min="${mn}" max="${mx}" step="${st}"></div>`;
+      }
+      box.appendChild(f);
+      if (key === 'Patm') {
+        const p = document.createElement('div'); p.className = 'f';
+        p.innerHTML = `<label for="in_lugar"><b>Lugar</b></label><select id="in_lugar"><option value="">— elegir —</option>${Object.entries(PLACES).map(([k, v]) => `<option value="${k}">${v[0]}</option>`).join('')}</select>`;
+        box.insertBefore(p, f);
+      }
+    });
+    host.appendChild(d);
+  });
+  const ps = $('preset');
+  ps.innerHTML = `<option value="">— elegir —</option>` + Object.entries(PRESETS).map(([k, v]) => `<option value="${k}">${v.name}</option>`).join('');
+  ps.addEventListener('change', () => { const P = PRESETS[ps.value]; if (!P) return; Object.assign(inp, P.v); $('presetNote').textContent = P.note; syncInputs(); recompute(); });
+  $('in_lugar').addEventListener('change', e => { const P = PLACES[e.target.value]; if (!P) return; inp.Patm = P[1]; inp.Tatm = P[2]; syncInputs(); recompute(); });
+  $('in_fuel').addEventListener('change', e => { inp.fuel = e.target.value; recompute(); });
+  FIELDS.flatMap(g => g.items).forEach(([key]) => {
+    if (key === 'fuel') return;
+    const rg = $('rg_' + key), nb = $('in_' + key);
+    rg.addEventListener('input', () => { inp[key] = +rg.value; nb.value = rg.value; recompute(); });
+    nb.addEventListener('change', () => {
+      let v = +nb.value; if (!isFinite(v)) v = inp[key];
+      v = Math.min(+nb.max, Math.max(+nb.min, v)); inp[key] = v; nb.value = v; rg.value = v; recompute();
+    });
+  });
+  syncInputs();
+}
+function syncInputs() {
+  FIELDS.flatMap(g => g.items).forEach(([key]) => {
+    if (key === 'fuel') { $('in_fuel').value = inp.fuel; return; }
+    $('rg_' + key).value = inp[key]; $('in_' + key).value = inp[key];
+  });
+}
+function recompute() {
+  if (inp.lb < inp.L * 0.9) { inp.lb = Math.round(inp.L * 0.9); syncInputs(); }
+  try { localStorage.setItem('simOtto', JSON.stringify(inp)); } catch (e) {}
+  R = simulate(inp);
+  curves = [];
+  for (let n = 1000; n <= 7000; n += 250) { const c = simulate(inp, n); curves.push({ n, Pe: c.Pe / 1000, Me: c.Me, ge: c.ge }); }
+  renderTiles(); drawAll();
+}
+
+// ===================== RESULTADOS =====================
+function renderTiles() {
+  const r = R, cv = r.Pe / 735.5;
+  const T = [
+    ['Cilindrada total', fmt(r.Vt / 1000, 2), 'L', `Vu ${fmt(r.Vu, 1)} cm³`],
+    ['Cámara Vcc', fmt(r.Vc, 1), 'cm³', `Rc ${fmt(inp.Rc, 1)}:1`],
+    ['Presión máxima', fmt(pU(r.pmax), 1), pLab(), `a ${r.thmax - 360}° dPMS`],
+    ['Temperatura máx.', fmt(r.Tmax - 273.15, 0), '°C', `teórica ${fmt(r.Tidmax - 273.15, 0)} °C`],
+    ['PMI', fmt(pU(r.pmi), 2), pLab(), `indicada`],
+    ['PME', fmt(pU(r.pme), 2), pLab(), `pérd. mec. ${fmt(pU(r.pmf), 2)}`],
+    ['Potencia efectiva', fmt(r.Pe / 1000, 1), 'kW', `${fmt(cv, 0)} CV a ${fmt(r.n, 0)} rpm`],
+    ['Par efectivo', fmt(r.Me, 0), 'N·m', `indicado ${fmt(r.Mi, 0)} N·m`],
+    ['Rendimiento efectivo', fmt(r.etae * 100, 1), '%', `Otto ideal ${fmt(r.etaid * 100, 1)} %`],
+    ['Consumo específico', isFinite(r.ge) ? fmt(r.ge, 0) : '—', 'g/kWh', `${fmt(r.fuelH, 1)} kg/h`],
+    ['Rendimiento volumétrico', fmt(r.etaV * 100, 0), '%', `admisión ${fmt(r.Padm, 1)} kPa`],
+    ['Vel. media pistón', fmt(r.vm, 1), 'm/s', `λ = r/l = ${fmt(r.lam, 2)}`],
+  ];
+  $('tiles').innerHTML = T.map(([k, v, u, s]) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}<small>${u}</small></div><div class="s">${s}</div></div>`).join('');
+  const kn = r.knock, knC = kn < 0.9 ? 'ok' : kn < 1.0 ? 'warn' : 'bad', knT = kn < 0.9 ? 'bajo' : kn < 1.0 ? 'moderado' : 'alto';
+  const lm = inp.lambda, mzC = Math.abs(lm - 1) < 0.03 ? 'ok' : 'warn', mzT = lm < 0.97 ? 'rica' : lm > 1.03 ? 'pobre' : 'estequiométrica';
+  const dp = r.thmax - 360, avC = dp >= 8 && dp <= 17 ? 'ok' : 'warn', avT = dp < 8 ? 'adelantado (pico muy cerca del PMS)' : dp > 17 ? 'retrasado (pico tardío)' : 'cercano al óptimo';
+  let h = `<div><span class="pill ${knC}">Riesgo de detonación: ${knT}</span></div>
+    <div><span class="pill ${mzC}">Mezcla ${mzT} · λ = ${fmt(lm, 2)}</span></div>
+    <div><span class="pill ${avC}">Encendido ${avT}</span></div>`;
+  if (r.misfire) h += `<div><span class="pill bad">Fallo de encendido: mezcla fuera de los límites de inflamabilidad</span></div>`;
+  if (r.Pe <= 0) h += `<div class="note">Con estos datos el motor no entrega potencia neta (marcha en vacío o carga muy baja).</div>`;
+  h += `<div class="note">Indicadores orientativos del modelo; la detonación compara la temperatura del gas sin quemar con un límite según el combustible.</div>`;
+  $('status').innerHTML = h;
+}
+function strokeOf(t) { return t < 180 ? ['ADMISIÓN', css('--g-adm')] : t < 360 ? ['COMPRESIÓN', css('--g-comp')] : t < 540 ? ['EXPANSIÓN', css('--g-comb')] : ['ESCAPE', css('--g-esc')]; }
+function lift(t, which) {
+  let ab, ci; if (which === 'adm') { ab = -inp.AAA; ci = 180 + inp.RCA; } else { ab = 540 - inp.AAE; ci = 720 + inp.RCE; }
+  let h = 0; for (const s of [-720, 0, 720]) { const x = t + s; if (x >= ab && x <= ci) h = Math.max(h, 0.5 * (1 - Math.cos(2 * Math.PI * (x - ab) / (ci - ab)))); }
+  return h;
+}
+function renderLive() {
+  const i = Math.round(theta) % 720, r = R;
+  const x = (r.V[i] - r.Vc) / r.Sp * 10;
+  const [nm, col] = strokeOf(i);
+  $('strokeName').textContent = `${Math.floor(i / 180) + 1}. ${nm}`; $('strokeName').style.color = col;
+  $('strokeAng').textContent = `θ = ${i}° · vuelta ${i < 360 ? 1 : 2} de 2 · árbol de levas ${fmt(i / 2, 0)}°`;
+  const la = lift(i, 'adm'), le = lift(i, 'esc');
+  const L = [
+    ['Posición del pistón', `${fmt(x, 1)} mm`], ['Volumen', `${fmt(r.V[i], 1)} cm³`],
+    ['Presión real', `${fmt(pU(r.p[i]), 2)} ${pLab()}`], ['Presión teórica', `${fmt(pU(r.pid[i]), 2)} ${pLab()}`],
+    ['Temperatura real', `${fmt(r.T[i] - 273.15, 0)} °C`], ['Masa quemada', `${fmt(r.xb[i] * 100, 0)} %`],
+    ['Válvula admisión', la > 0.02 ? `abierta ${fmt(la * 100, 0)} %` : 'cerrada'], ['Válvula escape', le > 0.02 ? `abierta ${fmt(le * 100, 0)} %` : 'cerrada'],
+  ];
+  $('live').innerHTML = L.map(([a, b]) => `<span>${a}</span><span>${b}</span>`).join('');
+}
+
+// ===================== DIBUJO =====================
+function fit(cv, W0, H0) {
+  const dpr = window.devicePixelRatio || 1, w = cv.clientWidth || W0, h = w * H0 / W0;
+  if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); cv.style.height = h + 'px'; }
+  const c = cv.getContext('2d'); c.setTransform(cv.width / W0, 0, 0, cv.height / H0, 0, 0); c.clearRect(0, 0, W0, H0); return c;
+}
+function drawMotor() {
+  const W0 = 560, H0 = 520, c = fit($('cvMotor'), W0, H0), r = R, i = Math.round(theta) % 720;
+  const D = inp.D, Rk = inp.L / 2, lb = inp.lb, hc = inp.L / (inp.Rc - 1), hp = 0.72 * D, pinUp = 0.42 * hp;
+  const tot = 2 * Rk + 30 + lb + pinUp + hc + 72;
+  const s = Math.min((H0 - 36) / tot, (W0 - 120) / (D + 120));
+  const cx = W0 / 2, cy = H0 - 22 - (Rk + 30) * s;                 // centro del cigüeñal
+  const Y = mm => cy - mm * s, X = mm => cx + mm * s;
+  const t = i * Math.PI / 180, xc = Rk * Math.sin(t), yc = Rk * Math.cos(t), yb = yc + Math.sqrt(lb * lb - xc * xc);
+  const yTop = yb + pinUp, yTopPMS = Rk + lb + pinUp, yHead = yTopPMS + hc;
+  const metal = css('--metal'), steel = css('--steel'), dark = css('--dark'), line = css('--line'), fg = css('--fg'), panel2 = css('--panel2');
+  c.lineJoin = 'round';
+  // cárter
+  c.fillStyle = panel2; c.strokeStyle = steel; c.lineWidth = 2;
+  c.beginPath(); c.roundRect ? c.roundRect(X(-D / 2 - 34), Y(Rk + 26), (D + 68) * s, (2 * Rk + 48) * s, 14) : c.rect(X(-D / 2 - 34), Y(Rk + 26), (D + 68) * s, (2 * Rk + 48) * s); c.fill(); c.stroke();
+  // bloque y camisas
+  const wall = 9;
+  c.fillStyle = metal;
+  c.fillRect(X(-D / 2 - wall - 14), Y(yHead), (wall + 14) * s, (yHead - (Rk + 20)) * s);
+  c.fillRect(X(D / 2), Y(yHead), (wall + 14) * s, (yHead - (Rk + 20)) * s);
+  c.fillStyle = css('--g-adm'); c.globalAlpha = 0.18;                  // cámara de agua
+  c.fillRect(X(-D / 2 - wall - 9), Y(yHead - 6), 6 * s, (yHead - 6 - (Rk + lb - 10)) * s);
+  c.fillRect(X(D / 2 + wall + 3), Y(yHead - 6), 6 * s, (yHead - 6 - (Rk + lb - 10)) * s); c.globalAlpha = 1;
+  c.strokeStyle = dark; c.lineWidth = 2.5;
+  c.beginPath(); c.moveTo(X(-D / 2), Y(Rk + 20)); c.lineTo(X(-D / 2), Y(yHead)); c.moveTo(X(D / 2), Y(Rk + 20)); c.lineTo(X(D / 2), Y(yHead)); c.stroke();
+  // gas en el cilindro
+  const [nm, gcol] = strokeOf(i);
+  let gas = gcol; if (i >= 360 && i < 540 && r.xb[i] > 0.98) gas = css('--g-esc');
+  c.fillStyle = gas; c.globalAlpha = 0.55; c.fillRect(X(-D / 2), Y(yHead), D * s, (yHead - yTop) * s); c.globalAlpha = 1;
+  // frente de llama
+  if (!r.misfire && r.xb[i] > 0.001 && r.xb[i] < 0.995 && i > r.ts && i < 560) {
+    const rad = Math.sqrt(r.xb[i]) * D * 0.75;
+    c.save(); c.beginPath(); c.rect(X(-D / 2), Y(yHead), D * s, (yHead - yTop) * s); c.clip();
+    const gr = c.createRadialGradient(X(0), Y(yHead), 0, X(0), Y(yHead), rad * s);
+    gr.addColorStop(0, '#fff3bf'); gr.addColorStop(0.6, css('--g-comb')); gr.addColorStop(1, 'rgba(240,140,46,0.15)');
+    c.fillStyle = gr; c.beginPath(); c.arc(X(0), Y(yHead), rad * s, 0, Math.PI); c.fill(); c.restore();
+  }
+  // culata
+  c.fillStyle = metal; c.strokeStyle = steel; c.lineWidth = 2;
+  c.fillRect(X(-D / 2 - wall - 14), Y(yHead + 34), (D + 2 * wall + 28) * s, 34 * s); c.strokeRect(X(-D / 2 - wall - 14), Y(yHead + 34), (D + 2 * wall + 28) * s, 34 * s);
+  // conductos
+  const portC = css('--panel'), vx = D * 0.27, vd = D * 0.3;
+  const ports = [[-1, css('--g-adm'), 'adm'], [1, css('--g-esc'), 'esc']];
+  ports.forEach(([sg, col, w]) => {
+    c.fillStyle = portC; c.strokeStyle = steel;
+    c.beginPath(); c.moveTo(X(sg * (vx - vd / 2)), Y(yHead)); c.lineTo(X(sg * (vx + vd / 2)), Y(yHead));
+    c.lineTo(X(sg * (D / 2 + wall + 14)), Y(yHead + 24)); c.lineTo(X(sg * (D / 2 + wall + 14)), Y(yHead + 10)); c.closePath(); c.fill();
+    c.fillStyle = col; c.globalAlpha = 0.35; c.fill(); c.globalAlpha = 1;
+  });
+  // válvulas
+  ports.forEach(([sg, col, w]) => {
+    const h = lift(i, w) * Math.min(10, D * 0.11) * 1.6;
+    const yv = yHead - h;
+    c.fillStyle = w === 'adm' ? css('--accent2') : steel; c.strokeStyle = dark; c.lineWidth = 1;
+    c.beginPath(); c.moveTo(X(sg * vx - vd / 2), Y(yv)); c.lineTo(X(sg * vx + vd / 2), Y(yv)); c.lineTo(X(sg * vx + 2), Y(yv + 6)); c.lineTo(X(sg * vx + 2), Y(yv + 58)); c.lineTo(X(sg * vx - 2), Y(yv + 58)); c.lineTo(X(sg * vx - 2), Y(yv + 6)); c.closePath(); c.fill(); c.stroke();
+    // muelle
+    c.strokeStyle = steel; c.lineWidth = 1.2; c.beginPath();
+    for (let k = 0; k <= 8; k++) { const yy = yv + 40 + k * (18 - h * 0.2) / 8; c.lineTo(X(sg * vx + (k % 2 ? 6 : -6)), Y(yy)); } c.stroke();
+    // flujo
+    if (h > 1.5) {
+      c.fillStyle = col;
+      for (let k = 0; k < 6; k++) {
+        const ph = ((performance.now() / 600) + k / 6) % 1;
+        const px = w === 'adm' ? sg * (D / 2 + 20) * (1 - ph) + sg * vx * ph : sg * vx * (1 - ph) + sg * (D / 2 + 20) * ph;
+        const py = w === 'adm' ? (yHead + 18) * (1 - ph) + (yHead - 8) * ph : (yHead - 8) * (1 - ph) + (yHead + 18) * ph;
+        c.beginPath(); c.arc(X(px), Y(py), 2.6, 0, 2 * Math.PI); c.fill();
+      }
+    }
+  });
+  // bujía
+  c.fillStyle = steel; c.fillRect(X(-4), Y(yHead + 52), 8 * s, 52 * s);
+  c.fillStyle = css('--panel'); c.strokeStyle = steel; c.fillRect(X(-6), Y(yHead + 64), 12 * s, 16 * s); c.strokeRect(X(-6), Y(yHead + 64), 12 * s, 16 * s);
+  if (i >= r.ts && i <= r.ts + 7 && !r.misfire) {
+    c.strokeStyle = '#fab005'; c.lineWidth = 2; c.beginPath();
+    for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4; c.moveTo(X(0), Y(yHead - 2)); c.lineTo(X(9 * Math.cos(a)), Y(yHead - 2 + 9 * Math.sin(a))); } c.stroke();
+  }
+  // pistón
+  c.fillStyle = css('--steel2'); c.strokeStyle = dark; c.lineWidth = 1.5;
+  c.fillRect(X(-D / 2 + 1), Y(yTop), (D - 2) * s, hp * s); c.strokeRect(X(-D / 2 + 1), Y(yTop), (D - 2) * s, hp * s);
+  c.strokeStyle = dark; c.lineWidth = 1.2;
+  for (let k = 1; k <= 3; k++) { c.beginPath(); c.moveTo(X(-D / 2 + 1), Y(yTop - 4 * k)); c.lineTo(X(D / 2 - 1), Y(yTop - 4 * k)); c.stroke(); }
+  // contrapeso y manivela
+  c.fillStyle = css('--steel'); c.globalAlpha = 0.55;
+  const a0 = Math.atan2(yc, -xc); c.beginPath(); c.moveTo(X(0), Y(0)); c.arc(X(0), Y(0), (Rk + 10) * s, a0 - 0.8, a0 + 0.8); c.closePath(); c.fill(); c.globalAlpha = 1;
+  c.strokeStyle = css('--accent'); c.lineWidth = 11 * s; c.lineCap = 'round';
+  c.beginPath(); c.moveTo(X(0), Y(0)); c.lineTo(X(xc), Y(yc)); c.stroke();
+  // biela
+  c.strokeStyle = css('--accent2'); c.lineWidth = 9 * s;
+  c.beginPath(); c.moveTo(X(xc), Y(yc)); c.lineTo(X(0), Y(yb)); c.stroke(); c.lineCap = 'butt';
+  [[0, 0, 7], [xc, yc, 6], [0, yb, 5]].forEach(([a, b, rr]) => { c.fillStyle = css('--panel'); c.strokeStyle = dark; c.lineWidth = 1.5; c.beginPath(); c.arc(X(a), Y(b), rr * s, 0, 2 * Math.PI); c.fill(); c.stroke(); });
+  // cotas PMS / PMI
+  c.strokeStyle = css('--g-comp'); c.fillStyle = css('--muted'); c.lineWidth = 1; c.setLineDash([4, 3]);
+  const xL = -D / 2 - wall - 20;
+  [[yTopPMS, 'PMS'], [yTopPMS - inp.L, 'PMI']].forEach(([yy, lab]) => { c.beginPath(); c.moveTo(X(xL - 8), Y(yy)); c.lineTo(X(-D / 2), Y(yy)); c.stroke(); });
+  c.setLineDash([]); c.font = `600 12px ${css('--f-body')}`; c.textAlign = 'right';
+  c.fillText('PMS', X(xL - 10), Y(yTopPMS) + 4); c.fillText('PMI', X(xL - 10), Y(yTopPMS - inp.L) + 4);
+  c.textAlign = 'center'; c.fillStyle = css('--muted');
+  c.fillText('Admisión', X(-D / 2 - wall - 6), Y(yHead + 44)); c.fillText('Escape', X(D / 2 + wall + 6), Y(yHead + 44));
+  c.textAlign = 'left'; c.font = `11px ${css('--f-mono')}`; c.fillStyle = css('--muted');
+  c.fillText(`D ${inp.D} × L ${inp.L} mm · ${inp.cil} cil.`, 8, H0 - 8);
+}
+function drawFases() {
+  const W0 = 440, H0 = 520, c = fit($('cvFases'), W0, H0), i = Math.round(theta) % 720, r = R;
+  const cx = W0 / 2, cy = 245, base = 150;
+  const ang = d => (d - 90) * Math.PI / 180;           // 0° arriba, sentido horario
+  c.strokeStyle = css('--line'); c.lineWidth = 1; c.setLineDash([3, 4]);
+  c.beginPath(); c.moveTo(cx, cy - base - 30); c.lineTo(cx, cy + base + 30); c.moveTo(cx - base - 30, cy); c.lineTo(cx + base + 30, cy); c.stroke(); c.setLineDash([]);
+  const arcs = [
+    ['Admisión', -inp.AAA, 180 + inp.RCA, css('--g-adm'), base],
+    ['Compresión', 180 + inp.RCA, 360, css('--g-comp'), base - 22],
+    ['Expansión', 360, 540 - inp.AAE, css('--g-comb'), base - 44],
+    ['Escape', 540 - inp.AAE, 720 + inp.RCE, css('--g-esc'), base - 66],
+  ];
+  arcs.forEach(([lab, a, b, col, rad]) => {
+    c.strokeStyle = col; c.lineWidth = 14; c.lineCap = 'butt'; c.globalAlpha = 0.9;
+    c.beginPath(); c.arc(cx, cy, rad, ang(a), ang(b)); c.stroke(); c.globalAlpha = 1;
+  });
+  // chispa
+  const ts = r.ts; c.fillStyle = '#fab005'; c.strokeStyle = css('--fg'); c.lineWidth = 1;
+  c.beginPath(); c.arc(cx + (base - 33) * Math.cos(ang(ts)), cy + (base - 33) * Math.sin(ang(ts)), 6, 0, 2 * Math.PI); c.fill(); c.stroke();
+  // etiquetas de cotas
+  c.font = `600 11px ${css('--f-mono')}`; c.fillStyle = css('--fg'); c.textAlign = 'center';
+  const lab = (d, rad, txt) => c.fillText(txt, cx + rad * Math.cos(ang(d)), cy + rad * Math.sin(ang(d)) + 4);
+  lab(-inp.AAA, base + 24, `AAA ${inp.AAA}°`); lab(180 + inp.RCA, base + 24, `RCA ${inp.RCA}°`);
+  lab(540 - inp.AAE, base + 24, `AAE ${inp.AAE}°`); lab(720 + inp.RCE + 14, base + 24, `RCE ${inp.RCE}°`);
+  c.fillStyle = '#e67700'; lab(ts - 6, base - 33 - 20, `${inp.avance}°`);
+  c.font = `700 13px ${css('--f-body')}`; c.fillStyle = css('--muted');
+  c.fillText('PMS', cx, cy - base - 40); c.fillText('PMI', cx, cy + base + 48);
+  // aguja
+  const a = ang(i);
+  c.strokeStyle = css('--fg'); c.lineWidth = 2.5; c.beginPath(); c.moveTo(cx, cy); c.lineTo(cx + (base + 10) * Math.cos(a), cy + (base + 10) * Math.sin(a)); c.stroke();
+  c.fillStyle = css('--fg'); c.beginPath(); c.arc(cx, cy, 5, 0, 2 * Math.PI); c.fill();
+  const [nm, col] = strokeOf(i);
+  c.fillStyle = css('--panel'); c.beginPath(); c.arc(cx, cy, 34, 0, 2 * Math.PI); c.fill();
+  c.fillStyle = col; c.font = `700 15px ${css('--f-display')}`; c.fillText(nm, cx, cy + 4);
+  c.font = `11px ${css('--f-mono')}`; c.fillStyle = css('--muted'); c.fillText(`vuelta ${i < 360 ? 1 : 2}`, cx, cy + 18);
+  // leyenda y datos de distribución
+  c.textAlign = 'left'; c.font = `12px ${css('--f-body')}`;
+  const durA = inp.AAA + 180 + inp.RCA, durE = inp.AAE + 180 + inp.RCE;
+  const rows = [['Admisión', css('--g-adm'), `${durA}°`], ['Compresión', css('--g-comp'), `${180 - inp.RCA}°`], ['Expansión', css('--g-comb'), `${180 - inp.AAE}°`], ['Escape', css('--g-esc'), `${durE}°`]];
+  rows.forEach(([n, col, d], k) => { const x = 18 + (k % 2) * 210, y = 455 + Math.floor(k / 2) * 20; c.fillStyle = col; c.fillRect(x, y - 10, 12, 12); c.fillStyle = css('--fg'); c.fillText(`${n}: ${d}`, x + 18, y); });
+  c.fillStyle = css('--muted'); c.fillText(`Cruce de válvulas: ${inp.AAA + inp.RCE}° · Chispa a ${inp.avance}° antes del PMS`, 18, 505);
+}
+
+function axes(c, box, xr, yr, xt, yt, yt2, yr2) {
+  const [x0, y0, w, h] = box, fg = css('--fg'), mut = css('--muted'), ln = css('--line');
+  c.font = `11px ${css('--f-mono')}`; c.strokeStyle = ln; c.fillStyle = mut; c.lineWidth = 1;
+  const nice = (a, b, n) => { const st = Math.pow(10, Math.floor(Math.log10((b - a) / n))); const m = [1, 2, 2.5, 5, 10].find(m => (b - a) / (m * st) <= n) * st; return m; };
+  const sx = v => x0 + (v - xr[0]) / (xr[1] - xr[0]) * w, sy = v => y0 + h - (v - yr[0]) / (yr[1] - yr[0]) * h;
+  const dx = xt.step || nice(xr[0], xr[1], 8);
+  c.textAlign = 'center';
+  for (let v = Math.ceil(xr[0] / dx) * dx; v <= xr[1] + 1e-9; v += dx) { c.beginPath(); c.moveTo(sx(v), y0); c.lineTo(sx(v), y0 + h); c.stroke(); c.fillText(xt.f ? xt.f(v) : v, sx(v), y0 + h + 14); }
+  const dy = nice(yr[0], yr[1], 6); c.textAlign = 'right';
+  for (let v = Math.ceil(yr[0] / dy) * dy; v <= yr[1] + 1e-9; v += dy) { c.beginPath(); c.moveTo(x0, sy(v)); c.lineTo(x0 + w, sy(v)); c.stroke(); c.fillText(+v.toFixed(2), x0 - 5, sy(v) + 4); }
+  let sy2 = null;
+  if (yr2) {
+    sy2 = v => y0 + h - (v - yr2[0]) / (yr2[1] - yr2[0]) * h;
+    const d2 = nice(yr2[0], yr2[1], 6); c.textAlign = 'left';
+    for (let v = Math.ceil(yr2[0] / d2) * d2; v <= yr2[1] + 1e-9; v += d2) c.fillText(+v.toFixed(1), x0 + w + 5, sy2(v) + 4);
+  }
+  c.strokeStyle = fg; c.strokeRect(x0, y0, w, h);
+  c.fillStyle = fg; c.font = `600 12px ${css('--f-body')}`; c.textAlign = 'center';
+  c.fillText(xt.t, x0 + w / 2, y0 + h + 32);
+  c.save(); c.translate(x0 - 44, y0 + h / 2); c.rotate(-Math.PI / 2); c.fillStyle = yt.c || fg; c.fillText(yt.t, 0, 0); c.restore();
+  if (yt2) { c.save(); c.translate(x0 + w + 48, y0 + h / 2); c.rotate(Math.PI / 2); c.fillStyle = yt2.c || fg; c.fillText(yt2.t, 0, 0); c.restore(); }
+  return { sx, sy, sy2 };
+}
+function line(c, xs, ys, sx, sy, col, wd, dash) {
+  c.strokeStyle = col; c.lineWidth = wd; c.setLineDash(dash || []); c.beginPath();
+  xs.forEach((x, k) => { const X = sx(x), Y = sy(ys[k]); k ? c.lineTo(X, Y) : c.moveTo(X, Y); }); c.stroke(); c.setLineDash([]);
+}
+function legendRow(c, items, x, y) {
+  c.font = `12px ${css('--f-body')}`; c.textAlign = 'left';
+  items.forEach(([lab, col, dash]) => { c.strokeStyle = col; c.lineWidth = 2.5; c.setLineDash(dash || []); c.beginPath(); c.moveTo(x, y - 4); c.lineTo(x + 22, y - 4); c.stroke(); c.setLineDash([]); c.fillStyle = css('--fg'); c.fillText(lab, x + 27, y); x += 34 + c.measureText(lab).width + 14; });
+}
+function drawMain() {
+  const W0 = 900, H0 = 380, c = fit($('cvMain'), W0, H0), r = R, i = Math.round(theta) % 720;
+  const box = [70, 34, W0 - 150, H0 - 86];
+  if (tab === 'pt') {
+    const pmax = Math.max(r.pidmax, r.pmax) * 1.08, tmax = Math.max(r.Tidmax, r.Tmax) - 273.15;
+    const A = axes(c, box, [0, 720], [0, pU(pmax)], { t: 'Ángulo del cigüeñal θ (°)', step: 90 }, { t: `Presión (${pLab()})`, c: css('--real') }, { t: 'Temperatura (°C)', c: css('--temp') }, [0, Math.ceil(tmax * 1.08 / 500) * 500]);
+    // zonas de válvulas abiertas
+    c.globalAlpha = 0.08; c.fillStyle = css('--g-adm'); c.fillRect(A.sx(0), box[1], A.sx(180 + inp.RCA) - A.sx(0), box[3]);
+    c.fillStyle = css('--g-esc'); c.fillRect(A.sx(540 - inp.AAE), box[1], A.sx(720) - A.sx(540 - inp.AAE), box[3]); c.globalAlpha = 1;
+    line(c, r.th, r.Tid.map(T => T - 273.15), A.sx, A.sy2, css('--temp'), 1.2, [5, 4]);
+    line(c, r.th, r.T.map(T => T - 273.15), A.sx, A.sy2, css('--temp'), 1.8);
+    line(c, r.th, r.pid.map(pU), A.sx, A.sy, css('--ideal'), 1.6, [6, 4]);
+    line(c, r.th, r.p.map(pU), A.sx, A.sy, css('--real'), 2.4);
+    // eventos
+    c.font = `600 10.5px ${css('--f-mono')}`; c.textAlign = 'center';
+    [[180 + inp.RCA, 'RCA', css('--g-adm')], [r.ts, 'Chispa', '#e67700'], [540 - inp.AAE, 'AAE', css('--g-esc')]].forEach(([x, l, col]) => {
+      c.strokeStyle = col; c.setLineDash([3, 3]); c.beginPath(); c.moveTo(A.sx(x), box[1]); c.lineTo(A.sx(x), box[1] + box[3]); c.stroke(); c.setLineDash([]);
+      c.fillStyle = col; c.fillText(l, A.sx(x), box[1] - 6);
+    });
+    c.strokeStyle = css('--fg'); c.lineWidth = 1.2; c.beginPath(); c.moveTo(A.sx(i), box[1]); c.lineTo(A.sx(i), box[1] + box[3]); c.stroke();
+    c.fillStyle = css('--real'); c.beginPath(); c.arc(A.sx(i), A.sy(pU(r.p[i])), 5, 0, 2 * Math.PI); c.fill();
+    c.fillStyle = css('--temp'); c.beginPath(); c.arc(A.sx(i), A.sy2(r.T[i] - 273.15), 4, 0, 2 * Math.PI); c.fill();
+    legendRow(c, [['Presión real', css('--real')], ['Presión teórica', css('--ideal'), [6, 4]], ['Temperatura real', css('--temp')], ['Temp. teórica', css('--temp'), [5, 4]]], box[0] + 8, box[1] + 18);
+  } else if (tab === 'curvas') {
+    const ns = curves.map(q => q.n), Pe = curves.map(q => Math.max(0, q.Pe)), Me = curves.map(q => Math.max(0, q.Me));
+    const pM = Math.max(...Pe) * 1.4 || 1, mM = Math.max(...Me) * 1.4 || 1;
+    const A = axes(c, box, [1000, 7000], [0, pM], { t: 'Régimen n (rpm)', step: 1000 }, { t: 'Potencia efectiva (kW)', c: css('--accent2') }, { t: 'Par efectivo (N·m)', c: css('--real') }, [0, mM]);
+    line(c, ns, Pe, A.sx, A.sy, css('--accent2'), 2.4); line(c, ns, Me, A.sx, A.sy2, css('--real'), 2.4);
+    const iP = Pe.indexOf(Math.max(...Pe)), iM = Me.indexOf(Math.max(...Me));
+    c.fillStyle = css('--accent2'); c.beginPath(); c.arc(A.sx(ns[iP]), A.sy(Pe[iP]), 5, 0, 7); c.fill();
+    c.fillStyle = css('--real'); c.beginPath(); c.arc(A.sx(ns[iM]), A.sy2(Me[iM]), 5, 0, 7); c.fill();
+    c.globalAlpha = 0.1; c.fillStyle = css('--accent2'); c.fillRect(A.sx(ns[iM]), box[1], A.sx(ns[iP]) - A.sx(ns[iM]), box[3]); c.globalAlpha = 1;
+    c.strokeStyle = css('--fg'); c.setLineDash([3, 3]); c.beginPath(); c.moveTo(A.sx(inp.n), box[1]); c.lineTo(A.sx(inp.n), box[1] + box[3]); c.stroke(); c.setLineDash([]);
+    const E = (Me[iM] / Me[iP]) * (ns[iP] / ns[iM]);
+    legendRow(c, [['Potencia', css('--accent2')], ['Par', css('--real')]], box[0] + 8, box[1] + 18);
+    c.font = `12px ${css('--f-mono')}`; c.fillStyle = css('--fg'); c.textAlign = 'left';
+    c.fillText(`Pmáx ${fmt(Pe[iP], 1)} kW a ${ns[iP]} rpm · Mmáx ${fmt(Me[iM], 0)} N·m a ${ns[iM]} rpm · elasticidad ${fmt(E, 2)}`, box[0] + 8, box[1] + 38);
+    c.fillStyle = css('--muted'); c.fillText('Zona sombreada: zona de utilización (entre par máximo y potencia máxima). Línea punteada: régimen actual.', box[0] + 8, box[1] + 56);
+  } else {
+    const a = Math.max(0, r.ts - 20), b = Math.min(560, r.ts + r.dur + 40);
+    const xs = r.th.filter(t => t >= a && t <= b);
+    const xb = xs.map(t => r.xb[t] * 100);
+    const dq = xs.map((t, k) => k ? (r.xb[t] - r.xb[xs[k - 1]]) : 0); const dmx = Math.max(...dq) || 1;
+    const A = axes(c, box, [a, b], [0, 105], { t: 'Ángulo del cigüeñal θ (°) · 360° = PMS de combustión' }, { t: 'Fracción de masa quemada (%)', c: css('--accent2') }, { t: 'Liberación de calor (% del máximo)', c: css('--real') }, [0, 105]);
+    line(c, xs, xb, A.sx, A.sy, css('--accent2'), 2.4); line(c, xs, dq.map(v => v / dmx * 100), A.sx, A.sy2, css('--real'), 2.2);
+    c.strokeStyle = css('--fg'); c.setLineDash([3, 3]); c.beginPath(); c.moveTo(A.sx(360), box[1]); c.lineTo(A.sx(360), box[1] + box[3]); c.stroke(); c.setLineDash([]);
+    if (i >= a && i <= b) { c.strokeStyle = css('--fg'); c.beginPath(); c.moveTo(A.sx(i), box[1]); c.lineTo(A.sx(i), box[1] + box[3]); c.stroke(); }
+    legendRow(c, [['Fracción quemada xb', css('--accent2')], ['Liberación de calor dQ/dθ', css('--real')]], box[0] + 8, box[1] + 18);
+    c.font = `12px ${css('--f-mono')}`; c.fillStyle = css('--muted'); c.textAlign = 'left';
+    c.fillText(`Chispa ${inp.avance}° aPMS · duración efectiva ${fmt(r.dur, 0)}° · calor ${fmt(r.Q, 0)} J/cil.`, box[0] + 8, box[1] + 38);
+  }
+}
+function drawPV() {
+  const W0 = 600, H0 = 380, c = fit($('cvPV'), W0, H0), r = R, i = Math.round(theta) % 720;
+  const box = [64, 24, W0 - 90, H0 - 76];
+  const vM = Math.max(...r.V) * 1.05, pM = Math.max(r.pidmax, r.pmax) * 1.08;
+  const A = axes(c, box, [0, vM], [0, pU(pM)], { t: 'Volumen del cilindro (cm³)' }, { t: `Presión (${pLab()})` });
+  line(c, r.V, r.pid.map(pU), A.sx, A.sy, css('--ideal'), 1.6, [6, 4]);
+  line(c, r.V.concat([r.V[0]]), r.p.concat([r.p[0]]).map(pU), A.sx, A.sy, css('--real'), 2.4);
+  c.fillStyle = css('--real'); c.beginPath(); c.arc(A.sx(r.V[i]), A.sy(pU(r.p[i])), 6, 0, 2 * Math.PI); c.fill();
+  c.strokeStyle = css('--panel'); c.lineWidth = 2; c.stroke();
+  c.font = `600 11px ${css('--f-mono')}`; c.fillStyle = css('--muted'); c.textAlign = 'center';
+  c.fillText('PMS', A.sx(r.Vc), box[1] + box[3] - 6); c.fillText('PMI', A.sx(r.Vc + r.Vu), box[1] + box[3] - 6);
+  legendRow(c, [['Real', css('--real')], ['Teórico', css('--ideal'), [6, 4]]], box[0] + box[2] - 190, box[1] + 18);
+  c.font = `12px ${css('--f-mono')}`; c.fillStyle = css('--fg'); c.textAlign = 'right';
+  c.fillText(`W = ${fmt(r.W, 0)} J/cil. · PMI ${fmt(pU(r.pmi), 2)} ${pLab()}`, box[0] + box[2] - 8, box[1] + 38);
+}
+function drawAll() { drawMotor(); drawFases(); drawMain(); drawPV(); renderLive(); $('theta').value = Math.round(theta) % 720; }
+
+// ===================== CONTROLES Y BUCLE =====================
+function setPlay(p) { playing = p; $('play').textContent = p ? 'Pausa' : 'Reproducir'; }
+function wire() {
+  $('play').addEventListener('click', () => setPlay(!playing));
+  document.querySelectorAll('[data-speed]').forEach(b => b.addEventListener('click', () => { speed = +b.dataset.speed; document.querySelectorAll('[data-speed]').forEach(x => x.setAttribute('aria-pressed', x === b)); }));
+  document.querySelectorAll('[data-unit]').forEach(b => b.addEventListener('click', () => { unit = b.dataset.unit; document.querySelectorAll('[data-unit]').forEach(x => x.setAttribute('aria-pressed', x === b)); renderTiles(); drawAll(); }));
+  document.querySelectorAll('[data-tab]').forEach(b => b.addEventListener('click', () => { tab = b.dataset.tab; document.querySelectorAll('[data-tab]').forEach(x => x.setAttribute('aria-selected', x === b)); drawAll(); }));
+  $('theta').addEventListener('input', e => { setPlay(false); theta = +e.target.value; drawAll(); });
+  $('reset').addEventListener('click', () => { inp = { ...DEFAULT }; $('preset').value = ''; $('presetNote').textContent = ''; syncInputs(); recompute(); });
+  $('copy').addEventListener('click', async () => {
+    const r = R, t = [
+      `Simulador de Motores Otto · ${FUELS[inp.fuel].name}`,
+      `D ${inp.D} mm · L ${inp.L} mm · l ${inp.lb} mm · ${inp.cil} cil. · Rc ${inp.Rc}:1 · ${inp.n} rpm · mariposa ${inp.mariposa} % · Patm ${inp.Patm} kPa`,
+      `Avance ${inp.avance}° · duración ${inp.dur}° · λ ${inp.lambda} · AAA ${inp.AAA}° RCA ${inp.RCA}° AAE ${inp.AAE}° RCE ${inp.RCE}°`,
+      `Vt ${fmt(r.Vt, 1)} cm³ · Vcc ${fmt(r.Vc, 2)} cm³ · pmáx ${fmt(r.pmax, 1)} bar a ${r.thmax - 360}° dPMS · Tmáx ${fmt(r.Tmax - 273.15, 0)} °C`,
+      `PMI ${fmt(r.pmi, 2)} bar · PME ${fmt(r.pme, 2)} bar · Pe ${fmt(r.Pe / 1000, 1)} kW · Me ${fmt(r.Me, 0)} N·m · ηe ${fmt(r.etae * 100, 1)} % · ge ${fmt(r.ge, 0)} g/kWh · ηv ${fmt(r.etaV * 100, 0)} %`];
+    const txt = t.join('\n');
+    try { await navigator.clipboard.writeText(txt); $('copy').textContent = 'Copiado'; }
+    catch (e) { $('copy').textContent = 'No se pudo copiar'; }
+    setTimeout(() => $('copy').textContent = 'Copiar resultados', 1800);
+  });
+  window.addEventListener('resize', drawAll);
+  if (window.matchMedia) window.matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', drawAll);
+}
+let last = 0;
+function loop(ts) {
+  if (playing && ts - last > 16) { theta = (theta + speed) % 720; last = ts; drawAll(); }
+  else if (!playing && (ts - last > 200)) { last = ts; drawMotor(); }
+  requestAnimationFrame(loop);
+}
+function start() { buildInputs(); wire(); setPlay(playing); recompute(); requestAnimationFrame(loop); }
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(start); else start();
+</script></body></html>

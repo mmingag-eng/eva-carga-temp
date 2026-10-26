@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sistema de embrague · Simulador</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --paper:#f3f1ec; --panel:#ffffff; --ink:#15181b; --ink-2:#414a52; --ink-3:#6b767f;
+  --rule:#d7d2c8; --rule-2:#e8e4dc;
+  --amber:#b8710f; --amber-soft:#f0e2cb; --copper:#8c4726;
+  --steel:#4a5964; --ok:#2c7355; --bad:#a32f2f; --warn:#b8860b;
+  --grid:#ddd8cf;
+  --shadow:0 1px 2px rgba(20,24,28,.06),0 8px 24px -16px rgba(20,24,28,.35);
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --disp:"Barlow Condensed",Oswald,"Arial Narrow",sans-serif;
+  --body:"Source Sans 3",system-ui,-apple-system,Segoe UI,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#15181b; --panel:#1d2126; --ink:#eceae5; --ink-2:#b6bdc4; --ink-3:#848d95;
+  --rule:#333a41; --rule-2:#272c32; --amber:#e0a14c; --amber-soft:#3a2f1e; --copper:#c97a51;
+  --steel:#8fa0ad; --ok:#5fb98f; --bad:#e07a7a; --warn:#d9ae4e; --grid:#2c3238;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -16px rgba(0,0,0,.8);
+}}
+:root[data-theme="dark"]{
+  --paper:#15181b; --panel:#1d2126; --ink:#eceae5; --ink-2:#b6bdc4; --ink-3:#848d95;
+  --rule:#333a41; --rule-2:#272c32; --amber:#e0a14c; --amber-soft:#3a2f1e; --copper:#c97a51;
+  --steel:#8fa0ad; --ok:#5fb98f; --bad:#e07a7a; --warn:#d9ae4e; --grid:#2c3238;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -16px rgba(0,0,0,.8);
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.6;margin:0}
+.wrap{max-width:1060px;margin:0 auto;padding-inline:20px;padding-block:0 64px}
+h1,h2,h3,h4{font-family:var(--disp);font-weight:600;line-height:1.08;text-wrap:balance;margin:0}
+.eyebrow{font-family:var(--disp);text-transform:uppercase;letter-spacing:.14em;font-size:.78rem;font-weight:600;color:var(--amber)}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+/* ---- cabecera tipo ficha técnica ---- */
+header.sheet{border-bottom:3px solid var(--ink);padding-block:36px 18px;margin-bottom:8px}
+header.sheet h1{font-size:clamp(2.6rem,7vw,4.6rem);letter-spacing:-.01em;text-transform:uppercase}
+header.sheet .sub{font-family:var(--disp);font-size:clamp(1.1rem,2.6vw,1.5rem);color:var(--ink-2);text-transform:uppercase;letter-spacing:.04em;margin-top:4px}
+.idcard{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:2px 24px;margin-top:22px;border-top:1px solid var(--rule);padding-top:14px}
+.idcard div{display:flex;flex-direction:column;gap:1px}
+.idcard dt,.idcard .k{font-family:var(--disp);text-transform:uppercase;letter-spacing:.1em;font-size:.7rem;color:var(--ink-3)}
+.idcard .v{font-family:var(--mono);font-size:.9rem;color:var(--ink)}
+
+/* ---- secciones numeradas ---- */
+section{margin-top:56px;scroll-margin-top:16px}
+.shead{display:flex;align-items:baseline;gap:14px;border-bottom:1.5px solid var(--ink);padding-bottom:8px;margin-bottom:22px}
+.snum{font-family:var(--mono);font-size:.95rem;color:var(--amber);font-weight:600;flex:none}
+.shead h2{font-size:clamp(1.5rem,3.6vw,2.1rem);text-transform:uppercase;letter-spacing:.01em}
+p{margin:0 0 14px;max-width:68ch}
+.lead{font-size:1.06rem;color:var(--ink-2)}
+
+/* ---- paneles ---- */
+.panel{background:var(--panel);border:1px solid var(--rule);border-radius:3px;box-shadow:var(--shadow);padding:18px;margin-block:22px}
+.panel>h3{font-size:1.15rem;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px}
+.panel .hint{font-size:.86rem;color:var(--ink-3);margin-bottom:14px}
+.formula{font-family:var(--mono);font-size:1.02rem;background:var(--amber-soft);border-left:3px solid var(--amber);padding:12px 14px;margin-block:16px;overflow-x:auto}
+.formula b{font-weight:600}
+.formula .note{display:block;font-family:var(--body);font-size:.85rem;color:var(--ink-2);margin-top:6px}
+
+/* ---- controles ---- */
+.ctrls{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px 20px;margin-bottom:16px}
+label.ctl{display:flex;flex-direction:column;gap:5px;font-family:var(--disp);text-transform:uppercase;letter-spacing:.08em;font-size:.74rem;color:var(--ink-3)}
+label.ctl .val{font-family:var(--mono);font-size:1rem;color:var(--ink);letter-spacing:0;text-transform:none}
+input[type=range]{width:100%;accent-color:var(--amber);height:22px}
+input[type=number],select{font-family:var(--mono);font-size:.92rem;padding:5px 7px;border:1px solid var(--rule);border-radius:2px;background:var(--panel);color:var(--ink);width:100%}
+:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.gearbtns{display:flex;flex-wrap:wrap;gap:6px}
+.gearbtns button{font-family:var(--disp);font-size:1rem;font-weight:600;letter-spacing:.05em;padding:6px 14px;border:1px solid var(--rule);background:var(--panel);color:var(--ink-2);border-radius:2px;cursor:pointer}
+.gearbtns button[aria-pressed=true]{background:var(--amber);border-color:var(--amber);color:#fff}
+
+/* ---- lecturas ---- */
+.readout{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:1px;background:var(--rule-2);border:1px solid var(--rule-2);margin-top:14px}
+.readout div{background:var(--panel);padding:9px 11px}
+.readout .k{font-family:var(--disp);text-transform:uppercase;letter-spacing:.09em;font-size:.68rem;color:var(--ink-3);display:block}
+.readout .n{font-family:var(--mono);font-size:1.22rem;font-weight:500;color:var(--ink)}
+.readout .n small{font-size:.66em;color:var(--ink-3);font-weight:400}
+.chartbox{width:100%;overflow-x:auto}
+canvas{display:block;width:100%;height:auto;max-width:100%}
+
+/* ---- tablas ---- */
+.tablebox{overflow-x:auto;margin-block:20px}
+table{border-collapse:collapse;width:100%;min-width:520px;font-size:.92rem}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--rule-2);vertical-align:top}
+thead th{font-family:var(--disp);text-transform:uppercase;letter-spacing:.09em;font-size:.72rem;color:var(--ink-3);border-bottom:1.5px solid var(--rule)}
+td.num{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+tbody tr:hover{background:var(--rule-2)}
+
+/* ---- listas ---- */
+ul.spec{list-style:none;padding:0;margin:0 0 16px}
+ul.spec li{padding-left:20px;position:relative;margin-bottom:7px;max-width:68ch}
+ul.spec li::before{content:"";position:absolute;left:4px;top:.66em;width:7px;height:1.5px;background:var(--amber)}
+.steps{counter-reset:s;list-style:none;padding:0;margin:0}
+.steps li{counter-increment:s;position:relative;padding-left:40px;margin-bottom:14px;max-width:66ch}
+.steps li::before{content:counter(s,decimal-leading-zero);position:absolute;left:0;top:.1em;font-family:var(--mono);font-size:.82rem;color:var(--amber);font-weight:600}
+.steps li b{display:block;font-family:var(--disp);font-size:1.05rem;letter-spacing:.02em;text-transform:uppercase}
+
+.tag{display:inline-block;font-family:var(--disp);text-transform:uppercase;letter-spacing:.08em;font-size:.68rem;padding:2px 7px;border:1px solid currentColor;border-radius:2px}
+.tag.ok{color:var(--ok)} .tag.bad{color:var(--bad)} .tag.warn{color:var(--warn)}
+
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px}
+figure{margin:0}
+figcaption{font-size:.82rem;color:var(--ink-3);margin-top:8px;font-style:italic}
+svg{max-width:100%;height:auto}
+footer{margin-top:64px;border-top:1.5px solid var(--ink);padding-top:16px;font-size:.85rem;color:var(--ink-3)}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+<style>
+*{box-sizing:border-box}
+html{color-scheme:light dark}
+body{margin:0}
+img{max-width:100%}
+[hidden]{display:none!important}
+.wrap{max-width:900px}
+header.sheet{border-bottom:3px solid var(--ink);padding-block:30px 16px;margin-bottom:6px}
+header.sheet h1{font-size:clamp(1.9rem,5vw,2.9rem)}
+.backnote{font-size:.85rem;color:var(--ink-3);margin-top:28px;border-top:1px solid var(--rule);padding-top:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="sheet">
+  <div class="eyebrow">Mecánica de Patio III · Unidad 1</div>
+  <h1>Accionamiento del embrague</h1>
+  <div class="sub">Monodisco seco · par transmisible y patinamiento</div>
+</header>
+<p class="lead">El embrague transmite el par por rozamiento, y esa progresividad es lo que permite arrancar desde parado sin calar el motor. Si el par transmisible cae por debajo del solicitado, el embrague patina aunque esté nuevo.</p>
+<div class="formula">
+  <b>M transmisible = μ · F<sub>N</sub> · r<sub>m</sub> · z</b>
+  <span class="note">μ ≈ 0,30 en forro nuevo · F<sub>N</sub> = fuerza del diafragma · r<sub>m</sub> = radio medio del forro · z = 2 caras de fricción.</span>
+</div>
+<div class="formula">
+  <b>β = M transmisible / M motor máximo = 1,2 … 1,5</b>
+  <span class="note">Por debajo de 1 el embrague patina: forro inadecuado, diafragma vencido o aceite sobre el disco.</span>
+</div>
+<div class="panel">
+    <h3>Simulador · Accionamiento y patinamiento</h3>
+    <p class="hint">Suelta el pedal y observa la fuerza del diafragma, el par transmisible y el régimen de las dos caras. La franja de patinamiento controlado es la que se usa al arrancar.</p>
+    <div class="ctrls">
+      <label class="ctl" for="s4p">Recorrido del pedal <span class="val mono" id="s4pv">0 % (suelto)</span>
+        <input type="range" id="s4p" min="0" max="100" step="1" value="0"></label>
+      <label class="ctl" for="s4m">Par solicitado al embrague <span class="val mono" id="s4mv">104 N·m</span>
+        <input type="range" id="s4m" min="0" max="180" step="2" value="104"></label>
+      <label class="ctl" for="s4u">Estado del forro <span class="val mono" id="s4uv">μ = 0,30 · nuevo</span>
+        <input type="range" id="s4u" min="10" max="35" step="1" value="30"></label>
+    </div>
+    <div class="chartbox"><canvas id="c4" width="900" height="360" role="img" aria-label="Esquema del embrague monodisco con la posición del pedal y el par transmisible"></canvas></div>
+    <div class="readout">
+      <div><span class="k">Fuerza diafragma</span><span class="n" id="o4f">5200<small> N</small></span></div>
+      <div><span class="k">Par transmisible</span><span class="n" id="o4m">390<small> N·m</small></span></div>
+      <div><span class="k">Coef. β</span><span class="n" id="o4b">3,75</span></div>
+      <div><span class="k">Estado</span><span class="n" id="o4s" style="font-size:.95rem">Embragado</span></div>
+    </div>
+  </div>
+<p class="backnote">Instituto Superior Tecnológico Sudamericano · Mecánica Automotriz · Mecánica de Patio III (MA.04.03). Simulador didáctico: los valores son representativos del vehículo de laboratorio. Para intervención real use siempre las cotas del manual del fabricante.</p>
+</div>
+<script>
+(function(){
+"use strict";
+
+var css=function(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();};
+var T=function(){return {ink:css('--ink'),ink2:css('--ink-2'),ink3:css('--ink-3'),amber:css('--amber'),steel:css('--steel'),grid:css('--grid'),panel:css('--panel'),ok:css('--ok'),bad:css('--bad'),copper:css('--copper'),rule:css('--rule')};};
+function dpi(c){var r=c.getBoundingClientRect(),d=window.devicePixelRatio||1,w=c.width,h=c.height;
+  c.style.height=(r.width*h/w)+'px'; c.width=w*d; c.height=h*d; var x=c.getContext('2d'); x.setTransform(d,0,0,d,0,0); return {x:x,w:w,h:h};}
+var nf=function(v,d){return v.toLocaleString('es-EC',{minimumFractionDigits:d,maximumFractionDigits:d});};
+function rbox(x,px,py,w,h,fc,ec,lw){var r=6;x.beginPath();
+  x.moveTo(px+r,py);x.lineTo(px+w-r,py);x.quadraticCurveTo(px+w,py,px+w,py+r);
+  x.lineTo(px+w,py+h-r);x.quadraticCurveTo(px+w,py+h,px+w-r,py+h);
+  x.lineTo(px+r,py+h);x.quadraticCurveTo(px,py+h,px,py+h-r);
+  x.lineTo(px,py+r);x.quadraticCurveTo(px,py,px+r,py);x.closePath();
+  if(fc){x.fillStyle=fc;x.fill();} if(ec){x.strokeStyle=ec;x.lineWidth=lw||1.4;x.stroke();}}
+function arrow(x,x1,y1,x2,y2,col,lw){
+  x.strokeStyle=col;x.lineWidth=lw||2;x.beginPath();x.moveTo(x1,y1);x.lineTo(x2,y2);x.stroke();
+  var a=Math.atan2(y2-y1,x2-x1);
+  x.beginPath();x.moveTo(x2,y2);
+  x.lineTo(x2-9*Math.cos(a-0.4),y2-9*Math.sin(a-0.4));
+  x.lineTo(x2-9*Math.cos(a+0.4),y2-9*Math.sin(a+0.4));
+  x.closePath();x.fillStyle=col;x.fill();}
+/* ================= 4 · embrague ================= */
+var c4=document.getElementById('c4'),p4=document.getElementById('s4p'),m4=document.getElementById('s4m'),u4=document.getElementById('s4u');
+function draw4(){
+  var g=dpi(c4),x=g.x,W=g.w,H=g.h,t=T();
+  x.clearRect(0,0,W,H);
+  var p=+p4.value/100, Msol=+m4.value, mu=+u4.value/100;
+  var Fmax=5200, F=Fmax*Math.max(0,1-Math.pow(p,0.85)*1.08);
+  if(p>0.92)F=0;
+  var rm=0.105, z=2;
+  var Mt=mu*F*rm*z*1.0;
+  var beta=Msol>0?Mt/Msol:99;
+  var estado = p>0.9?'Desembragado': (Mt>=Msol? (p>0.05?'Patinamiento controlado':'Embragado'):'Patina — no transmite');
+  // dibujo
+  var cx=250,cy=175;
+  var sep=p*34;
+  function plate(px,w,h,fill,stroke,label,ly){
+    x.beginPath();x.rect(px,cy-h/2,w,h);x.fillStyle=fill;x.fill();x.strokeStyle=stroke;x.lineWidth=1.4;x.stroke();
+    x.font='600 11px "Barlow Condensed",sans-serif';x.fillStyle=t.ink3;x.textAlign='center';
+    x.fillText(label,px+w/2,ly);
+  }
+  // volante
+  plate(cx-120,26,190,t.steel,t.ink,'VOLANTE',cy-105);
+  // disco
+  var dx=cx-86+sep*0.45;
+  plate(dx,16,150,(Mt>=Msol&&p<0.9)?t.amber:t.copper,t.ink,'DISCO',cy+112);
+  // plato de presión
+  plate(cx-62+sep,22,180,t.panel,t.ink,'PLATO DE PRESIÓN',cy-105+18);
+  // diafragma
+  x.beginPath();x.moveTo(cx-38+sep,cy-92);x.lineTo(cx+18+sep*0.4,cy-26);x.lineTo(cx+18+sep*0.4,cy+26);x.lineTo(cx-38+sep,cy+92);
+  x.strokeStyle=t.ink;x.lineWidth=3;x.stroke();
+  x.font='600 11px "Barlow Condensed",sans-serif';x.fillStyle=t.ink3;x.textAlign='left';
+  x.fillText('DIAFRAGMA',cx+24,cy-40);
+  // cojinete
+  x.beginPath();x.rect(cx+22+sep*0.4,cy-22,24,44);x.fillStyle=t.panel;x.fill();x.strokeStyle=t.ink;x.lineWidth=1.4;x.stroke();
+  x.fillStyle=t.ink3;x.fillText('COJINETE',cx+24,cy+52);
+  // eje primario
+  x.strokeStyle=t.steel;x.lineWidth=9;x.lineCap='round';
+  x.beginPath();x.moveTo(cx+46,cy);x.lineTo(cx+190,cy);x.stroke();x.lineCap='butt';
+  x.fillStyle=t.ink3;x.fillText('AL EJE PRIMARIO',cx+96,cy-20);
+  // flechas de fuerza
+  if(F>0){
+    x.strokeStyle=t.amber;x.lineWidth=2;
+    for(var k=-2;k<=2;k++){var yy=cy+k*34;
+      x.beginPath();x.moveTo(cx-56+sep,yy);x.lineTo(cx-78+sep*0.6,yy);x.stroke();
+      x.beginPath();x.moveTo(cx-78+sep*0.6,yy);x.lineTo(cx-70+sep*0.6,yy-4);x.lineTo(cx-70+sep*0.6,yy+4);x.closePath();x.fillStyle=t.amber;x.fill();}
+  }
+  // barra de par
+  var BL=520,BT=70,BW=W-BL-40,BH=220;
+  x.strokeStyle=t.rule;x.lineWidth=1.2;x.strokeRect(BL,BT,BW,BH);
+  var scale=Math.max(Mt,Msol,180)*1.12;
+  var bw=BW*0.30;
+  function bar(px,val,col,lab){
+    var h=BH*val/scale;
+    x.fillStyle=col;x.fillRect(px,BT+BH-h,bw,h);
+    x.font='600 12px "Barlow Condensed",sans-serif';x.textAlign='center';x.fillStyle=t.ink3;
+    x.fillText(lab,px+bw/2,BT+BH+18);
+    x.font='500 13px "IBM Plex Mono",monospace';x.fillStyle=t.ink;
+    x.fillText(nf(val,0),px+bw/2,BT+BH-h-8);
+  }
+  bar(BL+BW*0.12,Mt,(Mt>=Msol)?t.ok:t.bad,'TRANSMISIBLE');
+  bar(BL+BW*0.56,Msol,t.steel,'SOLICITADO');
+  x.font='600 11px "Barlow Condensed",sans-serif';x.textAlign='left';x.fillStyle=t.ink3;
+  x.fillText('PAR [N·m]',BL,BT-10);
+  // salidas
+  document.getElementById('s4pv').textContent=Math.round(p*100)+' % '+(p<0.05?'(suelto)':(p>0.9?'(a fondo)':'(punto de mordida)'));
+  document.getElementById('s4mv').textContent=Msol+' N·m';
+  document.getElementById('s4uv').textContent='μ = '+nf(mu,2)+' · '+(mu>=0.28?'nuevo':(mu>=0.20?'desgastado':'vidriado/engrasado'));
+  document.getElementById('o4f').innerHTML=nf(F,0)+'<small> N</small>';
+  document.getElementById('o4m').innerHTML=nf(Mt,0)+'<small> N·m</small>';
+  document.getElementById('o4b').textContent=Msol>0?nf(beta,2):'—';
+  var es=document.getElementById('o4s');es.textContent=estado;
+  es.style.color = estado==='Patina — no transmite'?t.bad:(estado==='Embragado'?t.ok:t.ink);
+}
+[p4,m4,u4].forEach(function(e){e.addEventListener('input',draw4);});
+function redraw(){draw4();}
+redraw();
+var ro=new ResizeObserver(function(){redraw();});ro.observe(document.body);
+try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',redraw);}catch(e){}
+})();
+</script>
+</body>
+</html>

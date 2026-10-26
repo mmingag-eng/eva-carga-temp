@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Control de la transmisión · Simulador</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --paper:#f3f1ec; --panel:#ffffff; --ink:#15181b; --ink-2:#414a52; --ink-3:#6b767f;
+  --rule:#d7d2c8; --rule-2:#e8e4dc;
+  --amber:#b8710f; --amber-soft:#f0e2cb; --copper:#8c4726;
+  --steel:#4a5964; --ok:#2c7355; --bad:#a32f2f; --warn:#b8860b;
+  --grid:#ddd8cf;
+  --shadow:0 1px 2px rgba(20,24,28,.06),0 8px 24px -16px rgba(20,24,28,.35);
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --disp:"Barlow Condensed",Oswald,"Arial Narrow",sans-serif;
+  --body:"Source Sans 3",system-ui,-apple-system,Segoe UI,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#15181b; --panel:#1d2126; --ink:#eceae5; --ink-2:#b6bdc4; --ink-3:#848d95;
+  --rule:#333a41; --rule-2:#272c32; --amber:#e0a14c; --amber-soft:#3a2f1e; --copper:#c97a51;
+  --steel:#8fa0ad; --ok:#5fb98f; --bad:#e07a7a; --warn:#d9ae4e; --grid:#2c3238;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -16px rgba(0,0,0,.8);
+}}
+:root[data-theme="dark"]{
+  --paper:#15181b; --panel:#1d2126; --ink:#eceae5; --ink-2:#b6bdc4; --ink-3:#848d95;
+  --rule:#333a41; --rule-2:#272c32; --amber:#e0a14c; --amber-soft:#3a2f1e; --copper:#c97a51;
+  --steel:#8fa0ad; --ok:#5fb98f; --bad:#e07a7a; --warn:#d9ae4e; --grid:#2c3238;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -16px rgba(0,0,0,.8);
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.6;margin:0}
+.wrap{max-width:1060px;margin:0 auto;padding-inline:20px;padding-block:0 64px}
+h1,h2,h3,h4{font-family:var(--disp);font-weight:600;line-height:1.08;text-wrap:balance;margin:0}
+.eyebrow{font-family:var(--disp);text-transform:uppercase;letter-spacing:.14em;font-size:.78rem;font-weight:600;color:var(--amber)}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+/* ---- cabecera tipo ficha técnica ---- */
+header.sheet{border-bottom:3px solid var(--ink);padding-block:36px 18px;margin-bottom:8px}
+header.sheet h1{font-size:clamp(2.6rem,7vw,4.6rem);letter-spacing:-.01em;text-transform:uppercase}
+header.sheet .sub{font-family:var(--disp);font-size:clamp(1.1rem,2.6vw,1.5rem);color:var(--ink-2);text-transform:uppercase;letter-spacing:.04em;margin-top:4px}
+.idcard{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:2px 24px;margin-top:22px;border-top:1px solid var(--rule);padding-top:14px}
+.idcard div{display:flex;flex-direction:column;gap:1px}
+.idcard dt,.idcard .k{font-family:var(--disp);text-transform:uppercase;letter-spacing:.1em;font-size:.7rem;color:var(--ink-3)}
+.idcard .v{font-family:var(--mono);font-size:.9rem;color:var(--ink)}
+
+/* ---- secciones numeradas ---- */
+section{margin-top:56px;scroll-margin-top:16px}
+.shead{display:flex;align-items:baseline;gap:14px;border-bottom:1.5px solid var(--ink);padding-bottom:8px;margin-bottom:22px}
+.snum{font-family:var(--mono);font-size:.95rem;color:var(--amber);font-weight:600;flex:none}
+.shead h2{font-size:clamp(1.5rem,3.6vw,2.1rem);text-transform:uppercase;letter-spacing:.01em}
+p{margin:0 0 14px;max-width:68ch}
+.lead{font-size:1.06rem;color:var(--ink-2)}
+
+/* ---- paneles ---- */
+.panel{background:var(--panel);border:1px solid var(--rule);border-radius:3px;box-shadow:var(--shadow);padding:18px;margin-block:22px}
+.panel>h3{font-size:1.15rem;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px}
+.panel .hint{font-size:.86rem;color:var(--ink-3);margin-bottom:14px}
+.formula{font-family:var(--mono);font-size:1.02rem;background:var(--amber-soft);border-left:3px solid var(--amber);padding:12px 14px;margin-block:16px;overflow-x:auto}
+.formula b{font-weight:600}
+.formula .note{display:block;font-family:var(--body);font-size:.85rem;color:var(--ink-2);margin-top:6px}
+
+/* ---- controles ---- */
+.ctrls{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px 20px;margin-bottom:16px}
+label.ctl{display:flex;flex-direction:column;gap:5px;font-family:var(--disp);text-transform:uppercase;letter-spacing:.08em;font-size:.74rem;color:var(--ink-3)}
+label.ctl .val{font-family:var(--mono);font-size:1rem;color:var(--ink);letter-spacing:0;text-transform:none}
+input[type=range]{width:100%;accent-color:var(--amber);height:22px}
+input[type=number],select{font-family:var(--mono);font-size:.92rem;padding:5px 7px;border:1px solid var(--rule);border-radius:2px;background:var(--panel);color:var(--ink);width:100%}
+:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.gearbtns{display:flex;flex-wrap:wrap;gap:6px}
+.gearbtns button{font-family:var(--disp);font-size:1rem;font-weight:600;letter-spacing:.05em;padding:6px 14px;border:1px solid var(--rule);background:var(--panel);color:var(--ink-2);border-radius:2px;cursor:pointer}
+.gearbtns button[aria-pressed=true]{background:var(--amber);border-color:var(--amber);color:#fff}
+
+/* ---- lecturas ---- */
+.readout{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:1px;background:var(--rule-2);border:1px solid var(--rule-2);margin-top:14px}
+.readout div{background:var(--panel);padding:9px 11px}
+.readout .k{font-family:var(--disp);text-transform:uppercase;letter-spacing:.09em;font-size:.68rem;color:var(--ink-3);display:block}
+.readout .n{font-family:var(--mono);font-size:1.22rem;font-weight:500;color:var(--ink)}
+.readout .n small{font-size:.66em;color:var(--ink-3);font-weight:400}
+.chartbox{width:100%;overflow-x:auto}
+canvas{display:block;width:100%;height:auto;max-width:100%}
+
+/* ---- tablas ---- */
+.tablebox{overflow-x:auto;margin-block:20px}
+table{border-collapse:collapse;width:100%;min-width:520px;font-size:.92rem}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--rule-2);vertical-align:top}
+thead th{font-family:var(--disp);text-transform:uppercase;letter-spacing:.09em;font-size:.72rem;color:var(--ink-3);border-bottom:1.5px solid var(--rule)}
+td.num{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+tbody tr:hover{background:var(--rule-2)}
+
+/* ---- listas ---- */
+ul.spec{list-style:none;padding:0;margin:0 0 16px}
+ul.spec li{padding-left:20px;position:relative;margin-bottom:7px;max-width:68ch}
+ul.spec li::before{content:"";position:absolute;left:4px;top:.66em;width:7px;height:1.5px;background:var(--amber)}
+.steps{counter-reset:s;list-style:none;padding:0;margin:0}
+.steps li{counter-increment:s;position:relative;padding-left:40px;margin-bottom:14px;max-width:66ch}
+.steps li::before{content:counter(s,decimal-leading-zero);position:absolute;left:0;top:.1em;font-family:var(--mono);font-size:.82rem;color:var(--amber);font-weight:600}
+.steps li b{display:block;font-family:var(--disp);font-size:1.05rem;letter-spacing:.02em;text-transform:uppercase}
+
+.tag{display:inline-block;font-family:var(--disp);text-transform:uppercase;letter-spacing:.08em;font-size:.68rem;padding:2px 7px;border:1px solid currentColor;border-radius:2px}
+.tag.ok{color:var(--ok)} .tag.bad{color:var(--bad)} .tag.warn{color:var(--warn)}
+
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px}
+figure{margin:0}
+figcaption{font-size:.82rem;color:var(--ink-3);margin-top:8px;font-style:italic}
+svg{max-width:100%;height:auto}
+footer{margin-top:64px;border-top:1.5px solid var(--ink);padding-top:16px;font-size:.85rem;color:var(--ink-3)}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+<style>
+*{box-sizing:border-box}
+html{color-scheme:light dark}
+body{margin:0}
+img{max-width:100%}
+[hidden]{display:none!important}
+.wrap{max-width:900px}
+header.sheet{border-bottom:3px solid var(--ink);padding-block:30px 16px;margin-bottom:6px}
+header.sheet h1{font-size:clamp(1.9rem,5vw,2.9rem)}
+.backnote{font-size:.85rem;color:var(--ink-3);margin-top:28px;border-top:1px solid var(--rule);padding-top:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="sheet">
+  <div class="eyebrow">Mecánica de Patio III · Unidad 4</div>
+  <h1>Entradas, decisión y salidas</h1>
+  <div class="sub">La TCU no improvisa: compara con sus mapas</div>
+</header>
+<p class="lead">La unidad de control compara las entradas con mapas grabados y aplica presión donde corresponde. Provoque un fallo de sensor y compruebe el modo de emergencia: marcha fija y presión máxima no son la avería, son la protección.</p>
+<div class="formula">
+  <b>Modo de emergencia</b>
+  <span class="note">Ante una señal incoherente la TCU fija una marcha, normalmente 3.ª, y sube la presión de línea al máximo para no quemar embragues. Por eso el vehículo va duro y sin cambiar.</span>
+</div>
+<div class="panel">
+    <h3>Simulador · Entradas, decisión y salidas</h3>
+    <p class="hint">Mueve las entradas y observa la marcha comandada, el estado de los solenoides y la presión de línea. Después provoca un fallo de sensor y comprueba el modo de emergencia.</p>
+    <div class="ctrls">
+      <label class="ctl" for="vss">Velocidad de salida (VSS) <span class="val mono" id="vssv">60 km/h</span>
+        <input type="range" id="vss" min="0" max="160" step="1" value="60"></label>
+      <label class="ctl" for="tps4">Posición de mariposa (TPS) <span class="val mono" id="tps4v">25 %</span>
+        <input type="range" id="tps4" min="0" max="100" step="1" value="25"></label>
+      <label class="ctl" for="atf">Temperatura del ATF <span class="val mono" id="atfv">85 °C</span>
+        <input type="range" id="atf" min="-10" max="150" step="1" value="85"></label>
+      <label class="ctl" for="fault">Avería simulada
+        <select id="fault">
+          <option value="0" selected>Ninguna</option>
+          <option value="1">VSS sin señal</option>
+          <option value="2">TPS incoherente</option>
+          <option value="3">Sensor de temperatura abierto</option>
+          <option value="4">Solenoide EPC en circuito abierto</option>
+        </select></label>
+    </div>
+    <div class="chartbox"><canvas id="c1" width="900" height="420" role="img" aria-label="Panel de entradas, unidad de control y salidas de la transmisión"></canvas></div>
+    <div class="readout">
+      <div><span class="k">Marcha comandada</span><span class="n" id="o1g">4.ª</span></div>
+      <div><span class="k">Presión de línea</span><span class="n" id="o1p">6,2<small> bar</small></span></div>
+      <div><span class="k">Bloqueo TCC</span><span class="n" id="o1tcc" style="font-size:.95rem">Aplicado</span></div>
+      <div><span class="k">Solenoides A / B</span><span class="n" id="o1sol">OFF / OFF</span></div>
+      <div><span class="k">Estado</span><span class="n" id="o1st" style="font-size:.9rem">Normal</span></div>
+      <div><span class="k">Código</span><span class="n" id="o1dtc" style="font-size:.95rem">—</span></div>
+    </div>
+  </div>
+<p><span class="tag bad">Precaución</span> Medir siempre con el conector fuera de la TCU. Inyectar corriente en el módulo convierte una avería barata en una cara.</p>
+<p class="backnote">Instituto Superior Tecnológico Sudamericano · Mecánica Automotriz · Mecánica de Patio III (MA.04.03). Simulador didáctico: los valores son representativos del vehículo de laboratorio. Para intervención real use siempre las cotas del manual del fabricante.</p>
+</div>
+<script>
+(function(){
+"use strict";
+
+var css=function(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();};
+var T=function(){return {ink:css('--ink'),ink2:css('--ink-2'),ink3:css('--ink-3'),amber:css('--amber'),steel:css('--steel'),grid:css('--grid'),panel:css('--panel'),ok:css('--ok'),bad:css('--bad'),copper:css('--copper'),rule:css('--rule')};};
+function dpi(c){var r=c.getBoundingClientRect(),d=window.devicePixelRatio||1,w=c.width,h=c.height;
+  c.style.height=(r.width*h/w)+'px'; c.width=w*d; c.height=h*d; var x=c.getContext('2d'); x.setTransform(d,0,0,d,0,0); return {x:x,w:w,h:h};}
+var nf=function(v,d){return v.toLocaleString('es-EC',{minimumFractionDigits:d,maximumFractionDigits:d});};
+function rbox(x,px,py,w,h,fc,ec,lw){var r=6;x.beginPath();
+  x.moveTo(px+r,py);x.lineTo(px+w-r,py);x.quadraticCurveTo(px+w,py,px+w,py+r);
+  x.lineTo(px+w,py+h-r);x.quadraticCurveTo(px+w,py+h,px+w-r,py+h);
+  x.lineTo(px+r,py+h);x.quadraticCurveTo(px,py+h,px,py+h-r);
+  x.lineTo(px,py+r);x.quadraticCurveTo(px,py,px+r,py);x.closePath();
+  if(fc){x.fillStyle=fc;x.fill();} if(ec){x.strokeStyle=ec;x.lineWidth=lw||1.4;x.stroke();}}
+function arrow(x,x1,y1,x2,y2,col,lw){
+  x.strokeStyle=col;x.lineWidth=lw||2;x.beginPath();x.moveTo(x1,y1);x.lineTo(x2,y2);x.stroke();
+  var a=Math.atan2(y2-y1,x2-x1);
+  x.beginPath();x.moveTo(x2,y2);
+  x.lineTo(x2-9*Math.cos(a-0.4),y2-9*Math.sin(a-0.4));
+  x.lineTo(x2-9*Math.cos(a+0.4),y2-9*Math.sin(a+0.4));
+  x.closePath();x.fillStyle=col;x.fill();}
+/* ===== 1 · TCU ===== */
+var vss=document.getElementById('vss'),tps4=document.getElementById('tps4'),atf=document.getElementById('atf'),fault=document.getElementById('fault'),c1=document.getElementById('c1');
+function shiftV(g,thr){return [0,22+0.32*thr,44+0.58*thr,72+0.88*thr][g];}
+function draw1(){
+  var g=dpi(c1),x=g.x,W=g.w,H=g.h,t=T();
+  x.clearRect(0,0,W,H);
+  var v=+vss.value, th=+tps4.value, tmp=+atf.value, f=fault.value;
+  var limp=(f==='1'||f==='2');
+  var gear=1; for(var k=1;k<=3;k++){ if(v>=shiftV(k,th)) gear=k+1; }
+  if(limp) gear=3;
+  var lin=limp?9.8:(4.2+th/100*5.5*0.9);
+  if(f==='4') lin=9.8;
+  var tcc = !limp && f!=='4' && gear>=3 && v>55 && th<60 && tmp>50;
+  if(f==='3') tcc=false;
+  var ent=[['VSS',v+' km/h',f==='1'],['TPS',th+' %',f==='2'],['ATF',tmp+' °C',f==='3'],['Selector','D',false],['Freno','OFF',false]];
+  var sal=[['Solenoide A',(gear===1||gear===2)?'ON':'OFF',false],['Solenoide B',(gear===2||gear===3)?'ON':'OFF',false],
+           ['EPC',nf(lin,1)+' bar',f==='4'],['TCC',tcc?'ON':'OFF',false],['Testigo',limp||f==='4'?'ENCENDIDO':'apagado',limp||f==='4']];
+  x.font='600 12px "Barlow Condensed",sans-serif';
+  ent.forEach(function(e,i){
+    var py=54+i*66;
+    rbox(x,20,py,190,50,e[2]?'#f8e7e7':t.panel,e[2]?t.bad:t.rule,e[2]?2:1.3);
+    x.fillStyle=e[2]?t.bad:t.ink3;x.textAlign='left';x.font='600 12px "Barlow Condensed",sans-serif';
+    x.fillText(e[0],34,py+21);
+    x.font='500 15px "IBM Plex Mono",monospace';x.fillStyle=e[2]?t.bad:t.ink;
+    x.fillText(e[2]?'sin señal':e[1],34,py+41);
+    arrow(x,212,py+25,352,H/2,e[2]?t.bad:'#3d6b8c',1.6);
+  });
+  rbox(x,354,H/2-92,190,184,t.steel,t.ink,2);
+  x.fillStyle='#fff';x.textAlign='center';x.font='600 17px "Barlow Condensed",sans-serif';
+  x.fillText('TCU',449,H/2-56);
+  x.font='600 13px "Barlow Condensed",sans-serif';
+  x.fillText('MARCHA COMANDADA',449,H/2-22);
+  x.font='600 46px "Barlow Condensed",sans-serif';
+  x.fillStyle=limp?'#e07a7a':'#e0a14c';
+  x.fillText(gear+'.ª',449,H/2+26);
+  x.font='500 13px "IBM Plex Mono",monospace';x.fillStyle='#cfd6db';
+  x.fillText(limp?'MODO EMERGENCIA':'mapa normal',449,H/2+58);
+  sal.forEach(function(e,i){
+    var py=54+i*66;
+    arrow(x,546,H/2,686,py+25,e[2]?t.bad:t.amber,1.6);
+    rbox(x,688,py,190,50,e[2]?'#f8e7e7':t.panel,e[2]?t.bad:t.rule,e[2]?2:1.3);
+    x.textAlign='left';x.font='600 12px "Barlow Condensed",sans-serif';x.fillStyle=e[2]?t.bad:t.ink3;
+    x.fillText(e[0],702,py+21);
+    x.font='500 15px "IBM Plex Mono",monospace';x.fillStyle=e[2]?t.bad:t.ink;
+    x.fillText(e[1],702,py+41);
+  });
+  x.textAlign='center';x.font='600 12px "Barlow Condensed",sans-serif';x.fillStyle=t.ink3;
+  x.fillText('ENTRADAS',115,32); x.fillText('SALIDAS',783,32);
+  document.getElementById('vssv').textContent=v+' km/h';
+  document.getElementById('tps4v').textContent=th+' %';
+  document.getElementById('atfv').textContent=tmp+' °C';
+  document.getElementById('o1g').textContent=gear+'.ª';
+  document.getElementById('o1p').innerHTML=nf(lin,1)+'<small> bar</small>';
+  document.getElementById('o1tcc').textContent=tcc?'Aplicado':(tmp<50?'Inhibido por temperatura':'Liberado');
+  document.getElementById('o1sol').textContent=sal[0][1]+' / '+sal[1][1];
+  var st=document.getElementById('o1st'), dtc=document.getElementById('o1dtc');
+  if(f==='1'){st.textContent='Modo de emergencia';st.style.color=t.bad;dtc.textContent='P0720';}
+  else if(f==='2'){st.textContent='Modo de emergencia';st.style.color=t.bad;dtc.textContent='P0121';}
+  else if(f==='3'){st.textContent='Bloqueo inhibido';st.style.color=t.amber;dtc.textContent='P0712';}
+  else if(f==='4'){st.textContent='Presión fija al máximo';st.style.color=t.bad;dtc.textContent='P0745';}
+  else if(tmp>125){st.textContent='ATF sobrecalentado';st.style.color=t.bad;dtc.textContent='—';}
+  else {st.textContent='Normal';st.style.color=t.ok;dtc.textContent='—';}
+}
+[vss,tps4,atf,fault].forEach(function(e){e.addEventListener('input',draw1);e.addEventListener('change',draw1);});
+function redraw(){draw1();}
+redraw();
+var ro=new ResizeObserver(function(){redraw();});ro.observe(document.body);
+try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',redraw);}catch(e){}
+})();
+</script>
+</body>
+</html>

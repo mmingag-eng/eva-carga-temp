@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Diferencial · Simulador</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --paper:#f3f1ec; --panel:#ffffff; --ink:#15181b; --ink-2:#414a52; --ink-3:#6b767f;
+  --rule:#d7d2c8; --rule-2:#e8e4dc;
+  --amber:#b8710f; --amber-soft:#f0e2cb; --copper:#8c4726;
+  --steel:#4a5964; --ok:#2c7355; --bad:#a32f2f; --warn:#b8860b;
+  --grid:#ddd8cf;
+  --shadow:0 1px 2px rgba(20,24,28,.06),0 8px 24px -16px rgba(20,24,28,.35);
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --disp:"Barlow Condensed",Oswald,"Arial Narrow",sans-serif;
+  --body:"Source Sans 3",system-ui,-apple-system,Segoe UI,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#15181b; --panel:#1d2126; --ink:#eceae5; --ink-2:#b6bdc4; --ink-3:#848d95;
+  --rule:#333a41; --rule-2:#272c32; --amber:#e0a14c; --amber-soft:#3a2f1e; --copper:#c97a51;
+  --steel:#8fa0ad; --ok:#5fb98f; --bad:#e07a7a; --warn:#d9ae4e; --grid:#2c3238;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -16px rgba(0,0,0,.8);
+}}
+:root[data-theme="dark"]{
+  --paper:#15181b; --panel:#1d2126; --ink:#eceae5; --ink-2:#b6bdc4; --ink-3:#848d95;
+  --rule:#333a41; --rule-2:#272c32; --amber:#e0a14c; --amber-soft:#3a2f1e; --copper:#c97a51;
+  --steel:#8fa0ad; --ok:#5fb98f; --bad:#e07a7a; --warn:#d9ae4e; --grid:#2c3238;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -16px rgba(0,0,0,.8);
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.6;margin:0}
+.wrap{max-width:1060px;margin:0 auto;padding-inline:20px;padding-block:0 64px}
+h1,h2,h3,h4{font-family:var(--disp);font-weight:600;line-height:1.08;text-wrap:balance;margin:0}
+.eyebrow{font-family:var(--disp);text-transform:uppercase;letter-spacing:.14em;font-size:.78rem;font-weight:600;color:var(--amber)}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+/* ---- cabecera tipo ficha técnica ---- */
+header.sheet{border-bottom:3px solid var(--ink);padding-block:36px 18px;margin-bottom:8px}
+header.sheet h1{font-size:clamp(2.6rem,7vw,4.6rem);letter-spacing:-.01em;text-transform:uppercase}
+header.sheet .sub{font-family:var(--disp);font-size:clamp(1.1rem,2.6vw,1.5rem);color:var(--ink-2);text-transform:uppercase;letter-spacing:.04em;margin-top:4px}
+.idcard{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:2px 24px;margin-top:22px;border-top:1px solid var(--rule);padding-top:14px}
+.idcard div{display:flex;flex-direction:column;gap:1px}
+.idcard dt,.idcard .k{font-family:var(--disp);text-transform:uppercase;letter-spacing:.1em;font-size:.7rem;color:var(--ink-3)}
+.idcard .v{font-family:var(--mono);font-size:.9rem;color:var(--ink)}
+
+/* ---- secciones numeradas ---- */
+section{margin-top:56px;scroll-margin-top:16px}
+.shead{display:flex;align-items:baseline;gap:14px;border-bottom:1.5px solid var(--ink);padding-bottom:8px;margin-bottom:22px}
+.snum{font-family:var(--mono);font-size:.95rem;color:var(--amber);font-weight:600;flex:none}
+.shead h2{font-size:clamp(1.5rem,3.6vw,2.1rem);text-transform:uppercase;letter-spacing:.01em}
+p{margin:0 0 14px;max-width:68ch}
+.lead{font-size:1.06rem;color:var(--ink-2)}
+
+/* ---- paneles ---- */
+.panel{background:var(--panel);border:1px solid var(--rule);border-radius:3px;box-shadow:var(--shadow);padding:18px;margin-block:22px}
+.panel>h3{font-size:1.15rem;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px}
+.panel .hint{font-size:.86rem;color:var(--ink-3);margin-bottom:14px}
+.formula{font-family:var(--mono);font-size:1.02rem;background:var(--amber-soft);border-left:3px solid var(--amber);padding:12px 14px;margin-block:16px;overflow-x:auto}
+.formula b{font-weight:600}
+.formula .note{display:block;font-family:var(--body);font-size:.85rem;color:var(--ink-2);margin-top:6px}
+
+/* ---- controles ---- */
+.ctrls{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px 20px;margin-bottom:16px}
+label.ctl{display:flex;flex-direction:column;gap:5px;font-family:var(--disp);text-transform:uppercase;letter-spacing:.08em;font-size:.74rem;color:var(--ink-3)}
+label.ctl .val{font-family:var(--mono);font-size:1rem;color:var(--ink);letter-spacing:0;text-transform:none}
+input[type=range]{width:100%;accent-color:var(--amber);height:22px}
+input[type=number],select{font-family:var(--mono);font-size:.92rem;padding:5px 7px;border:1px solid var(--rule);border-radius:2px;background:var(--panel);color:var(--ink);width:100%}
+:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.gearbtns{display:flex;flex-wrap:wrap;gap:6px}
+.gearbtns button{font-family:var(--disp);font-size:1rem;font-weight:600;letter-spacing:.05em;padding:6px 14px;border:1px solid var(--rule);background:var(--panel);color:var(--ink-2);border-radius:2px;cursor:pointer}
+.gearbtns button[aria-pressed=true]{background:var(--amber);border-color:var(--amber);color:#fff}
+
+/* ---- lecturas ---- */
+.readout{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:1px;background:var(--rule-2);border:1px solid var(--rule-2);margin-top:14px}
+.readout div{background:var(--panel);padding:9px 11px}
+.readout .k{font-family:var(--disp);text-transform:uppercase;letter-spacing:.09em;font-size:.68rem;color:var(--ink-3);display:block}
+.readout .n{font-family:var(--mono);font-size:1.22rem;font-weight:500;color:var(--ink)}
+.readout .n small{font-size:.66em;color:var(--ink-3);font-weight:400}
+.chartbox{width:100%;overflow-x:auto}
+canvas{display:block;width:100%;height:auto;max-width:100%}
+
+/* ---- tablas ---- */
+.tablebox{overflow-x:auto;margin-block:20px}
+table{border-collapse:collapse;width:100%;min-width:520px;font-size:.92rem}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--rule-2);vertical-align:top}
+thead th{font-family:var(--disp);text-transform:uppercase;letter-spacing:.09em;font-size:.72rem;color:var(--ink-3);border-bottom:1.5px solid var(--rule)}
+td.num{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+tbody tr:hover{background:var(--rule-2)}
+
+/* ---- listas ---- */
+ul.spec{list-style:none;padding:0;margin:0 0 16px}
+ul.spec li{padding-left:20px;position:relative;margin-bottom:7px;max-width:68ch}
+ul.spec li::before{content:"";position:absolute;left:4px;top:.66em;width:7px;height:1.5px;background:var(--amber)}
+.steps{counter-reset:s;list-style:none;padding:0;margin:0}
+.steps li{counter-increment:s;position:relative;padding-left:40px;margin-bottom:14px;max-width:66ch}
+.steps li::before{content:counter(s,decimal-leading-zero);position:absolute;left:0;top:.1em;font-family:var(--mono);font-size:.82rem;color:var(--amber);font-weight:600}
+.steps li b{display:block;font-family:var(--disp);font-size:1.05rem;letter-spacing:.02em;text-transform:uppercase}
+
+.tag{display:inline-block;font-family:var(--disp);text-transform:uppercase;letter-spacing:.08em;font-size:.68rem;padding:2px 7px;border:1px solid currentColor;border-radius:2px}
+.tag.ok{color:var(--ok)} .tag.bad{color:var(--bad)} .tag.warn{color:var(--warn)}
+
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px}
+figure{margin:0}
+figcaption{font-size:.82rem;color:var(--ink-3);margin-top:8px;font-style:italic}
+svg{max-width:100%;height:auto}
+footer{margin-top:64px;border-top:1.5px solid var(--ink);padding-top:16px;font-size:.85rem;color:var(--ink-3)}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+<style>
+*{box-sizing:border-box}
+html{color-scheme:light dark}
+body{margin:0}
+img{max-width:100%}
+[hidden]{display:none!important}
+.wrap{max-width:900px}
+header.sheet{border-bottom:3px solid var(--ink);padding-block:30px 16px;margin-bottom:6px}
+header.sheet h1{font-size:clamp(1.9rem,5vw,2.9rem)}
+.backnote{font-size:.85rem;color:var(--ink-3);margin-top:28px;border-top:1px solid var(--rule);padding-top:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="sheet">
+  <div class="eyebrow">Mecánica de Patio III · Unidad 2</div>
+  <h1>Reparto en curva y pérdida de adherencia</h1>
+  <div class="sub">Vía 1,40 m · el diferencial reparte par, no velocidad</div>
+</header>
+<p class="lead">En curva la rueda exterior recorre más camino que la interior. Los satélites giran sobre su eje y permiten esa diferencia, manteniendo constante la media de ambas ruedas.</p>
+<div class="formula">
+  <b>n corona = ( n izquierda + n derecha ) / 2</b>
+  <span class="note">La media es fija: si una rueda acelera, la otra frena exactamente lo mismo.</span>
+</div>
+<div class="formula">
+  <b>n ext / n int = (R + vía/2) / (R − vía/2)</b>
+  <span class="note">R = radio de la curva al centro del vehículo · vía = distancia entre centros de rueda del mismo eje.</span>
+</div>
+<div class="panel">
+    <h3>Simulador · Reparto en curva y pérdida de adherencia</h3>
+    <p class="hint">Mueve el radio de la curva y observa cómo se reparten los regímenes manteniendo la media. Después marca la casilla de hielo y comprueba qué ocurre con el par.</p>
+    <div class="ctrls">
+      <label class="ctl" for="rad">Radio de la curva <span class="val mono" id="radv">15 m</span>
+        <input type="range" id="rad" min="4" max="80" step="1" value="15"></label>
+      <label class="ctl" for="via">Vía del eje [m]<input type="number" id="via" value="1.40" min="1" max="2.2" step="0.01"></label>
+      <label class="ctl" for="ncor">Régimen de la corona [rpm]<input type="number" id="ncor" value="500" min="50" max="2000" step="10"></label>
+      <label class="ctl" for="hielo">Escenario
+        <select id="hielo">
+          <option value="0" selected>Ambas ruedas con agarre</option>
+          <option value="1">Rueda interior sobre hielo</option>
+        </select></label>
+    </div>
+    <div class="chartbox"><canvas id="c3" width="900" height="400" role="img" aria-label="Esquema del vehículo en curva con el régimen de cada rueda"></canvas></div>
+    <div class="readout">
+      <div><span class="k">Rueda exterior</span><span class="n" id="o3e">518<small> rpm</small></span></div>
+      <div><span class="k">Rueda interior</span><span class="n" id="o3i">482<small> rpm</small></span></div>
+      <div><span class="k">Diferencia</span><span class="n" id="o3d">7,3<small> %</small></span></div>
+      <div><span class="k">Par por rueda</span><span class="n" id="o3t">696<small> N·m</small></span></div>
+      <div><span class="k">Estado</span><span class="n" id="o3s" style="font-size:.95rem">Tracción normal</span></div>
+    </div>
+  </div>
+<p><span class="tag bad">La trampa</span> Un diferencial abierto reparte el <b>par</b> por igual entre las dos ruedas, siempre. Si una queda sobre hielo y solo aguanta 40 N·m, la otra recibe también 40 N·m: la rueda con agarre nunca recibe más que la que patina.</p>
+<p class="backnote">Instituto Superior Tecnológico Sudamericano · Mecánica Automotriz · Mecánica de Patio III (MA.04.03). Simulador didáctico: los valores son representativos del vehículo de laboratorio. Para intervención real use siempre las cotas del manual del fabricante.</p>
+</div>
+<script>
+(function(){
+"use strict";
+
+var css=function(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();};
+var T=function(){return {ink:css('--ink'),ink2:css('--ink-2'),ink3:css('--ink-3'),amber:css('--amber'),steel:css('--steel'),grid:css('--grid'),panel:css('--panel'),ok:css('--ok'),bad:css('--bad'),copper:css('--copper'),rule:css('--rule')};};
+function dpi(c){var r=c.getBoundingClientRect(),d=window.devicePixelRatio||1,w=c.width,h=c.height;
+  c.style.height=(r.width*h/w)+'px'; c.width=w*d; c.height=h*d; var x=c.getContext('2d'); x.setTransform(d,0,0,d,0,0); return {x:x,w:w,h:h};}
+var nf=function(v,d){return v.toLocaleString('es-EC',{minimumFractionDigits:d,maximumFractionDigits:d});};
+function rbox(x,px,py,w,h,fc,ec,lw){var r=6;x.beginPath();
+  x.moveTo(px+r,py);x.lineTo(px+w-r,py);x.quadraticCurveTo(px+w,py,px+w,py+r);
+  x.lineTo(px+w,py+h-r);x.quadraticCurveTo(px+w,py+h,px+w-r,py+h);
+  x.lineTo(px+r,py+h);x.quadraticCurveTo(px,py+h,px,py+h-r);
+  x.lineTo(px,py+r);x.quadraticCurveTo(px,py,px+r,py);x.closePath();
+  if(fc){x.fillStyle=fc;x.fill();} if(ec){x.strokeStyle=ec;x.lineWidth=lw||1.4;x.stroke();}}
+function arrow(x,x1,y1,x2,y2,col,lw){
+  x.strokeStyle=col;x.lineWidth=lw||2;x.beginPath();x.moveTo(x1,y1);x.lineTo(x2,y2);x.stroke();
+  var a=Math.atan2(y2-y1,x2-x1);
+  x.beginPath();x.moveTo(x2,y2);
+  x.lineTo(x2-9*Math.cos(a-0.4),y2-9*Math.sin(a-0.4));
+  x.lineTo(x2-9*Math.cos(a+0.4),y2-9*Math.sin(a+0.4));
+  x.closePath();x.fillStyle=col;x.fill();}
+/* ===== 3 · diferencial ===== */
+var rad=document.getElementById('rad'),via=document.getElementById('via'),ncor=document.getElementById('ncor'),hielo=document.getElementById('hielo'),c3=document.getElementById('c3');
+var ang3=0;
+function draw3(){
+  var g=dpi(c3),x=g.x,W=g.w,H=g.h,t=T();
+  x.clearRect(0,0,W,H);
+  var R=+rad.value, v=+via.value, n0=+ncor.value, ice=hielo.value==='1';
+  var ne=n0*(R+v/2)/R, ni=n0*(R-v/2)/R;
+  if(ice){ ni=n0*2; ne=0; }
+  // arco de la curva
+  var cx=W*0.52, cy=H+R*4; // centro ficticio
+  x.strokeStyle=t.grid;x.lineWidth=1.4;x.setLineDash([6,6]);
+  x.beginPath();x.arc(W*0.5,H*1.55,H*1.15,Math.PI*1.18,Math.PI*1.82);x.stroke();x.setLineDash([]);
+  // vehículo
+  var vx=W*0.5, vy=H*0.46, bw=250, bh=120;
+  x.save();x.translate(vx,vy);
+  x.fillStyle=t.panel;x.strokeStyle=t.ink;x.lineWidth=2;
+  x.beginPath();x.rect(-bw/2,-bh/2,bw,bh);x.fill();x.stroke();
+  // ruedas
+  function wheel(px,py,n,lab,col){
+    x.save();x.translate(px,py);
+    x.fillStyle=col;x.strokeStyle=t.ink;x.lineWidth=1.6;
+    x.beginPath();x.rect(-16,-34,32,68);x.fill();x.stroke();
+    x.save();x.rotate(ang3*n/500);
+    x.strokeStyle=t.panel;x.lineWidth=3;
+    x.beginPath();x.moveTo(0,-26);x.lineTo(0,26);x.stroke();
+    x.restore();
+    x.restore();
+    x.font='500 13px "IBM Plex Mono",monospace';x.textAlign='center';x.fillStyle=t.ink;
+    x.fillText(nf(n,0), px, py+52);
+    x.font='600 10px "Barlow Condensed",sans-serif';x.fillStyle=t.ink3;
+    x.fillText(lab, px, py-44);
+  }
+  wheel(-bw/2-4, -bh/2+2, ni, 'INTERIOR', ice?t.bad:t.steel);
+  wheel(bw/2+4, -bh/2+2, ne, 'EXTERIOR', ice?t.grid:t.amber);
+  wheel(-bw/2-4, bh/2-2, ni, '', ice?t.bad:t.steel);
+  wheel(bw/2+4, bh/2-2, ne, '', ice?t.grid:t.amber);
+  // eje y diferencial
+  x.strokeStyle=t.steel;x.lineWidth=7;x.lineCap='round';
+  x.beginPath();x.moveTo(-bw/2,0);x.lineTo(bw/2,0);x.stroke();x.lineCap='butt';
+  x.beginPath();x.arc(0,0,26,0,6.2832);x.fillStyle=t.amber;x.fill();x.strokeStyle=t.ink;x.lineWidth=2;x.stroke();
+  x.font='600 11px "Barlow Condensed",sans-serif';x.textAlign='center';x.fillStyle='#fff';
+  x.fillText('DIF',0,4);
+  x.font='500 12px "IBM Plex Mono",monospace';x.fillStyle=t.ink;
+  x.fillText(nf(n0,0)+' rpm', 0, 46);
+  x.restore();
+  // etiqueta de curva
+  x.font='600 12px "Barlow Condensed",sans-serif';x.textAlign='center';x.fillStyle=t.ink3;
+  x.fillText('SENTIDO DE LA CURVA  ·  RADIO '+R+' m', W/2, H-14);
+  document.getElementById('radv').textContent=R+' m';
+  document.getElementById('o3e').innerHTML=nf(ne,0)+'<small> rpm</small>';
+  document.getElementById('o3i').innerHTML=nf(ni,0)+'<small> rpm</small>';
+  document.getElementById('o3d').innerHTML=nf(ice?100:((ne-ni)/n0*100),1)+'<small> %</small>';
+  var Mt=ice?40:696;
+  document.getElementById('o3t').innerHTML=nf(Mt,0)+'<small> N·m</small>';
+  var st=document.getElementById('o3s');
+  if(ice){st.textContent='La rueda con agarre recibe solo 40 N·m';st.style.color=t.bad;}
+  else {st.textContent='Tracción normal';st.style.color=t.ok;}
+}
+[rad,via,ncor,hielo].forEach(function(e){e.addEventListener('input',draw3);e.addEventListener('change',draw3);});
+function redraw(){draw3();}
+redraw();
+if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches){(function loop(){ang3+=0.05;draw3();requestAnimationFrame(loop);})();}
+var ro=new ResizeObserver(function(){redraw();});ro.observe(document.body);
+try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',redraw);}catch(e){}
+})();
+</script>
+</body>
+</html>
