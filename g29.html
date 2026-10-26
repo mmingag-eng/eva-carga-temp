@@ -1,0 +1,1514 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Gearbox, Traction & Performance · V14.0 · Modo estudiante</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+  * { box-sizing: border-box; font-family: 'Times New Roman', Times, serif; }
+  html, body { margin:0; padding:0; height:100%; }
+  body { background:#eef1f5; display:flex; align-items:center; justify-content:center; min-height:100vh; padding:12px; }
+
+  :root{
+    --math-font: 'Cambria Math','STIX Two Math','Latin Modern Math','Times New Roman',serif;
+    --figure-box-h: 410px;
+    --figure-canvas-h: 300px;
+  }
+
+  math{
+    font-family: var(--math-font);
+    font-size: 1em;
+    line-height: 1.25;
+  }
+  .input-row label math,
+  .checkbox-row label math{ font-size: 1.08em; vertical-align: -0.15em; }
+  .table-container th math,
+  .table-container td math{ font-size: 1.02em; vertical-align: -0.1em; }
+  .math-summary math{ font-size: 1.05em; vertical-align: -0.12em; }
+  .kpi-label math{ font-size: 1.15em; vertical-align: -0.15em; }
+  .equation-card .eq math{ font-size: 1.35rem; }
+  math mi, math mo, math mn, math mtext, math mfrac{ font-family: var(--math-font); }
+  math mi { font-style: italic; }
+  math mo { font-style: normal; padding: 0 .12em; }
+  math mn { font-style: normal; }
+  math mtext { font-style: normal; }
+  math mfrac { vertical-align: middle; }
+
+  .app-container {
+    width:1740px; max-width:100%; height:1150px; max-height:98vh;
+    background:#fff; border-radius:12px;
+    box-shadow:0 10px 30px rgba(0,0,0,.25);
+    display:flex; overflow:hidden; border:1px solid #a0a8b0;
+  }
+  .left-panel { width:440px; min-width:440px; background:#f8f9fc; border-right:1px solid #c0c8d0;
+    display:flex; flex-direction:column; overflow-y:auto; padding:12px 12px 20px; }
+  .left-panel h2 { font-size:1.15rem; margin:4px 0 10px 0; color:#1e2b3c;
+    border-bottom:2px solid #2c5f8a; padding-bottom:6px; }
+  .section-header { font-weight:700; font-size:.9rem; margin:14px 0 6px 0; color:#1e3e5e;
+    background:#e3e9f2; padding:4px 8px; border-radius:3px; border-left:4px solid #2c5f8a;
+    cursor:pointer; user-select:none; display:flex; justify-content:space-between; align-items:center; }
+  .section-header .toggle{ font-size:.75rem; color:#5a6a7a; font-weight:400; }
+  .section-body{ padding-left:2px; }
+  .section-body.collapsed{ display:none; }
+
+  .input-row { display:flex; align-items:center; margin-bottom:5px; gap:6px; }
+  .input-row label { flex:1 0 60%; font-size:.85rem; white-space:nowrap; overflow:hidden;
+    text-overflow:ellipsis; font-family: var(--math-font);
+    display:flex; align-items:center; gap:5px; }
+  .input-row input, .input-row select { flex:1 0 36%; padding:4px 7px; border:1px solid #bcc6d2;
+    border-radius:4px; font-size:.85rem; height:29px; transition:border .15s; }
+  .input-row input:focus, .input-row select:focus{
+    outline:none; border-color:#2c5f8a; box-shadow:0 0 0 2px rgba(44,95,138,.15);
+  }
+  .input-row input[readonly] { background:#eef2f6; font-weight:600; color:#4a5a6a; }
+
+  .checkbox-row { display:flex; align-items:center; gap:6px; margin:3px 0; font-size:.86rem; font-family: var(--math-font); }
+  .checkbox-row input { width:16px; height:16px; accent-color:#2c5f8a; }
+  .btn { padding:7px 12px; border-radius:5px; border:1px solid #2c5f8a; background:#fff;
+    font-weight:bold; font-size:.85rem; cursor:pointer; width:100%; margin:6px 0; }
+  .btn:hover { background:#e3e9f2; }
+  .btn-primary { background:#2c5f8a; color:#fff; }
+  .btn-primary:hover { background:#1e3e5e; }
+  .status-bar { margin-top:12px; font-weight:700; font-size:.85rem; color:#1e3e5e; padding:6px;
+    background:#eef2f6; border-radius:4px; text-align:center; }
+
+  .defaults-summary{
+    margin-top:14px; padding:10px 12px; background:#fffef8; border:1px dashed #d4c88a;
+    border-radius:6px; font-size:.78rem; color:#5a4f2a; line-height:1.5;
+  }
+  .defaults-summary strong{ color:#8a6f1a; }
+  .defaults-summary ul{ margin:6px 0 0 18px; padding:0; }
+  .defaults-summary li{ margin-bottom:3px; }
+
+  .right-panel { flex:1; display:flex; flex-direction:column; padding:8px; min-width:0;
+    overflow-y:auto; min-height:0; height:100%; }
+  .tabs { display:flex; gap:2px; border-bottom:2px solid #2c5f8a; flex-shrink:0; overflow-x:auto;
+    position:sticky; top:0; background:#fff; z-index:5; }
+  .tab-btn { padding:6px 14px; background:#eef2f6; border:1px solid #c0c8d2; border-bottom:none;
+    border-radius:6px 6px 0 0; font-weight:600; font-size:.85rem; cursor:pointer; white-space:nowrap; }
+  .tab-btn.active { background:#fff; margin-bottom:-2px; font-weight:700; color:#2c5f8a; }
+
+  .tab-content { flex:1; display:flex; flex-direction:column;
+    overflow-y:auto; padding-top:8px; min-height:0; }
+
+  .tab-pane { display:none; min-height:0; }
+  .tab-pane.active { display:block; min-height:0; }
+
+  .chart-grid-2-1 {
+    display:grid; grid-template-columns:minmax(0,2.2fr) minmax(260px,1fr); gap:8px;
+    align-items:start; min-height:0;
+  }
+  .chart-grid-3 {
+    display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px;
+    align-items:start; min-height:0;
+  }
+  .chart-grid-2 {
+    display:grid; grid-template-columns:repeat(2,minmax(0,1fr));
+    grid-auto-rows:auto; gap:8px; align-items:start;
+  }
+  .chart-grid-stack {
+    display:grid; grid-template-columns:1fr; gap:10px; align-items:start;
+  }
+
+  .chart-container {
+    background:#fff; border:1px solid #c0c8d2; border-radius:6px; padding:6px;
+    position:relative; overflow:hidden;
+    display:grid; grid-template-rows:auto var(--figure-canvas-h) auto;
+    align-content:start;
+    width:100%; min-width:0;
+    height:var(--figure-box-h) !important;
+    min-height:var(--figure-box-h) !important;
+    max-height:var(--figure-box-h) !important;
+    contain:layout paint;
+  }
+  .chart-container.extended {
+    grid-template-rows:auto var(--figure-canvas-h) auto auto auto !important;
+    height:auto !important;
+    min-height:calc(var(--figure-box-h) + 120px) !important;
+    max-height:none !important;
+  }
+  .chart-container canvas {
+    display:block !important;
+    width:100% !important;
+    height:var(--figure-canvas-h) !important;
+    min-height:var(--figure-canvas-h) !important;
+    max-height:var(--figure-canvas-h) !important;
+    min-width:0 !important;
+    max-width:100% !important;
+    align-self:start;
+  }
+
+  .motor-slider-wrap{
+    margin-top:8px;
+    padding:10px 12px 6px;
+    border:1px solid #d0d8e0;
+    border-radius:6px;
+    background:linear-gradient(180deg,#ffffff 0%,#f0f4f8 100%);
+  }
+  .motor-slider-header{
+    display:flex; justify-content:space-between; align-items:baseline;
+    font-family: var(--math-font); font-size:.82rem; color:#4a5a6a;
+    margin-bottom:6px;
+  }
+  .motor-slider-header .big{
+    font-family: 'IBM Plex Mono','Times New Roman',monospace;
+    font-size:1.15rem; font-weight:700; color:#12263a;
+  }
+  .motor-slider-track{ position:relative; }
+  input[type=range].motor-range{
+    width:100%; height:26px; accent-color:#2c5f8a;
+    -webkit-appearance:none; appearance:none; background:transparent;
+    cursor:pointer;
+  }
+  input[type=range].motor-range::-webkit-slider-runnable-track{
+    height:6px; border-radius:3px;
+    background:linear-gradient(90deg,#e8e4dc 0%,#c8d0d8 100%);
+    border:1px solid #bcc6d2;
+  }
+  input[type=range].motor-range::-moz-range-track{
+    height:6px; border-radius:3px; background:#c8d0d8; border:1px solid #bcc6d2;
+  }
+  input[type=range].motor-range::-webkit-slider-thumb{
+    -webkit-appearance:none; appearance:none;
+    width:20px; height:20px; border-radius:50%;
+    background:#2c5f8a; border:3px solid #fff;
+    box-shadow:0 2px 5px rgba(0,0,0,.25);
+    margin-top:-8px;
+  }
+  input[type=range].motor-range::-moz-range-thumb{
+    width:20px; height:20px; border-radius:50%; background:#2c5f8a;
+    border:3px solid #fff; box-shadow:0 2px 5px rgba(0,0,0,.25);
+  }
+  .motor-slider-marks{
+    position:relative; height:34px; margin-top:2px;
+    font-family:'IBM Plex Mono',monospace; font-size:.68rem; color:#6b7680;
+  }
+  .motor-slider-marks .tick{
+    position:absolute; top:0; transform:translateX(-50%);
+    display:flex; flex-direction:column; align-items:center; gap:1px;
+  }
+  .motor-slider-marks .tick .line{ width:1px; height:5px; background:#8494a2; }
+  .motor-slider-marks .tick.major .line{ height:8px; background:#4a5a6a; }
+  .motor-slider-marks .tick .lab{ white-space:nowrap; }
+  .motor-slider-marks .marker{
+    position:absolute; top:-24px; transform:translateX(-50%);
+    display:flex; flex-direction:column; align-items:center;
+    font-family:'Barlow Condensed', var(--math-font);
+    font-size:.66rem; text-transform:uppercase; letter-spacing:.04em;
+    font-weight:600;
+  }
+  .motor-slider-marks .marker .pin{
+    width:0; height:0; border-left:4px solid transparent; border-right:4px solid transparent;
+    border-top:6px solid currentColor; margin-top:1px;
+  }
+  .motor-slider-marks .marker.m-tmax{ color:#b8710f; }
+  .motor-slider-marks .marker.m-pmax{ color:#4a5964; }
+  .motor-zone-bands{
+    position:relative; height:6px; margin-top:4px; border-radius:3px; overflow:hidden; display:flex;
+  }
+  .motor-zone-bands .band{ height:100%; }
+
+  .motor-readouts{
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr));
+    gap:1px; background:#d0d8e0; border:1px solid #d0d8e0;
+    margin-top:8px; border-radius:5px; overflow:hidden;
+  }
+  .motor-readouts > div{ background:#fff; padding:7px 9px; }
+  .motor-readouts .k{
+    font-family: var(--math-font); font-size:.66rem; text-transform:uppercase;
+    letter-spacing:.05em; color:#6b7680; display:flex; align-items:center; gap:3px;
+  }
+  .motor-readouts .n{
+    font-family:'IBM Plex Mono','Times New Roman',monospace;
+    font-size:1.05rem; font-weight:600; color:#12263a;
+  }
+  .motor-readouts .n small{ font-size:.65em; color:#6b7680; font-weight:400; }
+  .motor-readouts .n.zone{ font-family: var(--math-font); font-size:.85rem; font-weight:600; }
+
+  .table-container { background:#fff; border:1px solid #c0c8d2; border-radius:6px; overflow:auto;
+    font-size:.78rem; min-height:0; height:var(--figure-box-h); max-height:var(--figure-box-h); }
+  .table-container.extended{ height:auto; max-height:none; min-height:calc(var(--figure-box-h) + 120px); }
+  .table-container table { width:100%; border-collapse:collapse; }
+  .table-container th { background:#e3e9f2; padding:4px 6px; position:sticky; top:0;
+    font-size:.76rem; white-space:nowrap; z-index:2; font-family: var(--math-font); }
+  .table-container td { padding:3px 6px; border-bottom:1px solid #eef2f6; white-space:nowrap; }
+
+  .bottom-panel { flex-shrink:0; margin-top:8px; background:#fff; border:1px solid #c0c8d2;
+    border-radius:8px; padding:6px 8px; display:grid;
+    grid-template-columns:1fr 1fr; gap:8px;
+    height:150px;
+    overflow:hidden; }
+  .summary-box { background:#f8f9fc; border-radius:6px; padding:6px 8px; font-size:.78rem;
+    line-height:1.4; overflow-y:auto; border:1px solid #d0d8e0; white-space:pre-wrap;
+    font-family: var(--math-font); }
+  .credit-line { grid-column:1/-1; text-align:right; font-style:italic; font-size:.8rem; color:#5a6a7a; }
+
+  .math-summary { display:grid; grid-template-columns:minmax(130px,1fr) minmax(120px,1fr); gap:2px 10px; white-space:normal; }
+  .math-summary .ms-title { grid-column:1/-1; font-weight:700; color:#183b5b; border-bottom:1px solid #d5dde5; padding-bottom:3px; margin-bottom:3px; }
+  .math-summary .ms-label { color:#536577; display:flex; align-items:center; gap:4px; }
+  .math-summary .ms-value { color:#172b3d; font-weight:600; display:flex; align-items:center; gap:4px; }
+
+  .kpi-grid { display:grid; grid-template-columns:repeat(4,minmax(120px,1fr)); gap:6px; margin-bottom:7px; flex-shrink:0; }
+  .kpi-card { border:1px solid #ccd5df; border-radius:7px; padding:7px 9px; background:#f8fafc; min-width:0; }
+  .kpi-label { font:600 .74rem Arial,sans-serif; color:#607080; letter-spacing:.03em;
+    font-family: var(--math-font); display:flex; align-items:center; justify-content:center; }
+  .kpi-value { margin-top:3px; font:700 1rem Arial,sans-serif; color:#183b5b; overflow:hidden;
+    text-overflow:ellipsis; white-space:nowrap; text-align:center; font-family: var(--math-font); }
+
+  .status-bar.error { background:#fdecec; color:#9b1c1c; }
+  .status-bar.warning { background:#fff6df; color:#855b00; }
+  .status-bar.ok { background:#eaf7ed; color:#226533; }
+  .input-row input.invalid, .input-row select.invalid { border-color:#c62828; background:#fff4f4; }
+
+  .gear-editor { border:1px solid #ccd5df; background:#fff; border-radius:6px; padding:6px; margin:4px 0 6px; }
+  .gear-editor-title { font:700 .78rem Arial,sans-serif; color:#334b61; margin-bottom:5px;
+    font-family: var(--math-font); }
+  .gear-ratio-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:4px 6px; }
+  .gear-ratio-cell { display:grid; grid-template-columns:44px 1fr; align-items:center; gap:4px; font-size:.78rem; }
+  .gear-ratio-cell input { width:100%; height:25px; padding:2px 5px; border:1px solid #bcc6d2; border-radius:4px; }
+  .gear-ratio-cell input.invalid { border-color:#c62828; background:#fff4f4; }
+  .gear-editor.disabled { opacity:.55; }
+  .gear-note { font:400 .72rem Arial,sans-serif; color:#657585; line-height:1.35; margin-top:5px;
+    font-family: var(--math-font); }
+  .mini-btn { border:1px solid #b9c5d1; background:#f8fafc; border-radius:5px; padding:4px 7px; font:600 .70rem Arial,sans-serif; cursor:pointer; margin-top:5px; width:100%; }
+  .mini-btn:hover { background:#eef4fa; }
+
+  .chart-heading { flex-shrink:0; text-align:center; padding:2px 8px 6px; border-bottom:1px solid #e2e7ec; margin-bottom:4px; }
+  .chart-heading .chart-title { font-size:.89rem; font-weight:700; color:#152f49; line-height:1.35; }
+  .figure-caption { flex-shrink:0; text-align:center; border-top:1px solid #e2e7ec; margin-top:4px; padding:5px 8px 2px; font-size:.72rem; line-height:1.35; color:#3f5163; }
+  .figure-caption .fig-number { font-weight:700; color:#203d59; }
+
+  #pane-equations{overflow:auto;background:#f7f9fc;}
+  .eq-intro{padding:12px 18px 8px;text-align:center;color:#42566b;font-size:.85rem;line-height:1.5;
+    font-family: var(--math-font);}
+  .eq-group-title{grid-column:1/-1;font-weight:700;font-size:.92rem;color:#183b5b;background:#eaf0f6;border-left:4px solid #2c5f8a;border-radius:5px;padding:7px 10px;margin-top:2px;}
+  .equation-sheet{padding:10px 16px 24px;display:grid;grid-template-columns:repeat(2,minmax(340px,1fr));gap:12px;overflow:visible;align-items:stretch;}
+  .equation-card{position:relative;border:1px solid #c6d2de;border-radius:9px;background:#fff;padding:13px 44px 14px 14px;min-height:150px;box-shadow:0 2px 7px rgba(24,59,91,.055);display:flex;flex-direction:column;justify-content:center;}
+  .equation-card h3{font-family:var(--math-font);font-weight:700;font-size:.93rem;color:#183b5b;text-align:center;margin:0 0 10px;}
+  .equation-card .eq{display:flex;justify-content:center;align-items:center;min-height:64px;padding:8px 2px;overflow-x:auto;overflow-y:hidden;}
+  .equation-card .eq-units{
+    font-family: var(--math-font);
+    font-size:.80rem;
+    color: #536577;
+    text-align:center;
+    margin-top:8px;
+    display:flex; align-items:center; justify-content:center; gap:.5em; flex-wrap:wrap;
+  }
+  .eq-number{position:absolute;right:12px;top:50%;transform:translateY(-50%);
+    font-family:var(--math-font); font-size:.82rem;color:#5c6f82;}
+
+  .eq-conventions{margin:0 16px 12px;border:1px solid #c6d2de;border-radius:9px;background:#fff;padding:12px 14px;font-family:var(--math-font);}
+  .eq-conventions h3{margin:0 0 8px;text-align:center;color:#183b5b;font-size:.94rem;}
+  .eq-conventions-grid{display:grid;grid-template-columns:repeat(2,minmax(280px,1fr));gap:6px 16px;font-size:.82rem;line-height:1.5;color:#405468;}
+  .eq-conventions-item{display:flex;align-items:center;gap:7px;border-bottom:1px solid #eef2f6;padding:3px 0;}
+  .eq-conventions-item math{font-size:1.06em;flex:0 0 auto;}
+  .nomenclature-wrap{margin:0 16px 24px;border:1px solid #c6d2de;border-radius:9px;background:#fff;overflow:auto;}
+  .nomenclature-title{font-family:var(--math-font);font-weight:700;font-size:.94rem;color:#183b5b;text-align:center;background:#eaf0f6;padding:8px 10px;border-bottom:1px solid #c6d2de;}
+  .nomenclature-table{width:100%;border-collapse:collapse;font-family:var(--math-font);font-size:.82rem;}
+  .nomenclature-table th{background:#f4f7fa;color:#31465b;padding:7px 9px;border-bottom:1px solid #dce4ec;text-align:left;position:sticky;top:0;}
+  .nomenclature-table td{padding:6px 9px;border-bottom:1px solid #eef2f6;vertical-align:middle;}
+  .nomenclature-table td:first-child{width:16%;text-align:center;white-space:nowrap;}
+  .nomenclature-table td:last-child{width:18%;text-align:center;white-space:nowrap;}
+  .nomenclature-table math{font-size:1.08em;}
+  @media(max-width:900px){.equation-sheet{grid-template-columns:1fr}.equation-card{padding-right:42px}}
+  @media(max-width:780px){.eq-conventions-grid{grid-template-columns:1fr;}}
+
+  ::-webkit-scrollbar { width:8px; height:8px; }
+  ::-webkit-scrollbar-thumb { background:#b0b8c0; border-radius:4px; }
+
+  @media (max-width:1100px){
+    .app-container{height:auto;max-height:none;min-height:calc(100vh - 24px);}
+    .left-panel{width:360px;min-width:360px;}
+    .kpi-grid{grid-template-columns:repeat(2,1fr);}
+  }
+  @media (max-width:780px){
+    body{display:block;}
+    .app-container{display:block;width:100%;height:auto;max-height:none;}
+    .left-panel{width:100%;min-width:0;max-height:none;border-right:0;border-bottom:1px solid #c0c8d0;}
+    .right-panel{height:auto;overflow:visible;}
+    :root{--figure-box-h:390px;--figure-canvas-h:300px;}
+    .chart-grid-2-1,.chart-grid-3,.chart-grid-2{grid-template-columns:1fr;grid-template-rows:none;grid-auto-rows:auto;}
+    .bottom-panel{height:auto;grid-template-columns:1fr;}
+    .kpi-grid{grid-template-columns:repeat(2,1fr);}
+  }
+</style>
+</head>
+<body>
+<div class="app-container">
+  <div class="left-panel">
+    <h2>⚙️ Diseño de caja · V14.0</h2>
+    <div id="inputContainer"></div>
+    <div class="defaults-summary" id="defaultsSummary">
+      <strong>Valores internos por defecto</strong>
+      <ul id="defaultsList"></ul>
+    </div>
+    <div class="status-bar" id="statusLabel">Status: ready</div>
+  </div>
+  <div class="right-panel">
+    <div class="kpi-grid">
+      <div class="kpi-card"><div class="kpi-label"><math><msub><mi>V</mi><mtext>max,real</mtext></msub></math></div><div class="kpi-value" id="kpiVmax">—</div></div>
+      <div class="kpi-card"><div class="kpi-label"><math><msub><mi>t</mi><mtext>0→100</mtext></msub></math></div><div class="kpi-value" id="kpi0100">—</div></div>
+      <div class="kpi-card"><div class="kpi-label"><math><msub><mi>t</mi><mtext>1000 m</mtext></msub></math></div><div class="kpi-value" id="kpi1000">—</div></div>
+      <div class="kpi-card"><div class="kpi-label"><math><msub><mi>j</mi><mtext>max</mtext></msub></math></div><div class="kpi-value" id="kpiGrade">—</div></div>
+    </div>
+    <div class="tabs" id="tabButtons"></div>
+    <div class="tab-content" id="tabContent"></div>
+    <div class="bottom-panel">
+      <div class="summary-box" id="summaryBox">Technical summary</div>
+      <div class="summary-box" id="warningsBox">Diagnostics</div>
+      <div class="credit-line">Developed by Ing. Miguel Angel Minga</div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   HELPERS MATHML
+   ============================================================ */
+function subML(sub){
+  if(sub===undefined || sub==='') return '';
+  if(sub.includes(',')){
+    const parts=sub.split(',').map(s=>s.trim());
+    const children=parts.map(p=>/^[a-z]$/i.test(p)&&p.length===1
+      ? `<mi>${p}</mi>`
+      : `<mtext>${p}</mtext>`).join('');
+    return `<mrow>${children}</mrow>`;
+  }
+  if(/^[a-z]$/i.test(sub) && sub.length===1) return `<mi>${sub}</mi>`;
+  if(/^\d+$/.test(sub)) return `<mn>${sub}</mn>`;
+  return `<mtext>${sub}</mtext>`;
+}
+function vML(sym, sub=''){
+  if(!sub) return `<math><mi>${sym}</mi></math>`;
+  return `<math><msub><mi>${sym}</mi>${subML(sub)}</msub></math>`;
+}
+function uML(text){
+  return `<math><mo>[</mo><mtext>${text}</mtext><mo>]</mo></math>`;
+}
+function nML(x, dec=2){
+  if(!isFinite(x)) return '<math><mtext>—</mtext></math>';
+  const s=Number(x).toFixed(dec);
+  const m=s.match(/^([+\-]?)(\d+)(\.(\d+))?$/);
+  if(!m) return `<math><mn>${s}</mn></math>`;
+  const sign=m[1]||'';
+  const intPart=m[2];
+  const dot=m[3]?'<mo>.</mo>':'';
+  const decPart=m[4]?`<mn>${m[4]}</mn>`:'';
+  return `<math>${sign?`<mo>${sign}</mo>`:''}<mn>${intPart}</mn>${dot}${decPart}</math>`;
+}
+
+const U = {
+  Nm:    '<math><mtext>N</mtext><mo>·</mo><mtext>m</mtext></math>',
+  Nmm:   '<math><mtext>N</mtext><mo>·</mo><mtext>mm</mtext></math>',
+  kW:    '<math><mtext>kW</mtext></math>',
+  kg:    '<math><mtext>kg</mtext></math>',
+  m:     '<math><mtext>m</mtext></math>',
+  mm:    '<math><mtext>mm</mtext></math>',
+  in:    '<math><mtext>in</mtext></math>',
+  N:     '<math><mtext>N</mtext></math>',
+  kN:    '<math><mtext>kN</mtext></math>',
+  s:     '<math><mtext>s</mtext></math>',
+  pct:   '<math><mo>%</mo></math>',
+  rad:   '<math><mtext>rad</mtext></math>',
+  m2:    '<math><msup><mtext>m</mtext><mn>2</mn></msup></math>',
+  m3:    '<math><msup><mtext>m</mtext><mn>3</mn></msup></math>',
+  rpm:   '<math><msup><mtext>min</mtext><mrow><mo>−</mo><mn>1</mn></mrow></msup></math>',
+  rads:  '<math><mfrac><mtext>rad</mtext><mtext>s</mtext></mfrac></math>',
+  ms2:   '<math><mfrac><mtext>m</mtext><msup><mtext>s</mtext><mn>2</mn></msup></mfrac></math>',
+  kmh:   '<math><mfrac><mtext>km</mtext><mtext>h</mtext></mfrac></math>',
+  kgm3:  '<math><mfrac><mtext>kg</mtext><msup><mtext>m</mtext><mn>3</mn></msup></mfrac></math>',
+  K5:    '<math><mfrac><mrow><mtext>N</mtext><mo>·</mo><mtext>m</mtext></mrow><mfrac><mtext>rad</mtext><mtext>s</mtext></mfrac></mfrac></math>',
+  ratio: '<math><mtext>–</mtext></math>'
+};
+
+const state = {
+  curveRPM:null, curveTorque:null, curveFile:null, lastModel:null, charts:{},
+  motorRPM: 3000
+};
+
+const PHYS = {
+  g: 9.81, rho0: 1.225, factor_kmh: 0.377, factor_kW: 9550,
+  inch2m: 0.0254, rc_factor: 0.98
+};
+
+const INTERNAL_DEFAULTS = {
+  Mco: -12,
+  K5: 0.045,
+  eta_t: 0.95,
+  jmax: 50,
+  a: 0.50,
+  i0: 2.69,
+  L: 2.60,
+  hCG: 0.55,
+  front_pct: 60,
+  traction_type: 'Delantera (FWD)',
+  gamma: 1.06,
+  mu_perf: 0.80,
+  shift_strategy: 'nPmax (actual)',
+  rolling_mode: 'Constante (actual)',
+  f0: 0.08,
+  fv: 6e-6,
+  nfr: 2,
+  smooth_method: 'Sin suavizado',
+  smooth_motor: 5,
+  smooth_cub: 5,
+  show_ith: true,
+  show_rt: true,
+  show_ft: true,
+  show_mc: true,
+  show_mu: true
+};
+
+function defaultParams() {
+  const internal = INTERNAL_DEFAULTS;
+  return {
+    Tmax:120, nTmax:4400, Pmax:65.97344572538566, nPmax:6000,
+    nRal:700, nFin:7000,
+    rho:PHYS.rho0, Cx:0.32, Af:2.59, m:1365, g:PHYS.g,
+    fr:0.08,
+    bn:185, RNA:55, Dll:16, r:0, rc:0,
+    Vmax:180, q:5,
+    ...internal,
+    ur_partial:[0.25,0.50,0.75],
+    curve_mode:'Estimacion automatica',
+    curve_rpm:null, curve_torque:null,
+    vehicle_type:'Turismos', surface_type:'Dureza Media',
+    gear_mode:'Caja calculada (geométrica)', gear_ratios:defaultRealRatios(5),
+    pendientes:[0,10,20,30,40,50], mu_ref:[0.4,0.8]
+  };
+}
+
+function linspace(a,b,n){ if(n<2) return [a]; const s=(b-a)/(n-1); return Array.from({length:n},(_,i)=>a+i*s); }
+function saturar(x,mn,mx){ return Math.min(Math.max(x,mn),mx); }
+function interp1(x,y,xi,method='linear'){
+  if(!x||x.length<2) return xi.map(()=>y[0]||0);
+  const res=[];
+  for(let k=0;k<xi.length;k++){
+    const xv=xi[k];
+    if(xv<=x[0]){res.push(y[0]);continue;}
+    if(xv>=x[x.length-1]){res.push(y[y.length-1]);continue;}
+    let idx=0;
+    for(let i=0;i<x.length-1;i++){ if(xv>=x[i]&&xv<=x[i+1]){idx=i;break;} }
+    const x0=x[idx],x1=x[idx+1],y0=y[idx],y1=y[idx+1];
+    const t=(xv-x0)/(x1-x0);
+    if(method==='pchip'){
+      const m0=(idx>0)?(y[idx+1]-y[idx-1])/(x[idx+1]-x[idx-1]):(y1-y0)/(x1-x0);
+      const m1=(idx<x.length-2)?(y[idx+2]-y[idx])/(x[idx+2]-x[idx]):(y1-y0)/(x1-x0);
+      const h00=2*t*t*t-3*t*t+1, h10=t*t*t-2*t*t+t, h01=-2*t*t*t+3*t*t, h11=t*t*t-t*t;
+      res.push(h00*y0+h10*(x1-x0)*m0+h01*y1+h11*(x1-x0)*m1);
+    } else res.push(y0+t*(y1-y0));
+  }
+  return res;
+}
+function uniqueSorted(x,y){
+  const pairs=x.map((v,i)=>[v,y[i]]).filter(p=>isFinite(p[0])&&isFinite(p[1])).sort((a,b)=>a[0]-b[0]);
+  const ux=[],uy=[]; let prev=null;
+  for(const [vx,vy] of pairs){ if(prev===null||vx!==prev){ux.push(vx);uy.push(vy);prev=vx;} }
+  return {x:ux,y:uy};
+}
+function movingAverage(y,w){
+  w=Math.max(1,Math.round(w));
+  if(w<=1||y.length<3) return y.slice();
+  if(w%2===0) w+=1;
+  const h=(w-1)/2, out=new Array(y.length);
+  for(let i=0;i<y.length;i++){
+    let s=0,c=0;
+    for(let k=Math.max(0,i-h);k<=Math.min(y.length-1,i+h);k++){ if(isFinite(y[k])){s+=y[k];c++;} }
+    out[i]=c?s/c:y[i];
+  }
+  return out;
+}
+function smoothSeries(y,method,w){
+  if(method==='Sin suavizado') return y.slice();
+  if(method==='Movmean + pchip') return movingAverage(y,w);
+  if(method==='Spline') return movingAverage(movingAverage(y,w),Math.max(3,Math.round(w/2)));
+  return y.slice();
+}
+function smoothMatrixColumns(mat,method,w){
+  if(!Array.isArray(mat)||!mat.length||!Array.isArray(mat[0])) return mat;
+  const rows=mat.length, cols=mat[0].length;
+  const out=mat.map(r=>r.slice());
+  if(method==='Sin suavizado'||w<=1) return out;
+  for(let c=0;c<cols;c++){
+    const col=mat.map(r=>r[c]);
+    const sc=smoothSeries(col,method,w);
+    for(let r=0;r<rows;r++) out[r][c]=sc[r];
+  }
+  return out;
+}
+function interpWithinDomain(x,y,xi,method='linear'){
+  const u=uniqueSorted(x,y);
+  if(u.x.length<2) return xi.map(()=>NaN);
+  const yi=interp1(u.x,u.y,xi,method);
+  const xmin=u.x[0], xmax=u.x[u.x.length-1];
+  return yi.map((v,i)=>(xi[i]>=xmin&&xi[i]<=xmax)?v:NaN);
+}
+function finiteOrDash(v,d=2){ return isFinite(v)?Number(v).toFixed(d):'—'; }
+function defaultRealRatios(q){
+  const presets={
+    2:[3.40,1.00],3:[3.50,1.85,1.00],4:[3.55,2.05,1.35,1.00],
+    5:[3.545,1.904,1.280,0.969,0.815],6:[3.82,2.20,1.52,1.22,1.00,0.84],
+    7:[4.00,2.35,1.62,1.28,1.04,0.86,0.72]
+  };
+  if(presets[q]) return presets[q].slice();
+  const first=3.8,last=0.78,K=Math.pow(last/first,1/Math.max(q-1,1));
+  return Array.from({length:q},(_,i)=>first*Math.pow(K,i));
+}
+
+function calcularDeltaN(a,b,c,d){ const iv=[b-a,c-b,d-c]; const dr=Math.min(...iv)/10;
+  let dn=Math.round(dr/25)*25; return Math.min(Math.max(dn,25),200); }
+function getRollingResistanceValue(vt,st){
+  if(vt==='Turismos'){ if(st==='Hormigon o Asfalto')return 0.015; if(st==='Dureza Media')return 0.08; if(st==='Arena')return 0.30; }
+  if(vt==='Camiones'){ if(st==='Hormigon o Asfalto')return 0.012; if(st==='Dureza Media')return 0.06; if(st==='Arena')return 0.25; }
+  if(vt==='Tractores'){ if(st==='Hormigon o Asfalto')return 0.020; if(st==='Dureza Media')return 0.04; if(st==='Arena')return 0.20; }
+  return 0.08;
+}
+function computeDerived(p){
+  p.r=(p.bn/1000)*(p.RNA/100)+(p.Dll/2)*PHYS.inch2m;
+  p.rc=PHYS.rc_factor*p.r;
+  p.g=PHYS.g;
+  return p;
+}
+function rollingCoefficient(p,V){
+  if(p.rolling_mode==='Dependiente de velocidad') return V.map(v=>p.f0+p.fv*Math.pow(Math.abs(v),p.nfr));
+  return V.map(()=>p.fr);
+}
+function resistanceForce(p,V,j){
+  const alpha=Math.atan(j), fr=rollingCoefficient(p,V), W=p.m*p.g;
+  const Fa=V.map(v=>0.5*p.rho*p.Cx*p.Af*v*v);
+  const Fr=fr.map(f=>f*W*Math.cos(alpha));
+  const Fg=W*Math.sin(alpha);
+  return V.map((_,i)=>Fa[i]+Fr[i]+Fg);
+}
+function tractionLimit(p,mu,alpha,a){
+  const W=p.m*p.g, front=p.front_pct/100, FzT=W*Math.cos(alpha);
+  let FzF=W*(front*Math.cos(alpha)-(p.hCG/p.L)*Math.sin(alpha))-p.m*a*p.hCG/p.L;
+  FzF=Math.min(Math.max(FzF,0),FzT);
+  const FzR=Math.max(FzT-FzF,0);
+  if(p.traction_type==='Delantera (FWD)') return mu*FzF;
+  if(p.traction_type==='Trasera (RWD)') return mu*FzR;
+  return mu*FzT;
+}
+function findVmax(V,F,R){
+  const margin=V.map((_,i)=>F[i]-R[i]);
+  const valid=margin.map((m,i)=>isFinite(V[i])&&isFinite(m));
+  const Vv=V.filter((_,i)=>valid[i]), mm=margin.filter((_,i)=>valid[i]);
+  if(!Vv.length) return NaN;
+  let last=-1; for(let i=0;i<mm.length;i++) if(mm[i]>=0) last=i;
+  if(last===-1) return NaN;
+  if(last<Vv.length-1 && mm[last+1]<0){
+    const x0=Vv[last],x1=Vv[last+1],y0=mm[last],y1=mm[last+1];
+    if(y0===y1) return (x0+x1)/2;
+    return x0+(0-y0)*(x1-x0)/(y1-y0);
+  }
+  return Vv[last];
+}
+function timeAtSpeed(V,t,Vq){
+  if(!V.length||Math.max(...V)<Vq) return NaN;
+  const u=uniqueSorted(V,t); if(u.x.length<2) return NaN;
+  return interp1(u.x,u.y,[Vq],'linear')[0];
+}
+function timeAtDistance(S,t,Sq){
+  if(!S.length||Math.max(...S)<Sq) return NaN;
+  const u=uniqueSorted(S,t); if(u.x.length<2) return NaN;
+  return interp1(u.x,u.y,[Sq],'linear')[0];
+}
+function gradeMargin(p,Feng,V,j){
+  const alpha=Math.atan(j);
+  const R=resistanceForce(p,[V],j)[0];
+  const Fadh=tractionLimit(p,p.mu_perf,alpha,0);
+  return Math.min(Feng,Fadh)-R;
+}
+
+function calculateModel(p){
+  p=computeDerived(p);
+  if(p.Tmax<=0||p.Pmax<=0) throw new Error('Tmax y Pmax deben ser positivos');
+  if(!(p.nRal>0&&p.nTmax>p.nRal&&p.nPmax>p.nTmax&&p.nFin>p.nPmax)) throw new Error('nRal<nTmax<nPmax<nFin requerido');
+  if(p.Mco>=0) throw new Error('Mco debe ser negativo');
+  if(p.K5<0) throw new Error('K5 no puede ser negativo');
+
+  const dn=calcularDeltaN(p.nRal,p.nTmax,p.nPmax,p.nFin);
+  const TPmax=9550*p.Pmax/p.nPmax;
+  const lambda=p.nTmax/p.nPmax, beta=TPmax/p.Tmax;
+  const kRal=saturar(0.35+0.60*Math.sqrt(lambda),0.60,0.90);
+  const kFin=saturar(beta*Math.pow(p.nPmax/p.nFin,1.45),0.50,0.85);
+  const Tral=p.Tmax*kRal, Tfin=p.Tmax*kFin;
+
+  const n_motor=[]; for(let n=p.nRal;n<=p.nFin;n+=dn) n_motor.push(n);
+  if(n_motor[n_motor.length-1]!==p.nFin) n_motor.push(p.nFin);
+  const omega=n_motor.map(n=>2*Math.PI*n/60);
+
+  const T_est=n_motor.map(n=>{
+    if(n<=p.nTmax) return Tral+(n-p.nRal)*(p.Tmax-Tral)/(p.nTmax-p.nRal);
+    if(n<=p.nPmax) return p.Tmax+(n-p.nTmax)*(TPmax-p.Tmax)/(p.nPmax-p.nTmax);
+    return TPmax+(n-p.nPmax)*(Tfin-TPmax)/(p.nFin-p.nPmax);
+  });
+
+  let T_used=T_est.slice();
+  if(p.curve_mode==='Curva real desde archivo'&&p.curve_rpm&&p.curve_torque){
+    const u=uniqueSorted(p.curve_rpm,p.curve_torque);
+    T_used=interp1(u.x,u.y,n_motor,'pchip');
+    T_used=T_used.map((v,i)=>{ if(n_motor[i]<u.x[0])return u.y[0]; if(n_motor[i]>u.x[u.x.length-1])return u.y[u.y.length-1]; return v; });
+  }
+  T_used=T_used.map(v=>Math.max(v,0));
+  if(p.smooth_method!=='Sin suavizado' && p.smooth_motor>1){
+    T_used=smoothSeries(T_used,p.smooth_method,p.smooth_motor).map(v=>Math.max(v,0));
+  }
+  const Ha_kW=T_used.map((t,i)=>t*omega[i]/1000);
+  const Mc_motor=omega.map(w=>p.Mco-p.K5*w);
+  const Hc_kW=Mc_motor.map((mc,i)=>Math.abs(mc)*omega[i]/1000);
+  const Mm_partial=p.ur_partial.map(ur=>Mc_motor.map((mc,i)=>mc+ur*(T_used[i]-mc)));
+
+  const maxV=Math.max(180,Math.ceil(1.30*p.Vmax/10)*10);
+  const v_kmh=[]; for(let v=0;v<=maxV;v+=10) v_kmh.push(v);
+  const v_ms=v_kmh.map(v=>v/3.6);
+  const RT=p.pendientes.map(j=>resistanceForce(p,v_ms,j/100));
+  const P_req=p.pendientes.map((_,j)=>v_ms.map((v,i)=>v*RT[j][i]/1000));
+
+  const Eq_total=Math.PI*p.rc*p.nPmax/(30*(p.Vmax/3.6));
+  const frStart=rollingCoefficient(p,[0])[0];
+  const alphaMax=Math.atan(p.jmax/100);
+  const E1_total=(p.m*p.g*Math.sin(alphaMax)+frStart*p.m*p.g*Math.cos(alphaMax)+p.m*p.a)*p.rc/(p.Tmax*p.eta_t);
+  if(E1_total<=0||Eq_total<=0) throw new Error('Relaciones extremas no válidas');
+  const q_min=1+Math.log(E1_total/Eq_total)/Math.log(p.nPmax/p.nTmax);
+  const K=Math.pow(Eq_total/E1_total,1/(p.q-1));
+  const xi_calc_total=Array.from({length:p.q},(_,i)=>E1_total*Math.pow(K,i));
+  const xi_caja_calc=xi_calc_total.map(x=>x/p.i0);
+
+  let xi_total,xi_caja;
+  if(p.gear_mode==='Caja real (editable)'){
+    xi_caja=p.gear_ratios.slice(0,p.q).map(Number);
+    xi_total=xi_caja.map(x=>x*p.i0);
+  }else{
+    xi_total=xi_calc_total.slice();
+    xi_caja=xi_caja_calc.slice();
+  }
+  const K_active=p.q>1?Math.pow(xi_total[p.q-1]/xi_total[0],1/(p.q-1)):1;
+
+  const V_marchas=n_motor.map(n=>xi_total.map(xi=>0.377*p.rc*n/xi));
+  const Ftrac=n_motor.map((_,k)=>xi_total.map(xi=>T_used[k]*xi*p.eta_t/p.rc));
+  const Fmc=n_motor.map((_,k)=>xi_total.map(xi=>Mc_motor[k]*xi*p.eta_t/p.rc));
+  const Ftrac_plot=smoothMatrixColumns(Ftrac,p.smooth_method,p.smooth_cub);
+  const Fmc_plot=smoothMatrixColumns(Fmc,p.smooth_method,p.smooth_cub);
+  const v_lineal_kmh=V_marchas;
+
+  const nm1=p.nPmax;
+  const V_nRal=xi_total.map(xi=>0.377*p.rc*p.nRal/xi);
+  const V_nTmax=xi_total.map(xi=>0.377*p.rc*p.nTmax/xi);
+  const V_nPmax=xi_total.map(xi=>0.377*p.rc*nm1/xi);
+  const V_nFin=xi_total.map(xi=>0.377*p.rc*p.nFin/xi);
+  const n_after_shift=xi_total.slice(1).map((_,i)=>nm1*xi_total[i+1]/xi_total[i]);
+  const nm2=n_after_shift.length?n_after_shift[0]:nm1*K_active;
+  const V_shift=V_nPmax.slice(0,-1);
+  const V_step_start=[0,...V_shift];
+  const V_step_end=V_nPmax;
+
+  const Fadh=p.mu_ref.map(mu=>v_kmh.map(()=>tractionLimit(p,mu,0,0)));
+
+  const Ftrac_max=Math.max(...Ftrac.flat().filter(v=>isFinite(v)));
+  const v_idle_1=V_marchas[0][0];
+  const v_from_Fmax=(p.Pmax*1000/Ftrac_max)*3.6;
+  let vmin_ith=Math.max(v_idle_1,v_from_Fmax,0.1);
+  if(vmin_ith>=p.Vmax) vmin_ith=Math.max(0.1,0.5*p.Vmax);
+  const v_ith=linspace(vmin_ith,p.Vmax,250);
+  const Ft_ith=v_ith.map(v=>Math.min(p.Pmax*1000/(v/3.6),Ftrac_max));
+
+  const model={
+    p,dn,TPmax,kRal,kFin,Tral,Tfin,
+    motor:{n:n_motor,omega,Ma:T_used,Mc_motor,Hc_kW,Mm_partial,Ha_kW,ur_partial:p.ur_partial},
+    res:{v_kmh,v_ms,RT,P_req},
+    caja:{Eq_total,E1_total,q_min_teorico:q_min,K,K_active,xi_calc_total,xi_caja_calc,xi_total,xi_caja,V_marchas,V_nRal,V_nTmax,V_nPmax,V_nFin,nm1,nm2,n_after_shift,V_shift,V_step_start,V_step_end},
+    cub:{Ftrac,Fmc,Ftrac_plot,Fmc_plot,v_lineal_kmh,Fadh},
+    ith:{v_kmh:v_ith,Ft_N:Ft_ith,vmin_kmh:vmin_ith,Fmax_N:Math.max(...Ft_ith)},
+    validacion:{status:[],msg:[]}
+  };
+
+  validateModel(model);
+  calculateAdvancedAnalysis(model);
+  return model;
+}
+
+function validateModel(model){
+  const p=model.p, status=[], msg=[];
+  if(p.nRal>0&&p.nTmax>p.nRal&&p.nPmax>p.nTmax&&p.nFin>p.nPmax){ status.push('OK'); msg.push('Jerarquía de regímenes válida'); }
+  else { status.push('ERROR'); msg.push('Jerarquía de regímenes inválida'); }
+  const ratioTP=model.TPmax/p.Tmax;
+  if(ratioTP>1.05){ status.push('ERROR'); msg.push(`TPmax/Tmax=${ratioTP.toFixed(3)} > 1.05`); }
+  else if(ratioTP>0.98){ status.push('ADVERTENCIA'); msg.push(`TPmax/Tmax=${ratioTP.toFixed(3)} cercano a 1`); }
+  else { status.push('OK'); msg.push(`TPmax/Tmax=${ratioTP.toFixed(3)}`); }
+  if(model.caja.q_min_teorico>p.q){ status.push('ADVERTENCIA'); msg.push(`q mínimo=${model.caja.q_min_teorico.toFixed(2)} > q=${p.q}`); }
+  else { status.push('OK'); msg.push(`q=${p.q} satisface q mínimo=${model.caja.q_min_teorico.toFixed(2)}`); }
+  if(model.caja.K<=0||model.caja.K>=1){ status.push('ERROR'); msg.push(`K teórico=${model.caja.K.toFixed(4)} inválido`); }
+  else { status.push('OK'); msg.push(`K teórico=${model.caja.K.toFixed(4)}`); }
+  const ratiosOk=model.caja.xi_total.every((x,i,a)=>x>0&&(i===0||x<a[i-1]));
+  if(!ratiosOk){ status.push('ADVERTENCIA'); msg.push('Las relaciones activas no decrecen de forma estricta entre marchas'); }
+  else { status.push('OK'); msg.push(`Caja activa: ${p.gear_mode}`); }
+  if(model.motor.Mc_motor.every(v=>v<0)){ status.push('OK'); msg.push(`Mc negativo: ${Math.min(...model.motor.Mc_motor).toFixed(2)} a ${Math.max(...model.motor.Mc_motor).toFixed(2)} N·m`); }
+  else { status.push('ERROR'); msg.push('Mc debe permanecer bajo cero'); }
+  if(model.motor.Ha_kW.every(v=>v>=0)){ status.push('OK'); msg.push('Ha ≥ 0 en todo el rango'); }
+  else { status.push('ERROR'); msg.push('Ha no puede ser negativa'); }
+  if(model.motor.Hc_kW.every(v=>v>=0)){ status.push('OK'); msg.push('Hc ≥ 0 en todo el rango'); }
+  else { status.push('ERROR'); msg.push('Hc no puede ser negativa'); }
+  model.validacion={status,msg};
+}
+
+function calculateAdvancedAnalysis(model){
+  const p=model.p;
+  const vmaxPlot=Math.max(1.30*p.Vmax,1.15*Math.max(...model.caja.V_nFin),120);
+  const v=linspace(0.1,vmaxPlot,1600);
+  const vms=v.map(x=>x/3.6);
+
+  const Fgear=v.map(()=>new Array(p.q).fill(NaN));
+  for(let g=0;g<p.q;g++){
+    const u=uniqueSorted(model.cub.v_lineal_kmh.map(r=>r[g]),model.cub.Ftrac.map(r=>r[g]));
+    if(u.x.length>=2){
+      const interp=interpWithinDomain(u.x,u.y,v,'linear');
+      for(let i=0;i<v.length;i++) Fgear[i][g]=interp[i];
+    }
+  }
+  const Flaunch=p.Tmax*model.caja.xi_total[0]*p.eta_t/p.rc;
+  const vIdleFirst=model.caja.V_marchas[0][0];
+  for(let i=0;i<v.length;i++) if(v[i]<=vIdleFirst) Fgear[i][0]=Flaunch;
+
+  const Fenv=[], gearEnv=[];
+  for(let i=0;i<v.length;i++){
+    let maxF=-Infinity,bestG=-1;
+    for(let g=0;g<p.q;g++) if(isFinite(Fgear[i][g])&&Fgear[i][g]>maxF){maxF=Fgear[i][g];bestG=g;}
+    Fenv.push(maxF===-Infinity?NaN:maxF); gearEnv.push(bestG===-1?NaN:bestG);
+  }
+
+  const R0=resistanceForce(p,vms,0);
+  const FadhStatic=tractionLimit(p,p.mu_perf,0,0);
+  const FavailableTop=Fenv.map(f=>Math.min(f,FadhStatic));
+  const VmaxReal=findVmax(v,FavailableTop,R0);
+
+  const VshiftNPmax=model.caja.V_shift.slice();
+  const VshiftOpt=VshiftNPmax.slice();
+  const nShiftOpt=new Array(p.q-1).fill(NaN);
+  const nAfterOpt=new Array(p.q-1).fill(NaN);
+  for(let g=0;g<p.q-1;g++){
+    const f1=Fgear.map(r=>r[g]), f2=Fgear.map(r=>r[g+1]);
+    const valid=f1.map((v1,i)=>isFinite(v1)&&isFinite(f2[i]));
+    const vv=v.filter((_,i)=>valid[i]);
+    const dd=f1.map((v1,i)=>valid[i]?v1-f2[i]:NaN).filter((_,i)=>valid[i]);
+    const cands=[];
+    for(let k=0;k<dd.length-1;k++){
+      if(dd[k]*dd[k+1]<=0&&isFinite(dd[k])&&isFinite(dd[k+1])){
+        const vc=dd[k]===dd[k+1]?(vv[k]+vv[k+1])/2:vv[k]+(0-dd[k])*(vv[k+1]-vv[k])/(dd[k+1]-dd[k]);
+        if(isFinite(vc)) cands.push(vc);
+      }
+    }
+    if(cands.length){
+      let best=cands[0],bd=Infinity;
+      for(const c of cands){ const d=Math.abs(c-VshiftNPmax[g]); if(d<bd){bd=d;best=c;} }
+      VshiftOpt[g]=best;
+    }
+    nShiftOpt[g]=VshiftOpt[g]*model.caja.xi_total[g]/(0.377*p.rc);
+    nAfterOpt[g]=VshiftOpt[g]*model.caja.xi_total[g+1]/(0.377*p.rc);
+  }
+
+  function simulateShiftStrategy(shiftSpeeds){
+    const shiftUsed=shiftSpeeds.slice();
+    const gearPerf=v.map(vv=>{
+      let gear=1;
+      for(let g=0;g<shiftUsed.length;g++) if(vv>shiftUsed[g]) gear=g+2;
+      return Math.min(gear,p.q);
+    });
+    const aPerf=new Array(v.length).fill(0),rpmPerf=new Array(v.length).fill(0),Fused=new Array(v.length).fill(NaN);
+    for(let k=0;k<v.length;k++){
+      let g=gearPerf[k]-1; if(g<0)g=0; if(g>=p.q)g=p.q-1;
+      let Feng=Fgear[k][g];
+      if(!isFinite(Feng)){
+        Feng=Fenv[k];
+        if(isFinite(gearEnv[k])){ g=gearEnv[k]; gearPerf[k]=g+1; }
+      }
+      if(!isFinite(Feng)) continue;
+      const Rk=R0[k];
+      let a=Math.max((Feng-Rk)/(p.gamma*p.m),0);
+      for(let it=0;it<15;it++){
+        const FadhDyn=tractionLimit(p,p.mu_perf,0,a),Fuse=Math.min(Feng,FadhDyn);
+        const anew=Math.max((Fuse-Rk)/(p.gamma*p.m),0);
+        if(Math.abs(anew-a)<1e-5){a=anew;break;}
+        a=0.5*a+0.5*anew;
+      }
+      Fused[k]=Math.min(Feng,tractionLimit(p,p.mu_perf,0,a));
+      aPerf[k]=Math.max((Fused[k]-Rk)/(p.gamma*p.m),0);
+      rpmPerf[k]=Math.min(Math.max(v[k]*model.caja.xi_total[g]/(0.377*p.rc),p.nRal),p.nFin);
+    }
+    const validPerf=aPerf.map((a,i)=>isFinite(a)&&a>0.02&&(!isFinite(VmaxReal)||v[i]<=VmaxReal));
+    let lastIdx=-1; for(let i=validPerf.length-1;i>=0;i--) if(validPerf[i]){lastIdx=i;break;}
+    if(lastIdx<1) lastIdx=Math.min(1,v.length-1);
+    const vp=[0,...v.slice(0,lastIdx+1)],ap=[Math.max(aPerf[0],0.02),...aPerf.slice(0,lastIdx+1)],gp=[1,...gearPerf.slice(0,lastIdx+1)],rpmp=[p.nRal,...rpmPerf.slice(0,lastIdx+1)];
+    const vpm=vp.map(x=>x/3.6),tp=[0],sp=[0];
+    for(let i=0;i<vp.length-1;i++){
+      const aMean=0.5*(ap[i]+ap[i+1]),dt=(vpm[i+1]-vpm[i])/Math.max(aMean,0.02);
+      tp.push(tp[i]+dt); sp.push(sp[i]+0.5*(vpm[i]+vpm[i+1])*dt);
+    }
+    const t050=timeAtSpeed(vp,tp,50),t0100=timeAtSpeed(vp,tp,100),t0120=timeAtSpeed(vp,tp,120),t80=timeAtSpeed(vp,tp,80),t120=timeAtSpeed(vp,tp,120);
+    return {v_kmh:vp,a_ms2:ap,t_s:tp,s_m:sp,gear:gp,rpm:rpmp,
+      t_0_50_s:t050,t_0_100_s:t0100,t_0_120_s:t0120,t_80_120_s:(isFinite(t80)&&isFinite(t120))?t120-t80:NaN,
+      t_400_s:timeAtDistance(sp,tp,400),t_1000_s:timeAtDistance(sp,tp,1000)};
+  }
+
+  const perfNPmax=simulateShiftStrategy(VshiftNPmax);
+  const perfOpt=simulateShiftStrategy(VshiftOpt);
+  const selectedOptimal=p.shift_strategy==='Optimo por fuerza tractora';
+  const shiftUsed=(selectedOptimal?VshiftOpt:VshiftNPmax).slice();
+  const perfSelected=selectedOptimal?perfOpt:perfNPmax;
+
+  const Pgear=Fgear.map((row,i)=>row.map(f=>f*vms[i]/1000));
+  const Penv=Fenv.map((f,i)=>f*vms[i]/1000),Preq0=R0.map((r,i)=>r*vms[i]/1000);
+
+  const vg=linspace(0.5,vmaxPlot,600),envU=uniqueSorted(v,Fenv),FengGrade=interpWithinDomain(envU.x,envU.y,vg,'linear');
+  const jmaxPct=new Array(vg.length).fill(NaN),jUpper=Math.max(1.5,1.5*p.jmax/100);
+  for(let k=0;k<vg.length;k++){
+    const Feng=FengGrade[k]; if(!isFinite(Feng)) continue;
+    const vm=vg[k]/3.6,f0=gradeMargin(p,Feng,vm,0); if(f0<0){jmaxPct[k]=0;continue;}
+    const f1=gradeMargin(p,Feng,vm,jUpper); if(f1>=0){jmaxPct[k]=100*jUpper;continue;}
+    let lo=0,hi=jUpper; for(let it=0;it<40;it++){const mid=0.5*(lo+hi);if(gradeMargin(p,Feng,vm,mid)>=0)lo=mid;else hi=mid;} jmaxPct[k]=100*lo;
+  }
+
+  const grades=p.pendientes.slice();
+  const VmaxGrade=grades.map(j=>{
+    const alpha=Math.atan(j/100),Rgrade=resistanceForce(p,vms,j/100),FadhGrade=tractionLimit(p,p.mu_perf,alpha,0),FavGrade=Fenv.map(f=>Math.min(f,FadhGrade));
+    return findVmax(v,FavGrade,Rgrade);
+  });
+
+  model.envolvente={v_kmh:v,Fgear_N:Fgear,F_N:Fenv,gear:gearEnv,R0_N:R0,Favailable_N:FavailableTop,Vmax_real_kmh:VmaxReal};
+  model.cambios={Vshift_geom_kmh:VshiftNPmax,Vshift_nPmax_kmh:VshiftNPmax,Vshift_opt_kmh:VshiftOpt,nshift_opt_rpm:nShiftOpt,n_after_opt_rpm:nAfterOpt,Vshift_used_kmh:shiftUsed};
+  model.prest=perfSelected;
+  model.comparacion={nPmax:perfNPmax,optimo:perfOpt,
+    delta_0100_s:(isFinite(perfNPmax.t_0_100_s)&&isFinite(perfOpt.t_0_100_s))?perfOpt.t_0_100_s-perfNPmax.t_0_100_s:NaN,
+    delta_1000_s:(isFinite(perfNPmax.t_1000_s)&&isFinite(perfOpt.t_1000_s))?perfOpt.t_1000_s-perfNPmax.t_1000_s:NaN};
+  model.potencia={v_kmh:v,Pgear_kW:Pgear,Penv_kW:Penv,Preq0_kW:Preq0};
+  model.pendiente={v_kmh:vg,jmax_pct:jmaxPct,grades_pct:grades,Vmax_kmh:VmaxGrade};
+
+  if(isFinite(VmaxReal)){
+    if(VmaxReal<0.95*p.Vmax){model.validacion.status.push('ADVERTENCIA');model.validacion.msg.push(`Vmax real ${VmaxReal.toFixed(1)} km/h < objetivo ${p.Vmax} km/h`);}
+    else {model.validacion.status.push('OK');model.validacion.msg.push(`Vmax real = ${VmaxReal.toFixed(1)} km/h`);}
+  }else {model.validacion.status.push('ADVERTENCIA');model.validacion.msg.push('No se encontró Vmax real válida');}
+}
+
+/* =====================================================================
+   UI BUILD — SIMPLIFICADA
+   ===================================================================== */
+function readGearRatioEditor(){
+  return Array.from(document.querySelectorAll('[data-gear-ratio]')).map(el=>parseFloat(el.value));
+}
+function buildGearRatioEditor(q,values){
+  const grid=document.getElementById('gearRatioGrid'); if(!grid) return;
+  q=Math.max(2,Math.round(Number(q)||5));
+  const defaults=defaultRealRatios(q),src=Array.isArray(values)?values:[];
+  grid.innerHTML=Array.from({length:q},(_,i)=>{
+    const val=isFinite(src[i])?src[i]:defaults[i];
+    return `<label class="gear-ratio-cell"><span><math><msub><mi>i</mi><mn>${i+1}</mn></msub></math></span><input type="number" step="0.001" min="0.001" data-gear-ratio="${i}" id="eGear${i+1}" value="${Number(val).toFixed(3)}"></label>`;
+  }).join('');
+  syncGearEditorMode();
+}
+function syncGearEditorMode(){
+  const ed=document.getElementById('gearEditor'),mode=document.getElementById('ddGearMode')?.value;
+  if(!ed) return;
+  const disabled=mode!=='Caja real (editable)'; ed.classList.toggle('disabled',disabled);
+  ed.querySelectorAll('[data-gear-ratio]').forEach(x=>x.disabled=disabled);
+}
+
+function buildUI(){
+  const p=computeDerived(defaultParams());
+  const container=document.getElementById('inputContainer');
+  const tabsDiv=document.getElementById('tabButtons');
+  const contentDiv=document.getElementById('tabContent');
+  let html='';
+  function header(t,collapsed=false){
+    html+=`<div class="section-header" data-toggle="1">${t}<span class="toggle">${collapsed?'▸':'▾'}</span></div>`;
+    html+=`<div class="section-body${collapsed?' collapsed':''}">`;
+  }
+  function endHeader(){ html+=`</div>`; }
+  function num(id,labelHTML,val){ html+=`<div class="input-row"><label for="${id}">${labelHTML}</label><input type="number" id="${id}" value="${val}" step="any"></div>`; }
+  function ro(id,labelHTML,val){ html+=`<div class="input-row"><label for="${id}">${labelHTML}</label><input type="text" id="${id}" value="${val||''}" readonly></div>`; }
+  function dd(id,labelHTML,opts,sel){ let o=opts.map(x=>`<option value="${x}"${x===sel?' selected':''}>${x}</option>`).join(''); html+=`<div class="input-row"><label for="${id}">${labelHTML}</label><select id="${id}">${o}</select></div>`; }
+
+  header('1. Curvas características del motor');
+  num('eTmax',  `${vML('M','max')} par máximo ${uML('N·m')}`,  p.Tmax);
+  num('enTmax', `${vML('n','Tmax')} régimen de par máximo ${uML('min⁻¹')}`, p.nTmax);
+  num('ePmax',  `${vML('P','max')} potencia máxima ${uML('kW')}`,  p.Pmax);
+  num('enPmax', `${vML('n','Pmax')} régimen de potencia máxima ${uML('min⁻¹')}`, p.nPmax);
+  num('enRal',  `${vML('n','ral')} ralentí ${uML('min⁻¹')}`, p.nRal);
+  num('enFin',  `${vML('n','fin')} régimen final ${uML('min⁻¹')}`, p.nFin);
+  endHeader();
+
+  header('2. Vehículo y entorno');
+  num('erho', `<math><mi>ρ</mi></math> densidad del aire ${uML('kg/m³')}`, p.rho);
+  num('eCx',  `${vML('C','x')} coeficiente aerodinámico ${uML('–')}`, p.Cx);
+  num('eAf',  `${vML('A','f')} área frontal ${uML('m²')}`, p.Af);
+  num('em',   `${vML('m')} masa del vehículo ${uML('kg')}`, p.m);
+  num('efr',  `${vML('f','r')} coef. de rodadura`, p.fr);
+  ro('eg',    `${vML('g')} aceleración de la gravedad ${uML('m/s²')}`, '9.81');
+  endHeader();
+
+  header('3. Neumático');
+  num('ebn',  `${vML('b','n')} ancho nominal ${uML('mm')}`, p.bn);
+  num('eRNA', `${vML('R','NA')} relación de aspecto ${uML('%')}`, p.RNA);
+  num('eDll', `${vML('D','ll')} diámetro de la llanta ${uML('in')}`, p.Dll);
+  endHeader();
+
+  header('4. Objetivo de diseño');
+  num('eVmax',`${vML('V','max')} velocidad máxima a obtener ${uML('km/h')}`, p.Vmax);
+  num('eq',   `${vML('q')} número de marchas a diseñar`, p.q);
+  endHeader();
+
+  header('5. Dinámica avanzada (opcional)', true);
+  num('ei0',  `${vML('i','0')} relación del grupo final`, p.i0);
+  num('eL',   `${vML('L')} batalla ${uML('m')}`, p.L);
+  num('ehCG', `${vML('h','CG')} altura del c.g. ${uML('m')}`, p.hCG);
+  num('eFrontPct',`carga delantera estática ${uML('%')}`, p.front_pct);
+  dd('ddTraction','Tipo de tracción',['Delantera (FWD)','Trasera (RWD)','Total (AWD)'],p.traction_type);
+  num('eGamma',`<math><mi>γ</mi></math> factor de masas giratorias`, p.gamma);
+  num('eMuPerf',`<math><mi>μ</mi></math> coeficiente de adherencia`, p.mu_perf);
+  endHeader();
+
+  html+=`<button class="btn" id="btnReset">Restablecer ejemplo</button>`;
+
+  container.innerHTML=html;
+
+  const defaultsList=document.getElementById('defaultsList');
+  if(defaultsList){
+    defaultsList.innerHTML=
+      `<li>Rendimiento de transmisión η<sub>t</sub> = ${INTERNAL_DEFAULTS.eta_t}</li>`+
+      `<li>Pendiente de diseño j<sub>max</sub> = ${INTERNAL_DEFAULTS.jmax} %</li>`+
+      `<li>Aceleración de diseño a = ${INTERNAL_DEFAULTS.a} m/s²</li>`+
+      `<li>Contrapresión M<sub>c0</sub> = ${INTERNAL_DEFAULTS.Mco} N·m</li>`+
+      `<li>Pendiente de contrapresión K<sub>5</sub> = ${INTERNAL_DEFAULTS.K5} N·m/(rad/s)</li>`+
+      `<li>Modelo de rodadura: ${INTERNAL_DEFAULTS.rolling_mode}</li>`+
+      `<li>Estrategia de cambio: ${INTERNAL_DEFAULTS.shift_strategy}</li>`;
+  }
+
+  // ⬇️ CAMBIO: se eliminaron Prestaciones, Pendiente y Potencia + Cambios
+  const tabs=[
+    {id:'motor',title:'Motor'},
+    {id:'res',title:'Resistencias'},
+    {id:'caja',title:'Caja + Escalones'},
+    {id:'cubSimple',title:'Cubrimiento + ITH'},
+    {id:'cubFull',title:'Cubrimiento completo'},
+    {id:'equations',title:'Ecuaciones'}
+  ];
+  tabsDiv.innerHTML=tabs.map((t,i)=>`<button class="tab-btn${i===0?' active':''}" data-tab="${t.id}">${t.title}</button>`).join('');
+
+  contentDiv.innerHTML=`
+    <div class="tab-pane active" id="pane-motor">
+      <div class="chart-grid-2-1">
+        <div class="chart-grid-stack">
+          <div class="chart-container extended">
+            <div class="chart-heading">
+              <div class="chart-title">Características externas del motor</div>
+            </div>
+            <canvas id="chartMotor"></canvas>
+            <div class="motor-slider-wrap">
+              <div class="motor-slider-header">
+                <span>Régimen del motor <math><mi>n</mi></math></span>
+                <span class="big" id="motorRpmLabel">3000 min⁻¹</span>
+              </div>
+              <div class="motor-slider-track">
+                <input type="range" class="motor-range" id="motorRpmSlider" min="0" max="10000" step="25" value="3000" aria-label="Régimen del motor">
+              </div>
+              <div class="motor-zone-bands" id="motorZoneBands"></div>
+              <div class="motor-slider-marks" id="motorSliderMarks"></div>
+            </div>
+            <div class="motor-readouts">
+              <div><span class="k"><math><mi>n</mi></math> régimen</span><span class="n" id="mrN">3000<small> min⁻¹</small></span></div>
+              <div><span class="k"><math><msub><mi>M</mi><mi>a</mi></msub></math> par</span><span class="n" id="mrMa">120,0<small> N·m</small></span></div>
+              <div><span class="k"><math><msub><mi>H</mi><mi>a</mi></msub></math> potencia</span><span class="n" id="mrHa">—<small> kW</small></span></div>
+              <div><span class="k">Zona de uso</span><span class="n zone" id="mrZone">—</span></div>
+            </div>
+            <div class="figure-caption">
+              <span class="fig-number">Figura 4.30.</span> Par efectivo <math><msub><mi>M</mi><mi>a</mi></msub></math> y potencia efectiva <math><msub><mi>H</mi><mi>a</mi></msub></math> en función del régimen. Las bandas indican las zonas de uso: ralentí, par máximo, uso normal y potencia máxima.
+            </div>
+          </div>
+          <div class="chart-container">
+            <div class="chart-heading">
+              <div class="chart-title">Freno motor — par de contrapresión y potencia absorbida</div>
+            </div>
+            <canvas id="chartBrake"></canvas>
+            <div class="figure-caption">
+              <span class="fig-number">Figura 4.31.</span> Par de contrapresión <math><msub><mi>M</mi><mi>c</mi></msub></math> (negativo, izquierda) y potencia absorbida por el freno motor <math><msub><mi>H</mi><mi>c</mi></msub></math> (siempre positiva, derecha) en función del régimen.
+            </div>
+          </div>
+        </div>
+        <div class="table-container extended" id="tableMotor"></div>
+      </div>
+    </div>
+    <div class="tab-pane" id="pane-res"><div class="chart-grid-3"><div class="chart-container"><div class="chart-heading"><div class="chart-title">Resistencia total al avance</div></div><canvas id="chartRT"></canvas><div class="figure-caption"><span class="fig-number">Resistencias al movimiento.</span> Variación de Rₜ con la velocidad para diferentes pendientes.</div></div><div class="chart-container"><div class="chart-heading"><div class="chart-title">Potencia requerida para el movimiento</div></div><canvas id="chartP"></canvas><div class="figure-caption"><span class="fig-number">Potencia resistente.</span> Potencia necesaria para vencer las resistencias al avance.</div></div><div class="table-container" id="tableRes"></div></div></div>
+    <div class="tab-pane" id="pane-caja"><div class="chart-grid-2"><div class="chart-container"><div class="chart-heading"><div class="chart-title">Líneas cinemáticas de la caja de velocidades</div></div><canvas id="chartCaja"></canvas><div class="figure-caption"><span class="fig-number">Diagrama cinemático de transmisión.</span> Relación entre velocidad del vehículo y régimen del motor para cada marcha.</div></div><div class="chart-container"><div class="chart-heading"><div class="chart-title">Escalones de velocidad y caída de régimen</div></div><canvas id="chartSteps"></canvas><div class="figure-caption"><span class="fig-number">Figura 4.29.</span> Escalones de velocidad y régimen posterior al cambio de marcha.</div></div><div class="table-container" id="tableCaja"></div><div class="table-container" id="tableShifts"></div></div></div>
+    <div class="tab-pane" id="pane-cubSimple"><div class="chart-container"><div class="chart-heading"><div class="chart-title">Cubrimiento de fuerza tractora e hipérbola de tracción ideal</div></div><canvas id="chartCubSimple"></canvas><div class="figure-caption"><span class="fig-number">Cubrimiento de la transmisión.</span> Fuerza tractora disponible por marcha frente a la tracción ideal.</div></div></div>
+    <div class="tab-pane" id="pane-cubFull"><div class="chart-grid-2-1"><div class="chart-container"><div class="chart-heading"><div class="chart-title">Balance longitudinal completo</div></div><canvas id="chartCubFull"></canvas><div class="figure-caption"><span class="fig-number">Balance de fuerzas longitudinales.</span> Fuerza tractora, freno motor, adherencia, envolvente y resistencia total.</div></div><div class="table-container" id="tableCub"></div></div></div>
+    <div class="tab-pane" id="pane-equations">
+      <div class="eq-intro"><strong>Ecuaciones fundamentales del modelo.</strong> Todas las expresiones usan <strong>MathML nativo</strong>, garantizando notación matemática profesional real.</div>
+      <div class="equation-sheet">
+        <div class="eq-group-title">1. Motor y características externas</div>
+        <div class="equation-card">
+          <h3>Potencia efectiva del motor</h3>
+          <div class="eq"><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><mi>P</mi><mo>=</mo><mfrac><mrow><mi>M</mi><mo>·</mo><mi>n</mi></mrow><mn>9550</mn></mfrac></math></div>
+          <div class="eq-units"><math><mi>P</mi></math> ${uML('kW')} · <math><mi>M</mi></math> ${uML('N·m')} · <math><mi>n</mi></math> ${uML('min⁻¹')}</div>
+          <span class="eq-number">(1)</span>
+        </div>
+        <div class="equation-card">
+          <h3>Velocidad angular del motor</h3>
+          <div class="eq"><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><mi>ω</mi><mo>=</mo><mfrac><mrow><mn>2</mn><mo>·</mo><mi>π</mi><mo>·</mo><mi>n</mi></mrow><mn>60</mn></mfrac></math></div>
+          <div class="eq-units"><math><mi>ω</mi></math> ${uML('rad/s')}</div>
+          <span class="eq-number">(2)</span>
+        </div>
+        <div class="equation-card">
+          <h3>Par de contrapresión</h3>
+          <div class="eq"><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><msub><mi>M</mi><mi>c</mi></msub><mo>=</mo><msub><mi>M</mi><mtext>c0</mtext></msub><mo>−</mo><msub><mi>K</mi><mn>5</mn></msub><mo>·</mo><mi>ω</mi></math></div>
+          <div class="eq-units"><math><msub><mi>M</mi><mi>c</mi></msub></math> ${uML('N·m')}</div>
+          <span class="eq-number">(3)</span>
+        </div>
+        <div class="eq-group-title">2. Constantes físicas</div>
+        <div class="equation-card" style="grid-column:1/-1">
+          <h3>Constantes y factores utilizados en el modelo</h3>
+          <table class="nomenclature-table">
+            <thead><tr><th>Constante</th><th>Valor</th><th>Descripción</th></tr></thead>
+            <tbody>
+              <tr><td><math><mi>g</mi></math></td><td>9.81 m/s²</td><td>Aceleración de la gravedad al nivel del mar</td></tr>
+              <tr><td><math><msub><mi>ρ</mi><mn>0</mn></msub></math></td><td>1.225 kg/m³</td><td>Densidad del aire a nivel del mar (15 °C)</td></tr>
+              <tr><td>—</td><td>0.377</td><td>Factor de conversión <math><msub><mi>V</mi><mi>k</mi></msub><mo>=</mo><mn>0.377</mn><mo>·</mo><msub><mi>r</mi><mi>c</mi></msub><mo>·</mo><mi>n</mi><mo>/</mo><msub><mi>i</mi><mrow><mi>t</mi><mo>,</mo><mi>k</mi></mrow></msub></math></td></tr>
+              <tr><td>—</td><td>9550</td><td>Factor en <math><mi>P</mi><mo>=</mo><mi>M</mi><mo>·</mo><mi>n</mi><mo>/</mo><mn>9550</mn></math></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.querySelectorAll('.tab-btn').forEach(btn=>{
+    btn.addEventListener('click',(ev)=>{
+      ev.preventDefault();
+      const win={x:window.scrollX,y:window.scrollY};
+      const right=document.querySelector('.right-panel');
+      const content=document.querySelector('.tab-content');
+      const rightPos=right?{top:right.scrollTop,left:right.scrollLeft}:null;
+      const contentPos=content?{top:content.scrollTop,left:content.scrollLeft}:null;
+      document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+      document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('pane-'+btn.dataset.tab).classList.add('active');
+      if(state.lastModel){ requestAnimationFrame(()=>renderActiveTab(state.lastModel)); }
+      requestAnimationFrame(()=>{
+        if(right&&rightPos){right.scrollTop=rightPos.top;right.scrollLeft=rightPos.left;}
+        if(content&&contentPos){content.scrollTop=contentPos.top;content.scrollLeft=contentPos.left;}
+        window.scrollTo(win.x,win.y);
+      });
+    });
+  });
+
+  document.querySelectorAll('.section-header[data-toggle]').forEach(h=>{
+    h.addEventListener('click',()=>{
+      const body=h.nextElementSibling;
+      const tg=h.querySelector('.toggle');
+      if(body && body.classList.contains('section-body')){
+        body.classList.toggle('collapsed');
+        if(tg) tg.textContent=body.classList.contains('collapsed')?'▸':'▾';
+      }
+    });
+  });
+
+  buildGearRatioEditor(p.q,p.gear_ratios);
+  syncGearEditorMode();
+  let recalcTimer=null;
+  container.addEventListener('change',e=>{
+    if(e.target.id==='eq'){ const old=readGearRatioEditor(); buildGearRatioEditor(Math.max(2,Math.round(parseFloat(e.target.value)||2)),old); }
+    if(e.target.id==='ddGearMode') syncGearEditorMode();
+    if(e.target.matches('input,select')) recalculate();
+  });
+  container.addEventListener('input',e=>{
+    if(e.target.id==='eq') return;
+    if(e.target.type==='number'){ clearTimeout(recalcTimer); recalcTimer=setTimeout(recalculate,220); }
+  });
+  document.getElementById('btnReset').addEventListener('click',resetExample);
+
+  const slider=document.getElementById('motorRpmSlider');
+  if(slider){
+    slider.addEventListener('input',()=>{
+      state.motorRPM=+slider.value;
+      if(state.lastModel) renderMotor(state.lastModel);
+    });
+  }
+
+  setInputValues(p);
+}
+
+function setInputValues(p){
+  const set=(id,v)=>{ const el=document.getElementById(id); if(el) el.value=v; };
+  set('eTmax',p.Tmax); set('enTmax',p.nTmax); set('ePmax',p.Pmax); set('enPmax',p.nPmax);
+  set('enRal',p.nRal); set('enFin',p.nFin);
+  set('erho',p.rho); set('eCx',p.Cx); set('eAf',p.Af); set('em',p.m); set('efr',p.fr);
+  set('ebn',p.bn); set('eRNA',p.RNA); set('eDll',p.Dll);
+  set('eVmax',p.Vmax); set('eq',p.q);
+  set('ei0',p.i0); set('eL',p.L); set('ehCG',p.hCG); set('eFrontPct',p.front_pct);
+  const ddt=document.getElementById('ddTraction'); if(ddt) ddt.value=p.traction_type;
+  set('eGamma',p.gamma); set('eMuPerf',p.mu_perf);
+}
+
+function readInputs(){
+  const p=defaultParams();
+  const val=id=>document.getElementById(id)?.value;
+  const num=id=>parseFloat(val(id))||0;
+  const sel=id=>document.getElementById(id)?.value||'';
+
+  p.Tmax=num('eTmax'); p.nTmax=num('enTmax'); p.Pmax=num('ePmax'); p.nPmax=num('enPmax');
+  p.nRal=num('enRal'); p.nFin=num('enFin');
+  p.rho=num('erho'); p.Cx=num('eCx'); p.Af=num('eAf'); p.m=num('em'); p.fr=num('efr');
+  p.g=PHYS.g;
+  p.bn=num('ebn'); p.RNA=num('eRNA'); p.Dll=num('eDll');
+  p.Vmax=num('eVmax'); p.q=Math.max(2,Math.round(num('eq')));
+  p.i0=num('ei0'); p.L=num('eL'); p.hCG=num('ehCG'); p.front_pct=num('eFrontPct');
+  p.traction_type=sel('ddTraction')||INTERNAL_DEFAULTS.traction_type;
+  p.gamma=num('eGamma'); p.mu_perf=num('eMuPerf');
+  if(p.gear_mode==='Caja real (editable)'){
+    const gr=readGearRatioEditor().slice(0,p.q);
+    if(gr.length===p.q && gr.every(x=>isFinite(x)&&x>0)) p.gear_ratios=gr;
+  }
+  return p;
+}
+
+function validateInputsUI(){
+  document.querySelectorAll('.input-row input,.input-row select,[data-gear-ratio]').forEach(el=>el.classList.remove('invalid'));
+  const invalid=[];
+  const mark=(id,msg)=>{ const el=document.getElementById(id); if(el) el.classList.add('invalid'); invalid.push(msg); };
+  const nRal=parseFloat(document.getElementById('enRal').value), nT=parseFloat(document.getElementById('enTmax').value),
+        nP=parseFloat(document.getElementById('enPmax').value), nFin=parseFloat(document.getElementById('enFin').value);
+  if(!(nRal>0&&nT>nRal&&nP>nT&&nFin>nP)){ ['enRal','enTmax','enPmax','enFin'].forEach(id=>document.getElementById(id)?.classList.add('invalid')); invalid.push('Debe cumplirse nRal < nTmax < nPmax < nFin'); }
+  if(parseFloat(document.getElementById('eTmax').value)<=0) mark('eTmax','Tmax debe ser positivo');
+  if(parseFloat(document.getElementById('ePmax').value)<=0) mark('ePmax','Pmax debe ser positivo');
+  if(parseFloat(document.getElementById('em').value)<=0) mark('em','La masa debe ser positiva');
+  if(parseFloat(document.getElementById('eVmax').value)<=0) mark('eVmax','La velocidad máxima objetivo debe ser positiva');
+  return invalid;
+}
+
+function recalculate(){
+  try{
+    const uiErrors=validateInputsUI();
+    if(uiErrors.length) throw new Error(uiErrors.join(' · '));
+    const p=readInputs();
+    const model=calculateModel(p);
+    state.lastModel=model;
+
+    const hasErr=model.validacion.status.some(s=>s.startsWith('ERROR'));
+    const hasW=model.validacion.status.some(s=>s.startsWith('ADVERTENCIA'));
+    const statusEl=document.getElementById('statusLabel');
+    statusEl.textContent=hasErr?'Status: error de validez física':(hasW?'Status: correcto con advertencias':'Status: cálculo correcto');
+    statusEl.className='status-bar '+(hasErr?'error':(hasW?'warning':'ok'));
+
+    const jf=model.pendiente.jmax_pct.find(v=>isFinite(v));
+    document.getElementById('kpiVmax').innerHTML=isFinite(model.envolvente.Vmax_real_kmh)?`${model.envolvente.Vmax_real_kmh.toFixed(1)} km·h⁻¹`:'—';
+    document.getElementById('kpi0100').innerHTML=isFinite(model.prest.t_0_100_s)?`${model.prest.t_0_100_s.toFixed(2)} s`:'—';
+    document.getElementById('kpi1000').innerHTML=isFinite(model.prest.t_1000_s)?`${model.prest.t_1000_s.toFixed(2)} s`:'—';
+    document.getElementById('kpiGrade').innerHTML=isFinite(jf)?`${jf.toFixed(1)} %`:'—';
+
+    const summary=document.getElementById('summaryBox');
+    summary.innerHTML=`<div class="math-summary"><div class="ms-title">Resumen técnico</div>`+
+      `<div class="ms-label">Motor ${vML('M','max')}</div><div class="ms-value">${nML(model.p.Tmax,1)} ${U.Nm}</div>`+
+      `<div class="ms-label">Motor ${vML('P','max')}</div><div class="ms-value">${nML(model.p.Pmax,2)} ${U.kW}</div>`+
+      `<div class="ms-label">Vehículo ${vML('m')}</div><div class="ms-value">${nML(model.p.m,0)} ${U.kg}</div>`+
+      `<div class="ms-label">${vML('C','x')} / ${vML('A','f')}</div><div class="ms-value">${nML(model.p.Cx,3)} · ${nML(model.p.Af,2)} ${U.m2}</div>`+
+      `<div class="ms-label">${vML('f','r')}</div><div class="ms-value">${nML(model.p.fr,4)}</div>`+
+      `<div class="ms-label">${vML('r','c')}</div><div class="ms-value">${nML(model.p.rc,5)} ${U.m}</div>`+
+      `<div class="ms-label">${vML('E','q')} / ${vML('E','1')}</div><div class="ms-value">${nML(model.caja.Eq_total,4)} / ${nML(model.caja.E1_total,4)}</div>`+
+      `<div class="ms-label">${vML('q','min')}</div><div class="ms-value">${nML(model.caja.q_min_teorico,2)}</div>`+
+      `<div class="ms-label">${vML('V','max,real')}</div><div class="ms-value">${isFinite(model.envolvente.Vmax_real_kmh)?nML(model.envolvente.Vmax_real_kmh,1)+' '+U.kmh:'—'}</div>`+
+      `<div class="ms-label">${vML('t','0→100')}</div><div class="ms-value">${isFinite(model.prest.t_0_100_s)?nML(model.prest.t_0_100_s,2)+' '+U.s:'—'}</div>`+
+      `<div class="ms-label">${vML('t','1000 m')}</div><div class="ms-value">${isFinite(model.prest.t_1000_s)?nML(model.prest.t_1000_s,2)+' '+U.s:'—'}</div>`+
+      `</div>`;
+
+    document.getElementById('warningsBox').textContent='Validación\n'+
+      model.validacion.status.map((s,i)=>`${s}: ${model.validacion.msg[i]}`).join('\n');
+
+    requestAnimationFrame(()=>renderActiveTab(model));
+  }catch(e){
+    const statusEl=document.getElementById('statusLabel');
+    statusEl.textContent='Status: '+e.message;
+    statusEl.className='status-bar error';
+    const w=document.getElementById('warningsBox'); if(w) w.textContent='Validación\nERROR: '+e.message;
+  }
+}
+
+function resetExample(){
+  state.curveRPM=null; state.curveTorque=null; state.curveFile=null; state.lastModel=null;
+  const p=computeDerived(defaultParams());
+  setInputValues(p);
+  recalculate();
+}
+
+function makeChart(id,config){
+  const canvas=document.getElementById(id); if(!canvas) return;
+  const parent=canvas.closest('.chart-container') || canvas.parentElement;
+  if(state.charts[id]){ try{ state.charts[id].destroy(); }catch(e){} delete state.charts[id]; }
+  const CHART_H=300;
+  const measured=parent ? Math.floor(parent.getBoundingClientRect().width - 12) : 760;
+  const CHART_W=Math.max(320, Math.min(measured || 760, 1400));
+  canvas.width=CHART_W; canvas.height=CHART_H;
+  canvas.setAttribute('width',String(CHART_W));
+  canvas.setAttribute('height',String(CHART_H));
+  canvas.style.setProperty('width','100%','important');
+  canvas.style.setProperty('height',CHART_H+'px','important');
+  canvas.style.setProperty('min-height',CHART_H+'px','important');
+  canvas.style.setProperty('max-height',CHART_H+'px','important');
+  config.options=config.options||{};
+  config.options.responsive=false;
+  config.options.maintainAspectRatio=false;
+  config.options.animation=false;
+  config.options.devicePixelRatio=1;
+  const ctx=canvas.getContext('2d');
+  state.charts[id]=new Chart(ctx,config);
+}
+
+function preserveScroll(callback){
+  const win={x:window.scrollX,y:window.scrollY};
+  const els=[document.querySelector('.left-panel'),document.querySelector('.right-panel'),document.querySelector('.tab-content')].filter(Boolean);
+  const pos=els.map(el=>({el,top:el.scrollTop,left:el.scrollLeft}));
+  callback();
+  requestAnimationFrame(()=>{
+    pos.forEach(p=>{p.el.scrollTop=p.top;p.el.scrollLeft=p.left;});
+    window.scrollTo(win.x,win.y);
+  });
+}
+function renderActiveTab(model){
+  const tab=document.querySelector('.tab-btn.active')?.dataset.tab || 'motor';
+  preserveScroll(()=>{
+    try{
+      if(tab==='motor') renderMotor(model);
+      else if(tab==='res') renderRes(model);
+      else if(tab==='caja') renderCaja(model);
+      else if(tab==='cubSimple') renderCubSimple(model);
+      else if(tab==='cubFull') renderCubFull(model);
+    }catch(e){ console.error('render '+tab,e); }
+  });
+}
+
+let chartWindowResizeTimer=null;
+window.addEventListener('resize',()=>{
+  clearTimeout(chartWindowResizeTimer);
+  chartWindowResizeTimer=setTimeout(()=>{
+    if(state.lastModel) renderActiveTab(state.lastModel);
+  },250);
+},{passive:true});
+
+const chartOpts=(yTitle,xTitle='V [km·h⁻¹]')=>({
+  responsive:false, maintainAspectRatio:false, animation:false,
+  plugins:{legend:{labels:{font:{family:'Times New Roman',size:8},boxWidth:10}}},
+  scales:{
+    x:{type:'linear',title:{display:true,text:xTitle,font:{family:'Times New Roman',size:9}}},
+    y:{type:'linear',title:{display:true,text:yTitle,font:{family:'Times New Roman',size:9}}}
+  }
+});
+
+function renderMotor(model){
+  const M=model.motor, n=M.n;
+  const p=model.p;
+
+  const slider=document.getElementById('motorRpmSlider');
+  const label=document.getElementById('motorRpmLabel');
+  const marksEl=document.getElementById('motorSliderMarks');
+  const bandsEl=document.getElementById('motorZoneBands');
+  if(slider){
+    slider.min=Math.round(p.nRal);
+    slider.max=Math.round(p.nFin);
+    slider.step=Math.max(10, Math.round((p.nFin-p.nRal)/200));
+    if(state.motorRPM<p.nRal || state.motorRPM>p.nFin) state.motorRPM=p.nTmax;
+    slider.value=state.motorRPM;
+  }
+
+  if(marksEl){
+    const pct=x=>((x-p.nRal)/(p.nFin-p.nRal))*100;
+    let html='';
+    const stepMark=Math.max(500, Math.round((p.nFin-p.nRal)/10/500)*500);
+    for(let nn=Math.ceil(p.nRal/stepMark)*stepMark; nn<=p.nFin; nn+=stepMark){
+      const major=(nn%1000===0)?'major':'';
+      const lab=major?`<span class="lab">${nn}</span>`:'';
+      html+=`<div class="tick ${major}" style="left:${pct(nn)}%"><span class="line"></span>${lab}</div>`;
+    }
+    html+=`<div class="marker m-tmax" style="left:${pct(p.nTmax)}%"><span><i>M</i><sub>máx</sub></span><span class="pin"></span></div>`;
+    html+=`<div class="marker m-pmax" style="left:${pct(p.nPmax)}%"><span><i>P</i><sub>máx</sub></span><span class="pin"></span></div>`;
+    marksEl.innerHTML=html;
+  }
+
+  if(bandsEl){
+    const total=p.nFin-p.nRal;
+    const zIdle=p.nTmax-p.nRal;
+    const zTorque=Math.min(600,Math.max(300,(p.nPmax-p.nTmax)*0.15));
+    const zPower=Math.min(600,Math.max(300,(p.nFin-p.nPmax)*0.4));
+    const zNormal=total-zIdle-zTorque-zPower;
+    bandsEl.innerHTML=
+      `<div class="band" style="flex:${Math.max(1,zIdle)};background:linear-gradient(90deg,#f0e2cb,#e6c98f)"></div>`+
+      `<div class="band" style="flex:${Math.max(1,zTorque)};background:linear-gradient(90deg,#e6c98f,#b8710f)"></div>`+
+      `<div class="band" style="flex:${Math.max(1,zNormal)};background:linear-gradient(90deg,#cfd8dd,#a8b6c0)"></div>`+
+      `<div class="band" style="flex:${Math.max(1,zPower)};background:linear-gradient(90deg,#a8b6c0,#4a5964)"></div>`;
+  }
+
+  const maxMa = Math.max(...M.Ma.filter(x=>isFinite(x)));
+  const maxHa = Math.max(...M.Ha_kW.filter(x=>isFinite(x)));
+  const minMc = Math.min(...M.Mc_motor.filter(x=>isFinite(x)));
+  const maxHc = Math.max(...M.Hc_kW.filter(x=>isFinite(x)));
+  const yMaMax = Math.ceil(maxMa*1.15/10)*10;
+  const yMcMin = Math.floor(minMc*1.15/10)*10;
+  const yHaMax = Math.ceil(maxHa*1.15/10)*10;
+  const yHcMax = Math.max(Math.ceil(maxHc*1.15/10)*10, 10);
+
+  const nCursor = Math.min(Math.max(state.motorRPM, p.nRal), p.nFin);
+  let iCursor = 0, bestDist = Infinity;
+  for(let i=0;i<n.length;i++){
+    const d = Math.abs(n[i]-nCursor);
+    if(d < bestDist){ bestDist = d; iCursor = i; }
+  }
+  const nExact = n[iCursor];
+
+  const ds1=[
+    {label:'Ma — par efectivo',data:n.map((v,i)=>({x:v,y:M.Ma[i]})),borderColor:'#d9261a',borderWidth:2.6,pointRadius:0,fill:{target:'origin',above:'rgba(217,38,26,.08)'},showLine:true,order:3,yAxisID:'y'},
+    {label:'Ha — potencia efectiva',data:n.map((v,i)=>({x:v,y:M.Ha_kW[i]})),borderColor:'#1a8c33',borderWidth:2.4,pointRadius:0,fill:false,borderDash:[6,3],showLine:true,order:2,yAxisID:'y1'},
+    {label:'_cursor',data:[{x:nExact,y:0},{x:nExact,y:yMaMax}],borderColor:'#12263a',borderWidth:1.2,borderDash:[4,4],pointRadius:0,showLine:true,order:10,yAxisID:'y'},
+    {label:'_ptMa',data:[{x:nExact,y:M.Ma[iCursor]}],borderColor:'#d9261a',backgroundColor:'#d9261a',pointRadius:7,pointBorderColor:'#fff',pointBorderWidth:2,showLine:false,order:11,yAxisID:'y'},
+    {label:'_ptHa',data:[{x:nExact,y:M.Ha_kW[iCursor]}],borderColor:'#1a8c33',backgroundColor:'#1a8c33',pointRadius:7,pointBorderColor:'#fff',pointBorderWidth:2,showLine:false,order:11,yAxisID:'y1'}
+  ];
+  makeChart('chartMotor',{type:'scatter',data:{datasets:ds1},options:{
+    responsive:false,maintainAspectRatio:false,animation:false,
+    plugins:{legend:{labels:{font:{family:'Times New Roman',size:9},boxWidth:12,boxHeight:8,filter:item=>!/^_/.test(item.text)}},tooltip:{enabled:false}},
+    scales:{
+      x:{type:'linear',min:p.nRal,max:p.nFin,title:{display:true,text:'n [min⁻¹]',font:{family:'Times New Roman',size:10}},grid:{color:'#e6ebef'},ticks:{font:{family:'Times New Roman',size:9},stepSize:500}},
+      y:{type:'linear',position:'left',min:0,max:yMaMax,title:{display:true,text:'Ma [N·m]',font:{family:'Times New Roman',size:10},color:'#d9261a'},grid:{color:'#e6ebef'},ticks:{font:{family:'Times New Roman',size:9},color:'#d9261a'}},
+      y1:{type:'linear',position:'right',min:0,max:yHaMax,title:{display:true,text:'Ha [kW]',font:{family:'Times New Roman',size:10},color:'#1a8c33'},grid:{drawOnChartArea:false},ticks:{font:{family:'Times New Roman',size:9},color:'#1a8c33'}}
+    }
+  }});
+
+  const ds2=[
+    {label:'Mc — contrapresión',data:n.map((v,i)=>({x:v,y:M.Mc_motor[i]})),borderColor:'#1a5abf',borderWidth:2.6,pointRadius:0,fill:{target:'origin',below:'rgba(26,90,191,.08)'},showLine:true,order:3,yAxisID:'y'},
+    {label:'Hc — freno motor',data:n.map((v,i)=>({x:v,y:M.Hc_kW[i]})),borderColor:'#7b1fa2',borderWidth:2.4,pointRadius:0,fill:false,borderDash:[6,3],showLine:true,order:2,yAxisID:'y1'},
+    {label:'_cursorB',data:[{x:nExact,y:yMcMin},{x:nExact,y:0}],borderColor:'#12263a',borderWidth:1.2,borderDash:[4,4],pointRadius:0,showLine:true,order:10,yAxisID:'y'},
+    {label:'_ptMc',data:[{x:nExact,y:M.Mc_motor[iCursor]}],borderColor:'#1a5abf',backgroundColor:'#1a5abf',pointRadius:6,pointBorderColor:'#fff',pointBorderWidth:2,showLine:false,order:11,yAxisID:'y'},
+    {label:'_ptHc',data:[{x:nExact,y:M.Hc_kW[iCursor]}],borderColor:'#7b1fa2',backgroundColor:'#7b1fa2',pointRadius:6,pointBorderColor:'#fff',pointBorderWidth:2,showLine:false,order:11,yAxisID:'y1'}
+  ];
+  makeChart('chartBrake',{type:'scatter',data:{datasets:ds2},options:{
+    responsive:false,maintainAspectRatio:false,animation:false,
+    plugins:{legend:{labels:{font:{family:'Times New Roman',size:9},boxWidth:12,boxHeight:8,filter:item=>!/^_/.test(item.text)}},tooltip:{enabled:false}},
+    scales:{
+      x:{type:'linear',min:p.nRal,max:p.nFin,title:{display:true,text:'n [min⁻¹]',font:{family:'Times New Roman',size:10}},grid:{color:'#e6ebef'},ticks:{font:{family:'Times New Roman',size:9},stepSize:500}},
+      y:{type:'linear',position:'left',min:yMcMin,max:0,title:{display:true,text:'Mc [N·m]',font:{family:'Times New Roman',size:10},color:'#1a5abf'},grid:{color:'#e6ebef'},ticks:{font:{family:'Times New Roman',size:9},color:'#1a5abf'}},
+      y1:{type:'linear',position:'right',min:0,max:yHcMax,title:{display:true,text:'Hc [kW]',font:{family:'Times New Roman',size:10},color:'#7b1fa2'},grid:{drawOnChartArea:false},ticks:{font:{family:'Times New Roman',size:9},color:'#7b1fa2'}}
+    }
+  }});
+
+  const Ma0=M.Ma[iCursor], Ha0=M.Ha_kW[iCursor];
+  const zone=zoneOfRPM(nExact, p);
+  if(label) label.textContent=Math.round(nExact)+' min⁻¹';
+  const mrN=document.getElementById('mrN');
+  const mrMa=document.getElementById('mrMa');
+  const mrHa=document.getElementById('mrHa');
+  const mrZone=document.getElementById('mrZone');
+  if(mrN) mrN.innerHTML=Math.round(nExact)+'<small> min⁻¹</small>';
+  if(mrMa) mrMa.innerHTML=Ma0.toFixed(1)+'<small> N·m</small>';
+  if(mrHa) mrHa.innerHTML=Ha0.toFixed(1)+'<small> kW</small>';
+  if(mrZone){ mrZone.textContent=zone.label; mrZone.style.color=zone.color; }
+
+  let html='<table><thead><tr>'+
+    '<th><math><mi>n</mi></math> [min⁻¹]</th>'+
+    '<th><math><msub><mi>M</mi><mi>a</mi></msub></math></th>'+
+    '<th><math><msub><mi>H</mi><mi>a</mi></msub></math></th>'+
+    '<th><math><msub><mi>M</mi><mi>c</mi></msub></math></th>'+
+    '<th><math><msub><mi>H</mi><mi>c</mi></msub></math></th>'+
+    '</tr></thead><tbody>';
+  for(let i=0;i<n.length;i+=2){
+    html+=`<tr><td>${n[i].toFixed(0)}</td><td>${M.Ma[i].toFixed(2)}</td><td>${M.Ha_kW[i].toFixed(2)}</td><td>${M.Mc_motor[i].toFixed(2)}</td><td>${M.Hc_kW[i].toFixed(2)}</td></tr>`;
+  }
+  document.getElementById('tableMotor').innerHTML=html+'</tbody></table>';
+}
+
+function zoneOfRPM(nCur,p){
+  if(nCur < p.nRal+200) return {label:'Ralentí — régimen mínimo', color:'#8c4726'};
+  if(nCur < p.nTmax-600) return {label:'Zona de par creciente', color:'#b8710f'};
+  if(Math.abs(nCur-p.nTmax)<400) return {label:'Par máximo — zona económica', color:'#b8710f'};
+  if(nCur < p.nPmax-600) return {label:'Zona de uso normal', color:'#4a5964'};
+  if(Math.abs(nCur-p.nPmax)<400) return {label:'Potencia máxima — punto de cambio', color:'#4a5964'};
+  return {label:'Zona de sobre-régimen', color:'#a32f2f'};
+}
+
+function renderRes(model){
+  const colors=['#1f77b4','#ff7f0e','#2ca02c','#d62728','#9467bd','#8c564b'];
+  const dsRT=model.p.pendientes.map((j,idx)=>({label:`j=${j}%`,data:model.res.v_kmh.map((v,i)=>({x:v,y:model.res.RT[idx][i]/1000})),borderColor:colors[idx%colors.length],borderWidth:1.8,pointRadius:0,fill:false,showLine:true}));
+  makeChart('chartRT',{type:'scatter',data:{datasets:dsRT},options:Object.assign(chartOpts('Rₜ [kN]'),{})});
+  const dsP=model.p.pendientes.map((j,idx)=>({label:`j=${j}%`,data:model.res.v_kmh.map((v,i)=>({x:v,y:model.res.P_req[idx][i]})),borderColor:colors[idx%colors.length],borderWidth:1.8,pointRadius:0,fill:false,showLine:true}));
+  makeChart('chartP',{type:'scatter',data:{datasets:dsP},options:Object.assign(chartOpts('P [kW]'),{})});
+  let html='<table><thead><tr><th><math><mi>V</mi></math> [km·h⁻¹]</th>';
+  model.p.pendientes.forEach(j=>html+=`<th><math><msub><mi>R</mi><mi>T</mi></msub></math>, <math><mi>j</mi></math>=${j}%</th>`);
+  html+='</tr></thead><tbody>';
+  for(let i=0;i<model.res.v_kmh.length;i+=5){
+    html+=`<tr><td>${model.res.v_kmh[i]}</td>`;
+    model.p.pendientes.forEach((_,idx)=>html+=`<td>${model.res.RT[idx][i].toFixed(0)}</td>`);
+    html+='</tr>';
+  }
+  document.getElementById('tableRes').innerHTML=html+'</tbody></table>';
+}
+
+function renderCaja(model){
+  const n=model.motor.n,colors=['#1f77b4','#ff7f0e','#2ca02c','#d62728','#9467bd','#8c564b','#17becf'];
+  const ds=[];
+  for(let g=0;g<model.p.q;g++) ds.push({label:`${g+1}ª`,data:model.caja.V_marchas.map((row,i)=>({x:row[g],y:n[i]})),borderColor:colors[g%colors.length],borderWidth:2.0,pointRadius:0,fill:false,showLine:true});
+  const xmax=Math.max(...model.caja.V_nFin)*1.03;
+  [['nTmax',model.p.nTmax,'#777',[4,3]],['nPmax',model.p.nPmax,'#222',[6,3]],['nfin',model.p.nFin,'#a33',[2,3]]].forEach(([lab,y,c,d])=>ds.push({label:lab,data:[{x:0,y},{x:xmax,y}],borderColor:c,borderWidth:1.1,borderDash:d,pointRadius:0,showLine:true}));
+  makeChart('chartCaja',{type:'scatter',data:{datasets:ds},options:chartOpts('n [min⁻¹]','V [km·h⁻¹]')});
+
+  const shifts=model.caja.V_shift,stepDS=[];
+  for(let g=0;g<model.p.q;g++){
+    const startV=g===0?model.caja.V_nRal[0]:shifts[g-1];
+    const endV=g<model.p.q-1?shifts[g]:model.caja.V_nFin[g];
+    const startR=Math.max(model.p.nRal,startV*model.caja.xi_total[g]/(0.377*model.p.rc));
+    const endR=Math.min(model.p.nFin,endV*model.caja.xi_total[g]/(0.377*model.p.rc));
+    stepDS.push({label:`${g+1}ª`,data:[{x:startV,y:startR},{x:endV,y:endR}],borderColor:colors[g%colors.length],borderWidth:3,pointRadius:2,showLine:true});
+    if(g<model.p.q-1){
+      const after=endV*model.caja.xi_total[g+1]/(0.377*model.p.rc);
+      stepDS.push({label:'',data:[{x:endV,y:endR},{x:endV,y:after}],borderColor:'#222',borderWidth:1.5,borderDash:[3,2],pointRadius:0,showLine:true});
+    }
+  }
+  stepDS.push({label:'nTmax',data:[{x:0,y:model.p.nTmax},{x:xmax,y:model.p.nTmax}],borderColor:'#888',borderWidth:1,borderDash:[4,3],pointRadius:0,showLine:true});
+  stepDS.push({label:'nPmax',data:[{x:0,y:model.p.nPmax},{x:xmax,y:model.p.nPmax}],borderColor:'#222',borderWidth:1,borderDash:[6,3],pointRadius:0,showLine:true});
+  makeChart('chartSteps',{type:'scatter',data:{datasets:stepDS},options:chartOpts('n [min⁻¹]','V [km·h⁻¹]')});
+
+  let html='<table><thead><tr><th>Marcha</th><th><math><msub><mi>i</mi><mi>k</mi></msub></math></th><th><math><msub><mi>i</mi><mrow><mi>t</mi><mo>,</mo><mi>k</mi></mrow></msub></math></th><th><math><msub><mi>V</mi><mi>k</mi></msub></math>(<math><msub><mi>n</mi><mtext>Tmax</mtext></msub></math>)</th><th><math><msub><mi>V</mi><mi>k</mi></msub></math>(<math><msub><mi>n</mi><mtext>Pmax</mtext></msub></math>)</th></tr></thead><tbody>';
+  for(let g=0;g<model.p.q;g++) html+=`<tr><td>${g+1}</td><td>${model.caja.xi_caja[g].toFixed(4)}</td><td>${model.caja.xi_total[g].toFixed(4)}</td><td>${model.caja.V_nTmax[g].toFixed(1)}</td><td>${model.caja.V_nPmax[g].toFixed(1)}</td></tr>`;
+  document.getElementById('tableCaja').innerHTML=html+'</tbody></table>';
+
+  let hs='<table><thead><tr><th>Cambio</th><th><math><mi>V</mi></math> @ <math><msub><mi>n</mi><mtext>Pmax</mtext></msub></math></th><th><math><mi>n</mi></math> posterior</th></tr></thead><tbody>';
+  for(let g=0;g<model.p.q-1;g++) hs+=`<tr><td>${g+1}→${g+2}</td><td>${finiteOrDash(model.cambios.Vshift_nPmax_kmh[g],1)}</td><td>${finiteOrDash(model.caja.n_after_shift[g],0)}</td></tr>`;
+  document.getElementById('tableShifts').innerHTML=hs+'</tbody></table>';
+}
+
+function renderCubSimple(model){
+  const colors=['#1f77b4','#ff7f0e','#2ca02c','#d62728','#9467bd'];
+  const ds=[{label:'ITH',data:model.ith.v_kmh.map((v,i)=>({x:v,y:model.ith.Ft_N[i]/1000})),borderColor:'#000',borderWidth:2.2,borderDash:[3,3],pointRadius:0,fill:false,showLine:true}];
+  for(let g=0;g<model.p.q;g++){
+    const u=uniqueSorted(model.cub.v_lineal_kmh.map(r=>r[g]),model.cub.Ftrac_plot.map(r=>r[g]));
+    ds.push({label:`${g+1}ª`,data:u.x.map((v,i)=>({x:v,y:u.y[i]/1000})),borderColor:colors[g%colors.length],borderWidth:1.8,pointRadius:0,fill:false,showLine:true});
+  }
+  ds.push({label:'Envolvente',data:model.envolvente.v_kmh.map((v,i)=>({x:v,y:model.envolvente.F_N[i]/1000})),borderColor:'#000',borderWidth:2.8,pointRadius:0,fill:false,showLine:true});
+  makeChart('chartCubSimple',{type:'scatter',data:{datasets:ds},options:chartOpts('Ft [kN]')});
+}
+
+function renderCubFull(model){
+  const colors=['#1f77b4','#ff7f0e','#2ca02c','#d62728','#9467bd'];
+  const ds=[];
+  if(model.p.show_ith) ds.push({label:'ITH',data:model.ith.v_kmh.map((v,i)=>({x:v,y:model.ith.Ft_N[i]/1000})),borderColor:'#000',borderWidth:2.2,borderDash:[3,3],pointRadius:0,fill:false,showLine:true});
+  if(model.p.show_rt) model.p.pendientes.forEach((j,idx)=>{ ds.push({label:idx===0?'RT':'',data:model.res.v_kmh.map((v,i)=>({x:v,y:model.res.RT[idx][i]/1000})),borderColor:'#666',borderWidth:1,borderDash:[4,2],pointRadius:0,fill:false,showLine:true}); });
+  if(model.p.show_ft) for(let g=0;g<model.p.q;g++){ const u=uniqueSorted(model.cub.v_lineal_kmh.map(r=>r[g]),model.cub.Ftrac_plot.map(r=>r[g])); ds.push({label:g===0?'Ftrac':'',data:u.x.map((v,i)=>({x:v,y:u.y[i]/1000})),borderColor:colors[g%colors.length],borderWidth:1.9,pointRadius:0,fill:false,showLine:true}); }
+  if(model.p.show_mu) model.p.mu_ref.forEach((mu,idx)=>{ ds.push({label:idx===0?'Adherencia':'',data:model.res.v_kmh.map((v,i)=>({x:v,y:model.cub.Fadh[idx][i]/1000})),borderColor:'#7b1fa2',borderWidth:1.4,borderDash:[6,2],pointRadius:0,fill:false,showLine:true}); });
+  ds.push({label:'Envolvente',data:model.envolvente.v_kmh.map((v,i)=>({x:v,y:model.envolvente.F_N[i]/1000})),borderColor:'#000',borderWidth:2.8,pointRadius:0,fill:false,showLine:true});
+  ds.push({label:'Rt (j=0%)',data:model.envolvente.v_kmh.map((v,i)=>({x:v,y:model.envolvente.R0_N[i]/1000})),borderColor:'#d9261a',borderWidth:2.2,pointRadius:0,fill:false,showLine:true});
+  if(model.p.show_mc) for(let g=0;g<model.p.q;g++){ const u=uniqueSorted(model.cub.v_lineal_kmh.map(r=>r[g]),model.cub.Fmc_plot.map(r=>r[g])); ds.push({label:g===0?'Freno motor Fmc':'',data:u.x.map((v,i)=>({x:v,y:u.y[i]/1000})),borderColor:'#1a5abf',borderWidth:1.25,borderDash:[5,2],pointRadius:0,fill:false,showLine:true}); }
+  makeChart('chartCubFull',{type:'scatter',data:{datasets:ds},options:chartOpts('F [kN]')});
+  document.getElementById('tableCub').innerHTML='';
+}
+
+window.addEventListener('DOMContentLoaded',()=>{
+  buildUI();
+  recalculate();
+});
+</script>
+</body>
+</html>

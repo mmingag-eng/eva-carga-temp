@@ -1,0 +1,688 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mecanismo Biela‑Manivela</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* Layout: banco de instrumentos — panel de mandos a la izquierda, dos diagramas como lectura principal, cilindro y datos debajo */
+:root{
+  --bg:#eef1f4; --surface:#ffffff; --sunk:#e3e8ee; --fg:#17202b; --muted:#5b6778; --line:#cfd6df; --grid:#e6eaef;
+  --hot:#d9480f; --cold:#1864ab; --adi:#6b7686;
+  --accent:#e67700;
+  --f-display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e1217; --surface:#151b23; --sunk:#1c242e; --fg:#e3e8ee; --muted:#95a1b0; --line:#29323d; --grid:#1f2731;
+    --hot:#ff7b45; --cold:#4dabf7; --adi:#8d99a8; --accent:#ffc078; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e1217; --surface:#151b23; --sunk:#1c242e; --fg:#e3e8ee; --muted:#95a1b0; --line:#29323d; --grid:#1f2731;
+  --hot:#ff7b45; --cold:#4dabf7; --adi:#8d99a8; --accent:#ffc078; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.5;margin:0}
+.page{max-width:1440px;margin:0 auto;padding-inline:clamp(16px,3vw,32px);padding-block:24px 40px}
+.top{display:grid;gap:10px;padding-bottom:18px;border-bottom:1px solid var(--line);margin-bottom:20px}
+.eyebrow{font-family:var(--f-mono);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(36px,5.2vw,56px);line-height:1;margin:0;letter-spacing:-.005em;text-wrap:balance}
+h1 .acc{color:var(--accent)}
+.lede{max-width:72ch;margin:0;color:var(--muted)}
+.chips{list-style:none;display:flex;flex-wrap:wrap;gap:6px;padding:0;margin:4px 0 0}
+.chips li{font-size:13px;padding:4px 11px;border:1px solid var(--line);border-radius:999px;background:var(--surface);display:flex;gap:7px;align-items:center;cursor:pointer;transition:border-color .15s}
+.chips li b{font-family:var(--f-mono);font-weight:500;font-size:12px}
+.chips li.on{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.dot{width:9px;height:9px;border-radius:50%;flex:none}
+.layout{display:grid;grid-template-columns:310px minmax(0,1fr);gap:22px;align-items:start}
+.panel{position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px);display:grid;gap:16px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;max-height:calc(100vh - 24px);overflow:auto}
+@media (max-width:980px){.layout{grid-template-columns:minmax(0,1fr)}.panel{position:static;max-height:none}}
+.panel h2,.sec-h{font-family:var(--f-display);font-size:14.5px;font-weight:600;text-transform:uppercase;letter-spacing:.09em;margin:0 0 4px;color:var(--muted)}
+.prm{display:grid;gap:3px;padding-block:5px}
+.prm-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.prm label{font-size:14px;font-weight:500}
+.sym{font-family:var(--f-mono);font-size:12px;color:var(--accent);white-space:nowrap}
+.prm-in{display:grid;grid-template-columns:minmax(0,1fr) 84px 58px;gap:8px;align-items:center}
+.prm-in.sel{grid-template-columns:minmax(0,1fr)}
+input[type=range]{width:100%;accent-color:var(--accent);margin:0}
+input[type=number],select{width:100%;font-family:var(--f-mono);font-size:13px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--fg)}
+input:focus-visible,select:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.unit{font-family:var(--f-mono);font-size:11px;color:var(--muted);line-height:1.2}
+.hint{font-size:12.5px;color:var(--muted);min-height:1.1em}
+.hint b{color:var(--fg);font-weight:600;font-family:var(--f-mono);font-size:12px}
+details.adv summary{cursor:pointer;font-family:var(--f-display);font-size:14.5px;font-weight:600;text-transform:uppercase;letter-spacing:.09em;color:var(--muted)}
+.btns{display:flex;flex-wrap:wrap;gap:8px}
+button{font-family:var(--f-body);font-size:14px;font-weight:600;padding:7px 12px;border-radius:7px;border:1px solid var(--line);background:var(--sunk);color:var(--fg);cursor:pointer}
+button:hover{border-color:var(--accent)}
+button.pri{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.msgs{display:grid;gap:8px}
+.msg{font-size:13px;padding:8px 10px;border-radius:7px;border:1px solid var(--line);border-left:4px solid var(--adi);background:var(--bg)}
+.msg.err{border-left-color:var(--hot)}
+.msg.warn{border-left-color:#e8a317}
+.work{display:grid;gap:18px;min-width:0}
+.plots{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media (max-width:760px){.plots{grid-template-columns:minmax(0,1fr)}}
+.plot{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 10px 8px;min-width:0;position:relative}
+.plot figcaption{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:0 4px 6px}
+.plot figcaption span{font-family:var(--f-display);font-weight:700;font-size:20px}
+.plot figcaption small{font-size:12.5px;color:var(--muted)}
+.plot figcaption label{font-size:12.5px;color:var(--muted);display:flex;gap:5px;align-items:center;cursor:pointer}
+.plot canvas{width:100%;aspect-ratio:4/3.3;display:block;touch-action:pan-y;cursor:crosshair}
+body.invalid .plots,body.invalid .anim,body.invalid .kpis,body.invalid .tables{opacity:.35;filter:grayscale(.6)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:var(--muted);padding-inline:4px}
+.legend span{display:flex;align-items:center;gap:7px}
+.legend i{display:inline-block;width:22px;height:3px;border-radius:2px}
+.legend i.area{height:11px;opacity:.35;background:var(--accent)}
+.legend i.ref{height:0;border-top:2px dashed var(--muted)}
+.anim{display:grid;grid-template-columns:260px minmax(0,1fr);gap:18px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px}
+@media (max-width:640px){.anim{grid-template-columns:minmax(0,1fr)}}
+.anim canvas{width:100%;height:400px;display:block;background:var(--bg);border-radius:8px}
+.anim-info{display:grid;gap:12px;align-content:start;min-width:0}
+.ctl{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.ctl select{width:auto}
+.scrub{display:grid;gap:2px}
+.scrub label{font-size:12.5px;color:var(--muted)}
+.pn-head{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.pn-id{font-family:var(--f-mono);font-size:13px;padding:2px 8px;border-radius:5px;background:var(--accent);color:var(--surface)}
+.pn-type{font-size:13px;color:var(--muted)}
+.pn h3{font-family:var(--f-display);font-size:26px;font-weight:600;margin:6px 0 4px;line-height:1.1}
+.pn p{margin:0 0 10px;max-width:66ch}
+.pn-vals{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0}
+.pn-vals div{background:var(--bg);border-radius:7px;padding:6px 10px}
+.pn-vals dt{font-size:12px;color:var(--muted)}
+.pn-vals dd{margin:0;font-family:var(--f-mono);font-size:15px;font-variant-numeric:tabular-nums}
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:10px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:10px 12px;display:grid;gap:2px;align-content:start}
+.kpi.main{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.kpi .l{font-size:12.5px;color:var(--muted);line-height:1.25}
+.kpi .v{font-family:var(--f-mono);font-size:22px;font-weight:500;font-variant-numeric:tabular-nums;line-height:1.2}
+.kpi.main .v{color:var(--accent);font-size:28px}
+.kpi .v small{font-size:12px;color:var(--muted);font-weight:400;margin-left:4px}
+.kpi .s{font-size:12px;color:var(--muted);font-family:var(--f-mono)}
+.kpi-group{grid-column:1/-1;font-family:var(--f-display);font-size:14.5px;font-weight:600;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin-top:4px}
+.tables{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media (max-width:1100px){.tables{grid-template-columns:minmax(0,1fr)}}
+.tbl{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px;min-width:0}
+.tbl-scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{padding:6px 8px;text-align:right;white-space:nowrap}
+th{font-weight:600;color:var(--muted);font-size:12px;border-bottom:1px solid var(--line)}
+th:first-child,td:first-child{text-align:left}
+td{font-family:var(--f-mono);font-variant-numeric:tabular-nums;border-bottom:1px solid var(--grid)}
+td.txt{font-family:var(--f-body)}
+tr.on td{background:var(--sunk)}
+tr.tot td{font-weight:600;border-top:1px solid var(--line);border-bottom:0}
+.pos{color:var(--hot)} .neg{color:var(--cold)}
+.theory{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media (max-width:900px){.theory{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;min-width:0}
+.card h3{font-family:var(--f-display);font-size:22px;font-weight:600;margin:0 0 8px}
+.card p,.card li{max-width:68ch}
+.card ol,.card ul{padding-left:20px;margin:6px 0}
+.card li{margin-bottom:6px}
+.eq{font-family:var(--f-mono);font-size:13.5px;background:var(--bg);border-radius:6px;padding:7px 10px;margin:6px 0;overflow-x:auto;white-space:nowrap}
+.eq-note{font-size:13px;color:var(--muted);margin:0 0 4px}
+.live{font-family:var(--f-mono);font-size:13px;color:var(--accent)}
+footer{margin-top:26px;padding-top:14px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted);max-width:110ch}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* ---- propio del simulador biela-manivela ---- */
+.mech{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:16px;align-items:start}
+@media (max-width:1180px){.mech{grid-template-columns:minmax(0,1fr)}}
+.mech-card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px;display:grid;gap:10px;min-width:0}
+.mech-card canvas{width:100%;height:540px;display:block;background:var(--bg);border-radius:8px}
+@media (max-width:640px){.mech-card canvas{height:470px}}
+.card-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.card-h span{font-family:var(--f-display);font-weight:700;font-size:20px}
+.card-h small{font-size:12.5px;color:var(--muted)}
+.scrub-row{display:grid;grid-template-columns:minmax(0,1fr) 84px 22px;gap:8px;align-items:center}
+.chk{font-size:12.5px;color:var(--muted);display:inline-flex;gap:5px;align-items:center;cursor:pointer}
+.graphs{display:grid;gap:12px;min-width:0}
+.gr{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 10px 6px;min-width:0}
+.gr figcaption{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;padding:0 4px 4px}
+.gr figcaption span{font-family:var(--f-display);font-weight:700;font-size:19px}
+.gr figcaption small{font-size:12.5px;color:var(--muted)}
+.gr canvas{width:100%;height:190px;display:block;touch-action:pan-y;cursor:crosshair}
+.legend i.dash{height:0;background:none;border-top:2.5px dashed var(--cold)}
+.legend i.dot2{height:0;background:none;border-top:2.5px dotted var(--adi)}
+.legend i.refl{height:0;background:none;border-top:2px dashed var(--muted)}
+.pn-vals.six{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (max-width:420px){.pn-vals.six{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.cls{display:inline-block;font-family:var(--f-mono);font-size:11.5px;padding:1px 7px;border-radius:5px;border:1px solid var(--accent);color:var(--accent)}
+.tables.one{grid-template-columns:minmax(0,1fr)}
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="top">
+    <div class="eyebrow">Simulador · Introducción a Motores · Unidad 3 — Tren alternativo</div>
+    <h1>Mecanismo <span class="acc">Biela‑Manivela</span></h1>
+    <p class="lede">Convierte el giro del cigüeñal en el movimiento de vaivén del pistón. Ajuste el diámetro, la carrera, la longitud de la biela y el régimen, y observe cómo cambian la posición, la velocidad y la aceleración del pistón en cada grado de giro: la velocidad máxima no ocurre a 90° y el pistón acelera más en el PMS que en el PMI.</p>
+  </header>
+  <div class="layout">
+    <aside class="panel" aria-label="Parámetros del mecanismo">
+      <section><h2>Geometría del motor</h2><div id="geo"></div>
+        <div class="btns" style="margin-top:6px">
+          <button type="button" id="bSuper" title="Misma cilindrada unitaria y misma λ, con S/D = 0.8">Supercuadrado (S/D 0.8)</button>
+          <button type="button" id="bSquare" title="Misma cilindrada unitaria y misma λ, con S/D = 1">Cuadrado</button>
+          <button type="button" id="bLong" title="Misma cilindrada unitaria y misma λ, con S/D = 1.25">Alargado (S/D 1.25)</button>
+        </div>
+        <div class="hint" style="margin-top:4px">Los tres botones conservan la cilindrada unitaria y la relación λ actuales.</div>
+      </section>
+      <section><h2>Funcionamiento</h2><div id="op"></div></section>
+      <details class="adv"><summary>Opciones avanzadas</summary><div id="adv"></div></details>
+      <div class="btns">
+        <button type="button" id="refBtn">Fijar como referencia</button>
+        <button type="button" id="resetBtn">Restablecer valores</button>
+      </div>
+      <div class="msgs" id="msgs" aria-live="polite"></div>
+    </aside>
+    <main class="work">
+      <section class="mech">
+        <div class="mech-card">
+          <div class="card-h"><span>Mecanismo en corte</span><small>Animación ralentizada · giro horario</small></div>
+          <div class="ctl">
+            <button type="button" class="pri" id="playBtn">▶ Animar</button>
+            <label for="speedSel" style="font-size:13px;color:var(--muted)">Velocidad</label>
+            <select id="speedSel"><option value="0.1">0.1 vuelta/s</option><option value="0.25" selected>0.25 vuelta/s</option><option value="0.5">0.5 vuelta/s</option><option value="1">1 vuelta/s</option></select>
+            <label class="chk"><input type="checkbox" id="names" checked> Nombres de piezas</label>
+          </div>
+          <div class="scrub"><label for="thRg">Ángulo del cigüeñal θ (desde el PMS)</label>
+            <div class="scrub-row"><input type="range" id="thRg" min="0" max="360" step="0.5" value="60"><input type="number" id="thIn" min="0" max="360" step="0.5" value="60"><span class="unit">°</span></div></div>
+          <canvas id="cMech" aria-label="Corte del mecanismo biela-manivela con pistón, biela y cigüeñal en el ángulo actual"></canvas>
+          <dl class="pn-vals six" id="inst"></dl>
+        </div>
+        <div class="graphs">
+          <figure class="gr"><figcaption><span>Posición del pistón x(θ)</span><small>Desplazamiento desde el PMS</small></figcaption>
+            <canvas id="gX" aria-label="Gráfica de la posición del pistón en función del ángulo del cigüeñal"></canvas></figure>
+          <figure class="gr"><figcaption><span>Velocidad del pistón v(θ)</span><small>+ = baja hacia el PMI · − = sube hacia el PMS</small></figcaption>
+            <canvas id="gV" aria-label="Gráfica de la velocidad del pistón en función del ángulo del cigüeñal"></canvas></figure>
+          <figure class="gr"><figcaption><span>Aceleración del pistón a(θ)</span><small>Eje derecho en múltiplos de g = 9.81 m/s²</small></figcaption>
+            <canvas id="gA" aria-label="Gráfica de la aceleración del pistón en función del ángulo del cigüeñal"></canvas></figure>
+          <div class="legend">
+            <span><i style="background:var(--accent)"></i>Exacta</span>
+            <span><label class="chk"><input type="checkbox" id="showApx" checked><i class="dash"></i>Aproximación de 2 términos</label></span>
+            <span><label class="chk"><input type="checkbox" id="showHar"><i class="dot2"></i>Armónico simple (λ = 0)</label></span>
+            <span><i class="refl"></i>Referencia fijada</span>
+            <span>Pase el cursor para leer; haga clic para mover el cigüeñal</span>
+          </div>
+        </div>
+      </section>
+      <section class="kpis" id="kpis" aria-label="Resultados"></section>
+      <section class="tables one">
+        <div class="tbl"><div class="sec-h">Tabla de valores cada 30° de cigüeñal</div><div class="tbl-scroll"><table id="tVals"></table></div></div>
+      </section>
+      <section class="theory">
+        <div class="card">
+          <h3>Ecuaciones del mecanismo</h3>
+          <p class="eq-note">Radio de manivela, relación de biela y ángulo de la biela</p>
+          <div class="eq">r = S/2 &nbsp;·&nbsp; λ = r/L &nbsp;·&nbsp; sen β = λ·sen θ</div>
+          <p class="eq-note">Posición exacta del pistón medida desde el PMS</p>
+          <div class="eq">x(θ) = r(1 − cos θ) + L(1 − √(1 − λ²·sen²θ))</div>
+          <p class="eq-note">Aproximación de 2 términos (ω = 2πn/60 en rad/s)</p>
+          <div class="eq">v ≈ r·ω·(sen θ + (λ/2)·sen 2θ) &nbsp;·&nbsp; a ≈ r·ω²·(cos θ + λ·cos 2θ)</div>
+          <div class="eq">a<sub>PMS</sub> = r·ω²·(1 + λ) &nbsp;·&nbsp; a<sub>PMI</sub> = −r·ω²·(1 − λ)</div>
+          <p class="eq-note">Cilindrada, velocidad media y fuerza de inercia</p>
+          <div class="eq">V<sub>C</sub> = (π·D²/4)·S &nbsp;·&nbsp; c<sub>m</sub> = 2·S·n/60 &nbsp;·&nbsp; F<sub>i</sub> = m<sub>alt</sub>·a</div>
+          <p class="live" data-live="a"></p>
+          <p class="live" data-live="c"></p>
+        </div>
+        <div class="card">
+          <h3>Experimentos guiados</h3>
+          <ol>
+            <li>Fije la configuración actual como referencia. Cambie la biela de <b>L = 131 mm</b> a <b>L = 180 mm</b>. ¿Qué pasa con la aceleración en el PMS y en el PMI? ¿Por qué con una biela infinitamente larga (λ → 0) las dos serían iguales? Active el armónico simple para comprobarlo.</li>
+            <li>Busque el ángulo de velocidad máxima en la gráfica. ¿Por qué ocurre antes de 90°? Pista: coloque el cigüeñal a 90° y observe el ángulo β de la biela y la posición x: ¿el pistón ya recorrió la mitad de la carrera?</li>
+            <li>Anote la fuerza de inercia en el PMS a 3000 rpm y luego a 6000 rpm. ¿Se duplica o se cuadruplica? Relacione el resultado con la fórmula a<sub>PMS</sub> = r·ω²·(1 + λ) y explique por qué los motores tienen un régimen máximo.</li>
+            <li>Con el botón <i>Supercuadrado</i> y luego <i>Alargado</i>, compare dos motores de igual cilindrada a 6000 rpm. ¿Cuál tiene mayor velocidad media del pistón c<sub>m</sub>? ¿Cuál podría girar a más rpm sin superar unos 20 m/s?</li>
+            <li>Suba λ por encima de 0.25 y mire la aceleración alrededor del PMI: aparece un pequeño valle doble. Anote el ángulo del mínimo absoluto y compárelo con cos θ = −1/(4λ).</li>
+          </ol>
+        </div>
+      </section>
+    </main>
+  </div>
+  <footer>Modelo cinemático de un mecanismo biela‑manivela rígido con velocidad angular del cigüeñal constante. θ se mide desde la posición del cigüeñal con la muñequilla alineada al eje del cilindro (PMS sin descentrado), en sentido de giro; x se mide desde el PMS hacia el PMI. Velocidad y aceleración exactas por derivación analítica de x(θ); con descentrado e ≠ 0 el PMS y el PMI se desplazan unos grados y la carrera efectiva crece ligeramente. La fuerza de inercia considera solo la masa alternativa; no incluye la presión de los gases ni las masas rotativas. Material de apoyo para prácticas de Mecánica Automotriz.</footer>
+</div>
+
+<script>
+(function(){
+'use strict';
+const $=s=>document.querySelector(s);
+const DEG=Math.PI/180, G0=9.80665, N=720;
+const fx=(x,d)=>Number.isFinite(x)?(Math.abs(x)<0.5*Math.pow(10,-d)?0:x).toFixed(d):'—';
+function fg(x,d){ // agrupa miles con espacio fino
+  if(!Number.isFinite(x)) return '—';
+  const s=fx(x,d), neg=s[0]==='-', t=neg?s.slice(1):s, [i,f]=t.split('.');
+  const g=i.length>4?i.replace(/\B(?=(\d{3})+(?!\d))/g,' '):i;
+  return (neg?'−':'')+g+(f?'.'+f:'');
+}
+function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+function pal(){return {bg:css('--surface'),page:css('--bg'),sunk:css('--sunk'),fg:css('--fg'),muted:css('--muted'),grid:css('--grid'),line:css('--line'),hot:css('--hot'),cold:css('--cold'),adi:css('--adi'),acc:css('--accent')};}
+function setupCanvas(cv){
+  const dpr=window.devicePixelRatio||1, W=cv.clientWidth, H=cv.clientHeight;
+  if(cv.width!==Math.round(W*dpr)||cv.height!==Math.round(H*dpr)){cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr);}
+  const ctx=cv.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,W,H);
+  return {ctx,W,H};
+}
+function niceStep(span,n){const raw=span/n, p=Math.pow(10,Math.floor(Math.log10(raw))), m=raw/p; return (m<1.5?1:m<3?2:m<7?5:10)*p;}
+function linTicks(a,b,n){const st=niceStep(b-a,n), out=[]; for(let x=Math.ceil(a/st)*st; x<=b+st*1e-9; x+=st) out.push(+x.toPrecision(10)); return out;}
+function tickFmt(t){ if(t===0) return '0'; if(Math.abs(t)>=10000) return fg(t,0); if(Math.abs(t)>=1000) return Math.round(t).toString().replace('-','−'); return (+t.toPrecision(4)).toString().replace('-','−'); }
+
+/* ---------- parámetros ---------- */
+const DEFS=[
+  {id:'D',box:'#geo',label:'Diámetro del cilindro',sym:'D',unit:'mm',min:50,max:110,step:0.1,value:74,
+   hint:v=>`Área del pistón A<sub>p</sub> = <b>${fx(Math.PI*v*v/400,2)}</b> cm²`},
+  {id:'S',box:'#geo',label:'Carrera del pistón',sym:'S',unit:'mm',min:40,max:120,step:0.1,value:75.5,
+   hint:v=>`Radio de manivela r = S/2 = <b>${fx(v/2,2)}</b> mm`},
+  {id:'L',box:'#geo',label:'Longitud de la biela (entre centros)',sym:'L',unit:'mm',min:80,max:250,step:0.5,value:131,
+   hint:()=>`L/r = <b>${fx(S.p.L/(S.p.S/2),2)}</b> · al cambiar L se recalcula λ`},
+  {id:'lam',box:'#geo',label:'Relación de biela',sym:'λ = r/L',unit:'—',min:0.15,max:0.5,step:0.001,value:0.288,
+   hint:()=>'Turismos: λ ≈ 0.25 a 0.33 · al cambiar λ se recalcula L'},
+  {id:'z',box:'#geo',label:'Número de cilindros',sym:'z',unit:'—',min:1,max:12,step:1,value:4,
+   hint:()=>S.res?`Cilindrada total V<sub>T</sub> = <b>${fx(S.res.Vc*S.p.z,1)}</b> cm³ ≈ ${fx(S.res.Vc*S.p.z/1000,2)} L`:''},
+  {id:'rpm',box:'#op',label:'Régimen de giro',sym:'n',unit:'rpm',min:500,max:9000,step:50,value:6000,
+   hint:v=>`ω = 2πn/60 = <b>${fx(2*Math.PI*v/60,1)}</b> rad/s`},
+  {id:'m',box:'#op',label:'Masa alternativa (pistón, bulón, segmentos y ≈⅓ de biela)',sym:'m_alt',unit:'g',min:0,max:1500,step:5,value:480,
+   hint:v=>v>0?`Peso del conjunto: <b>${fx(v/1000*G0,2)}</b> N`:'Con 0 g no se calcula la fuerza de inercia'},
+  {id:'e',box:'#adv',label:'Descentrado del bulón (offset)',sym:'e',unit:'mm',min:-10,max:10,step:0.1,value:0,
+   hint:()=>S.res&&Math.abs(S.p.e)>1e-9?`PMS a θ = <b>${fx(S.res.thPMS,2)}°</b> · PMI a θ = <b>${fx(S.res.thPMI,2)}°</b> · carrera efectiva <b>${fx(S.res.Seff,3)}</b> mm`:'Desplazamiento lateral del eje del bulón respecto al eje del cigüeñal. Valores reales: 0.5 a 1.5 mm.'}
+];
+const S={p:{},ref:null,res:null,theta:60,playing:false,speed:0.25,hover:null,hoverCv:null,err:[],warn:[]};
+
+function buildRows(){
+  DEFS.forEach(d=>{
+    const row=document.createElement('div'); row.className='prm';
+    row.innerHTML=`<div class="prm-h"><label for="in_${d.id}">${d.label}</label><span class="sym">${d.sym}</span></div>
+      <div class="prm-in"><input type="range" id="rg_${d.id}" min="${d.min}" max="${d.max}" step="${d.step}" aria-label="${d.label} (deslizador)">
+      <input type="number" id="in_${d.id}" step="${d.step}"><span class="unit">${d.unit}</span></div>
+      <div class="hint" id="hn_${d.id}"></div>`;
+    $(d.box).appendChild(row);
+    const rg=row.querySelector('input[type=range]'), nb=row.querySelector('input[type=number]');
+    const set=v=>{S.p[d.id]=v; couple(d.id); recompute();};
+    rg.addEventListener('input',()=>{nb.value=rg.value; set(+rg.value);});
+    nb.addEventListener('input',()=>{const v=parseFloat(nb.value); if(Number.isFinite(v)){rg.value=v; set(v);}});
+  });
+}
+function couple(id){ // L y λ vinculados
+  const r=S.p.S/2;
+  if(id==='L'||id==='S'){ if(S.p.L>0) S.p.lam=+(r/S.p.L).toFixed(4); syncOne('lam'); }
+  else if(id==='lam'){ if(S.p.lam>0){ S.p.L=+(r/S.p.lam).toFixed(2); syncOne('L'); } }
+}
+function syncOne(id){const nb=$('#in_'+id), rg=$('#rg_'+id); if(nb&&document.activeElement!==nb) nb.value=S.p[id]; if(rg) rg.value=S.p[id];}
+function syncAll(){DEFS.forEach(d=>syncOne(d.id));}
+function setDefaults(){DEFS.forEach(d=>S.p[d.id]=d.value); S.p.lam=+(S.p.S/2/S.p.L).toFixed(4);}
+
+/* ---------- cinemática ---------- */
+function makeKin(p){
+  const r=p.S/2, L=p.L, e=p.e, w=2*Math.PI*p.rpm/60, lam=r/L;
+  const y=th=>{const u=r*Math.sin(th)-e; return r*Math.cos(th)+Math.sqrt(L*L-u*u);};
+  const y1=th=>{const s=Math.sin(th),c=Math.cos(th),u=r*s-e,R=Math.sqrt(L*L-u*u); return -r*s-u*r*c/R;};
+  const y2=th=>{const s=Math.sin(th),c=Math.cos(th),u=r*s-e,up=r*c,upp=-r*s,R=Math.sqrt(L*L-u*u); return -r*c-(up*up+u*upp)/R-u*u*up*up/(R*R*R);};
+  const yTop=Math.sqrt((L+r)*(L+r)-e*e), yBot=Math.sqrt((L-r)*(L-r)-e*e);
+  return {r,L,e,w,lam,y,yTop,yBot,
+    x:th=>yTop-y(th),                       // mm
+    v:th=>-y1(th)*w/1000,                   // m/s
+    a:th=>-y2(th)*w*w/1000,                 // m/s²
+    beta:th=>Math.asin((r*Math.sin(th)-e)/L)/DEG,
+    xA:th=>r*((1-Math.cos(th))+lam/4*(1-Math.cos(2*th))),
+    vA:th=>r*w*(Math.sin(th)+lam/2*Math.sin(2*th))/1000,
+    aA:th=>r*w*w*(Math.cos(th)+lam*Math.cos(2*th))/1000,
+    xH:th=>r*(1-Math.cos(th)), vH:th=>r*w*Math.sin(th)/1000, aH:th=>r*w*w*Math.cos(th)/1000};
+}
+function validate(p){
+  const e=[], w=[];
+  if(!(p.D>0)) e.push('El diámetro D debe ser mayor que 0 mm. Escriba un valor como 74.');
+  if(!(p.S>0)) e.push('La carrera S debe ser mayor que 0 mm. Escriba un valor como 75.5.');
+  if(!(p.rpm>0)) e.push('El régimen n debe ser mayor que 0 rpm.');
+  if(!(p.m>=0)) e.push('La masa alternativa no puede ser negativa; use 0 g si no desea calcular fuerzas.');
+  if(!(p.z>=1)||Math.round(p.z)!==p.z) e.push('El número de cilindros debe ser un entero mayor o igual a 1.');
+  const r=p.S/2;
+  if(p.S>0&&!(p.L>r+Math.abs(p.e)+1e-9)) e.push(`La biela es demasiado corta: L debe ser mayor que r + |e| = ${fx(r+Math.abs(p.e),2)} mm. Alargue la biela o reduzca la carrera.`);
+  else if(p.S>0&&p.L>0&&Math.abs(p.e)>=p.L-r) e.push('El descentrado e es demasiado grande para esta biela. Use un valor pequeño (0 a 2 mm).');
+  if(e.length) return {e,w};
+  const lam=r/p.L, sd=p.S/p.D;
+  if(lam>0.4) w.push(`Biela muy corta: λ = ${fx(lam,3)}. En motores de turismo λ ≈ 0.25 a 0.35; una biela corta inclina más y aumenta el empuje lateral del pistón contra el cilindro.`);
+  if(lam<0.2) w.push(`Biela muy larga: λ = ${fx(lam,3)}. Es posible, pero el motor resulta más alto y pesado.`);
+  if(sd<0.6||sd>1.5) w.push(`S/D = ${fx(sd,2)} está fuera de lo habitual en motores de automoción (0.7 a 1.3).`);
+  if(p.D>110||p.D<50) w.push(`D = ${fx(p.D,1)} mm está fuera del rango típico de turismos (65 a 100 mm).`);
+  return {e,w};
+}
+function compute(p){
+  const K=makeKin(p), arr={th:[],x:[],v:[],a:[],xA:[],vA:[],aA:[],xH:[],vH:[],aH:[]};
+  for(let i=0;i<=N;i++){const th=i*360/N*DEG; arr.th.push(i*360/N);
+    ['x','v','a','xA','vA','aA','xH','vH','aH'].forEach(k=>arr[k].push(K[k](th)));}
+  // búsqueda fina de extremos
+  let vmax=-1e9,thv=0,vmin=1e9,thvmin=0,amin=1e9,tha=0;
+  for(let i=0;i<=36000;i++){const t=i*0.01, th=t*DEG, v=K.v(th), a=K.a(th);
+    if(v>vmax){vmax=v;thv=t;} if(v<vmin){vmin=v;thvmin=t;} if(a<amin){amin=a;tha=t;}}
+  const thPMS=Math.asin(K.e/(K.L+K.r))/DEG, thPMI=180+Math.asin(K.e/(K.L-K.r))/DEG;
+  const aPMS=K.a(thPMS*DEG), aPMI=K.a(thPMI*DEG);
+  const r=p.S/2, cm=2*p.S/1000*p.rpm/60, Vc=Math.PI*p.D*p.D/4*p.S/1000, mk=p.m/1000;
+  // ángulo de vmax de la aproximación: 2λc²+c−λ=0
+  const lam=K.lam, cA=(-1+Math.sqrt(1+8*lam*lam))/(4*lam), thvA=Math.acos(cA)/DEG;
+  let bmax=0; for(let i=0;i<=3600;i++){const b=Math.abs(K.beta(i*0.1*DEG)); if(b>bmax) bmax=b;}
+  return {K,arr,vmax,thv,vmin,thvmin,amin,tha,aPMS,aPMI,thPMS,thPMI,cm,Vc,mk,lam,thvA,bmax,
+    Seff:K.yTop-K.yBot, sd:p.S/p.D, w:K.w, r, FPMS:mk*aPMS, FPMI:mk*aPMI, Fmin:mk*amin,
+    tag:`D ${fx(p.D,1)} · S ${fx(p.S,1)} · L ${fx(p.L,1)} mm · ${p.rpm} rpm`};
+}
+function recompute(){
+  const vr=validate(S.p); S.err=vr.e; S.warn=vr.w;
+  if(S.err.length){ document.body.classList.add('invalid'); renderMsgs(); updateHints(); return; }
+  document.body.classList.remove('invalid');
+  S.res=compute(S.p);
+  renderAll();
+}
+
+/* ---------- gráficas ---------- */
+const GR={
+  gX:{key:'x', apx:'xA', har:'xH', unit:'mm', yl:'x (mm)', d:2},
+  gV:{key:'v', apx:'vA', har:'vH', unit:'m/s', yl:'v (m/s)', d:2},
+  gA:{key:'a', apx:'aA', har:'aH', unit:'m/s²', yl:'a (m/s²)', d:0, sec:true}
+};
+function interp(arr,th){const f=th/360*N, i=Math.max(0,Math.min(N-1,Math.floor(f))), u=f-i; return arr[i]+(arr[i+1]-arr[i])*u;}
+function drawGraph(id){
+  const cv=$('#'+id), g=GR[id], R=S.res; if(!R) return;
+  const {ctx,W,H}=setupCanvas(cv), P=pal(), narrow=W<460;
+  const m={l:narrow?50:62, r:g.sec?(narrow?44:52):14, t:16, b:26};
+  const showA=$('#showApx').checked, showH=$('#showHar').checked;
+  const sets=[R.arr[g.key]]; if(showA) sets.push(R.arr[g.apx]); if(showH) sets.push(R.arr[g.har]); if(S.ref) sets.push(S.ref.arr[g.key]);
+  let y0=0,y1=0; sets.forEach(a=>a.forEach(v=>{if(v<y0)y0=v; if(v>y1)y1=v;}));
+  const dy=(y1-y0)||1; y0-=dy*0.08; y1+=dy*0.12;
+  if(g.key==='x'){ y0=Math.min(y0,-dy*0.04); }
+  const yt=linTicks(y0,y1,narrow?4:5);
+  ctx.font='11px "JetBrains Mono", ui-monospace, monospace';
+  m.l=Math.max(narrow?44:56,Math.max(...yt.map(t=>ctx.measureText(tickFmt(t)).width))+28);
+  const pw=W-m.l-m.r, ph=H-m.t-m.b;
+  const X=t=>m.l+t/360*pw, Y=v=>m.t+(y1-v)/(y1-y0)*ph;
+  cv._map={X,Y,m,pw,ph};
+  ctx.fillStyle=P.bg; ctx.fillRect(m.l,m.t,pw,ph);
+  ctx.font='11px "JetBrains Mono", ui-monospace, monospace'; ctx.lineWidth=1;
+  // rejilla
+  ctx.strokeStyle=P.grid; ctx.fillStyle=P.muted; ctx.textAlign='center'; ctx.textBaseline='top';
+  for(let t=0;t<=360;t+=45){const x=Math.round(X(t))+0.5; ctx.beginPath(); ctx.moveTo(x,m.t); ctx.lineTo(x,m.t+ph); ctx.stroke();
+    if(t%90===0) ctx.fillText(t+'°',x,m.t+ph+5);}
+  ctx.textAlign='right'; ctx.textBaseline='middle'; let lastY=1e9;
+  yt.forEach(t=>{const y=Math.round(Y(t))+0.5; ctx.beginPath(); ctx.moveTo(m.l,y); ctx.lineTo(m.l+pw,y); ctx.stroke(); if(lastY-y>12){ctx.fillText(tickFmt(t),m.l-6,y); lastY=y;}});
+  if(g.sec){ const gt=linTicks(y0/G0,y1/G0,narrow?4:5); ctx.textAlign='left'; let ly=1e9;
+    gt.forEach(t=>{const y=Y(t*G0); if(y<m.t-1||y>m.t+ph+1) return; ctx.strokeStyle=P.line; ctx.beginPath(); ctx.moveTo(m.l+pw,y); ctx.lineTo(m.l+pw+4,y); ctx.stroke(); if(ly-y>12){ctx.fillText(tickFmt(t),m.l+pw+6,y); ly=y;}});
+    ctx.save(); ctx.translate(W-8,m.t+ph/2); ctx.rotate(Math.PI/2); ctx.fillStyle=P.fg; ctx.font='600 12px Barlow, system-ui, sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('a (g)',0,0); ctx.restore();
+    ctx.font='11px "JetBrains Mono", ui-monospace, monospace';
+  }
+  // cero, PMS y PMI
+  if(y0<0&&y1>0){ctx.strokeStyle=P.muted; ctx.globalAlpha=.6; ctx.beginPath(); ctx.moveTo(m.l,Math.round(Y(0))+0.5); ctx.lineTo(m.l+pw,Math.round(Y(0))+0.5); ctx.stroke(); ctx.globalAlpha=1;}
+  ctx.strokeStyle=P.line; ctx.strokeRect(m.l+0.5,m.t+0.5,pw-1,ph-1);
+  ctx.setLineDash([4,3]); ctx.strokeStyle=P.muted; ctx.beginPath(); ctx.moveTo(X(180),m.t); ctx.lineTo(X(180),m.t+ph); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle=P.muted; ctx.font='600 10.5px "JetBrains Mono", ui-monospace, monospace'; ctx.textBaseline='bottom';
+  ctx.textAlign='left'; ctx.fillText('PMS',m.l,m.t-2); ctx.textAlign='center'; ctx.fillText('PMI',X(180),m.t-2); ctx.textAlign='right'; ctx.fillText('PMS',m.l+pw,m.t-2);
+  // eje y
+  ctx.save(); ctx.translate(12,m.t+ph/2); ctx.rotate(-Math.PI/2); ctx.fillStyle=P.fg; ctx.font='600 12px Barlow, system-ui, sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(g.yl,0,0); ctx.restore();
+  // series
+  ctx.save(); ctx.beginPath(); ctx.rect(m.l,m.t,pw,ph); ctx.clip();
+  const line=(a,col,lw,dash)=>{ctx.strokeStyle=col; ctx.lineWidth=lw; ctx.setLineDash(dash||[]); ctx.lineJoin='round'; ctx.beginPath(); a.forEach((v,i)=>{const x=X(R.arr.th[i]), y=Y(v); i?ctx.lineTo(x,y):ctx.moveTo(x,y);}); ctx.stroke(); ctx.setLineDash([]);};
+  if(S.ref) line(S.ref.arr[g.key],P.muted,1.8,[7,4]);
+  if(showH) line(R.arr[g.har],P.adi,2,[2,4]);
+  if(showA) line(R.arr[g.apx],P.cold,2,[6,4]);
+  line(R.arr[g.key],P.acc,2.6);
+  ctx.restore();
+  // marcas
+  const labels=[];
+  const mark=(t,v,txt,col,below)=>{const x=X(t), y=Y(v); ctx.fillStyle=col||P.fg; ctx.beginPath(); ctx.arc(x,y,4,0,Math.PI*2); ctx.fill(); ctx.strokeStyle=P.bg; ctx.lineWidth=1.5; ctx.stroke(); if(txt) labels.push({x,y,txt,below});};
+  if(g.key==='x'){ mark(R.thPMI,R.K.x(R.thPMI*DEG),`PMI: x = ${fx(R.Seff,1)} mm = S`,P.fg,true); }
+  if(g.key==='v'){
+    const yc=Y(R.cm); ctx.setLineDash([3,4]); ctx.strokeStyle=P.fg; ctx.globalAlpha=.55; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(m.l,yc); ctx.lineTo(m.l+pw,yc); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha=1;
+    ctx.fillStyle=P.muted; ctx.font='10.5px "JetBrains Mono", ui-monospace, monospace'; ctx.textAlign='right'; ctx.textBaseline='top'; ctx.fillText(`c_m = ${fx(R.cm,1)} m/s`,m.l+pw-4,yc+3);
+    mark(R.thv,R.vmax,`v máx ${fx(R.vmax,1)} m/s a ${fx(R.thv,1)}°`,P.fg,false);
+    mark(R.thvmin,R.vmin,'',P.fg);
+  }
+  if(g.key==='a'){
+    mark(Math.max(0,R.thPMS),R.aPMS,`PMS: ${fg(R.aPMS,0)} m/s² (${fx(R.aPMS/G0,0)} g)`,P.fg,true);
+    mark(R.thPMI,R.aPMI,`PMI: ${fg(R.aPMI,0)} m/s² (${fx(R.aPMI/G0,0)} g)`,P.fg,false);
+    if(R.aPMI-R.amin>1) mark(R.tha,R.amin,'',P.fg);
+  }
+  ctx.font='11px "JetBrains Mono", ui-monospace, monospace'; ctx.textBaseline='middle';
+  labels.forEach(l=>{const w=ctx.measureText(l.txt).width+10, h=17; let bx=l.x+8, by=l.below?l.y+8:l.y-h-8;
+    if(bx+w>m.l+pw-2) bx=l.x-w-8; if(bx<m.l+2) bx=m.l+2; if(by<m.t+2) by=l.y+8; if(by+h>m.t+ph-2) by=l.y-h-8;
+    ctx.fillStyle=P.page; ctx.globalAlpha=.92; ctx.fillRect(bx,by,w,h); ctx.globalAlpha=1; ctx.strokeStyle=P.line; ctx.lineWidth=1; ctx.strokeRect(bx+.5,by+.5,w-1,h-1);
+    ctx.fillStyle=P.fg; ctx.textAlign='left'; ctx.fillText(l.txt,bx+5,by+h/2+.5);});
+  // cursor del ángulo actual
+  const cx=X(S.theta); ctx.strokeStyle=P.acc; ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(cx,m.t); ctx.lineTo(cx,m.t+ph); ctx.stroke();
+  const cyv=Y(R.K[g.key](S.theta*DEG)); ctx.fillStyle=P.acc; ctx.beginPath(); ctx.arc(cx,cyv,5.5,0,Math.PI*2); ctx.fill(); ctx.strokeStyle=P.bg; ctx.lineWidth=2; ctx.stroke();
+  // lectura al pasar el cursor
+  if(S.hover!=null){
+    const hx=X(S.hover); ctx.setLineDash([3,3]); ctx.strokeStyle=P.fg; ctx.globalAlpha=.6; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(hx,m.t); ctx.lineTo(hx,m.t+ph); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha=1;
+    const th=S.hover*DEG, v=R.K[g.key](th); ctx.fillStyle=P.fg; ctx.beginPath(); ctx.arc(hx,Y(v),4,0,Math.PI*2); ctx.fill();
+    if(S.hoverCv===id){
+      const lines=[`θ = ${fx(S.hover,1)}°`,`exacta: ${fg(v,g.d)} ${g.unit}`];
+      if(showA) lines.push(`2 términos: ${fg(R.K[g.apx](th),g.d)} ${g.unit}`);
+      if(showH) lines.push(`armónico: ${fg(R.K[g.har](th),g.d)} ${g.unit}`);
+      if(g.key==='a') lines.push(`= ${fx(v/G0,1)} g`+(R.mk>0?` · F = ${fg(R.mk*v,0)} N`:''));
+      ctx.font='11.5px "JetBrains Mono", ui-monospace, monospace';
+      const bw=Math.max(...lines.map(l=>ctx.measureText(l).width))+14, bh=lines.length*15+8;
+      let bx=hx+12; if(bx+bw>W-4) bx=hx-bw-12; let by=m.t+4; if(by+bh>H-2) by=H-bh-2;
+      ctx.fillStyle=P.page; ctx.strokeStyle=P.line; ctx.fillRect(bx,by,bw,bh); ctx.strokeRect(bx+.5,by+.5,bw-1,bh-1);
+      ctx.fillStyle=P.fg; ctx.textAlign='left'; ctx.textBaseline='top'; lines.forEach((l,i)=>ctx.fillText(l,bx+7,by+5+i*15));
+    }
+  }
+}
+function drawGraphs(){Object.keys(GR).forEach(drawGraph);}
+function thetaFromEvent(cv,ev){const mp=cv._map; if(!mp) return null; const r=cv.getBoundingClientRect(), mx=ev.clientX-r.left; if(mx<mp.m.l-6||mx>mp.m.l+mp.pw+6) return null; return Math.max(0,Math.min(360,(mx-mp.m.l)/mp.pw*360));}
+
+/* ---------- mecanismo ---------- */
+function drawMech(){
+  const cv=$('#cMech'), R=S.res; if(!R) return;
+  const {ctx,W,H}=setupCanvas(cv), P=pal(), p=S.p, K=R.K;
+  const r=K.r, L=K.L, D=p.D, e=K.e, th=S.theta*DEG, names=$('#names').checked;
+  const hc=0.42*D, skirt=0.3*D, chamber=Math.max(4,p.S/9), headH=0.3*D, wall=0.17*D;
+  const rp=0.3*r+0.12*D, rj=rp*1.15;
+  const Rcw=Math.max(rj+4,Math.min(1.25*r+0.4*rp,K.yBot-skirt-4));
+  const yHead=K.yTop+hc+chamber, yLin=K.yBot-0.12*D;
+  const topW=yHead+headH+0.12*D, botW=-Math.max(Rcw,r+rp+3)-4;
+  const hw=Math.max(D/2+wall+Math.abs(e),r+rp+3,Rcw);
+  const Lz=names?Math.min(104,W*0.27):10, Rz=Math.min(92,W*0.24);
+  const s=Math.min((H-26)/(topW-botW),(W-Lz-Rz)/(2*hw));
+  const ox=Lz+(W-Lz-Rz)/2, oy=13+topW*s;
+  const X=x=>ox+x*s, Y=y=>oy-y*s;
+  const yp=K.y(th), px=e, cpx=r*Math.sin(th), cpy=r*Math.cos(th);
+  // bloque (paredes con rayado)
+  const wallRect=(x0,x1)=>{const a=X(x0),b=X(x1),t=Y(yHead),u=Y(yLin);
+    ctx.fillStyle=P.sunk; ctx.fillRect(a,t,b-a,u-t);
+    ctx.save(); ctx.beginPath(); ctx.rect(a,t,b-a,u-t); ctx.clip(); ctx.strokeStyle=P.line; ctx.lineWidth=1;
+    for(let k=-(u-t);k<b-a+(u-t);k+=7){ctx.beginPath(); ctx.moveTo(a+k,t); ctx.lineTo(a+k-(u-t),u); ctx.stroke();} ctx.restore();
+    ctx.strokeStyle=P.fg; ctx.lineWidth=1.4; ctx.strokeRect(a,t,b-a,u-t);};
+  wallRect(e-D/2-wall,e-D/2); wallRect(e+D/2,e+D/2+wall);
+  // culata
+  const hx0=X(e-D/2-wall), hx1=X(e+D/2+wall), hy0=Y(yHead+headH), hy1=Y(yHead);
+  ctx.fillStyle=P.sunk; ctx.fillRect(hx0,hy0,hx1-hx0,hy1-hy0); ctx.strokeStyle=P.fg; ctx.lineWidth=1.4; ctx.strokeRect(hx0,hy0,hx1-hx0,hy1-hy0);
+  ctx.fillStyle=P.adi; [-0.26,0.26].forEach(f=>{const vx=X(e+f*D); ctx.fillRect(vx-0.13*D*s,hy1-3,0.26*D*s,3); ctx.fillRect(vx-1.5,hy0+4,3,hy1-hy0-6);});
+  ctx.fillStyle=P.muted; ctx.fillRect(X(e)-0.05*D*s,hy0-0.1*D*s,0.1*D*s,hy1-hy0+0.1*D*s-2);
+  // trayectoria de la muñequilla
+  ctx.setLineDash([4,4]); ctx.strokeStyle=P.muted; ctx.lineWidth=1; ctx.beginPath(); ctx.arc(X(0),Y(0),r*s,0,Math.PI*2); ctx.stroke(); ctx.setLineDash([]);
+  // contrapeso y brazo del cigüeñal
+  const ang=Math.atan2(-cpy,cpx); // ángulo en pantalla (y hacia abajo) de la muñequilla
+  const opp=ang+Math.PI, span=72*DEG;
+  ctx.fillStyle=P.muted; ctx.globalAlpha=.42; ctx.strokeStyle=P.fg; ctx.lineWidth=1.4;
+  ctx.beginPath(); ctx.moveTo(X(0)+Math.cos(opp-span)*rj*s*1.1,Y(0)+Math.sin(opp-span)*rj*s*1.1);
+  ctx.arc(X(0),Y(0),Rcw*s,opp-span,opp+span); ctx.closePath(); ctx.fill(); ctx.globalAlpha=1; ctx.stroke();
+  const web=rp+3;
+  ctx.beginPath(); ctx.arc(X(cpx),Y(cpy),web*s,ang-Math.PI/2,ang+Math.PI/2); ctx.arc(X(0),Y(0),(rj+3)*s,ang+Math.PI/2,ang+Math.PI*1.5); ctx.closePath();
+  ctx.fillStyle=P.adi; ctx.globalAlpha=.55; ctx.fill(); ctx.globalAlpha=1; ctx.stroke();
+  // biela
+  const bx=X(cpx), by=Y(cpy), sx=X(px), sy=Y(yp), dx=bx-sx, dy=by-sy, Ld=Math.hypot(dx,dy), ux=dx/Ld, uy=dy/Ld, nx=-uy, ny=ux;
+  const w1=0.08*D*s, w2=0.13*D*s;
+  ctx.beginPath(); ctx.moveTo(sx+nx*w1,sy+ny*w1); ctx.lineTo(bx+nx*w2,by+ny*w2); ctx.lineTo(bx-nx*w2,by-ny*w2); ctx.lineTo(sx-nx*w1,sy-ny*w1); ctx.closePath();
+  ctx.fillStyle=P.adi; ctx.fill(); ctx.strokeStyle=P.fg; ctx.lineWidth=1.4; ctx.stroke();
+  ctx.beginPath(); ctx.arc(bx,by,(rp+4)*s,0,Math.PI*2); ctx.fillStyle=P.adi; ctx.fill(); ctx.stroke();
+  // pistón
+  const pl=X(e-D/2+0.6), pr=X(e+D/2-0.6), pt=Y(yp+hc), pb=Y(yp-skirt);
+  ctx.fillStyle=P.line; ctx.fillRect(pl,pt,pr-pl,pb-pt); ctx.strokeStyle=P.fg; ctx.lineWidth=1.5; ctx.strokeRect(pl,pt,pr-pl,pb-pt);
+  ctx.strokeStyle=P.fg; ctx.lineWidth=1; [0.06,0.12,0.18].forEach(f=>{const yy=Y(yp+hc-f*D); ctx.beginPath(); ctx.moveTo(pl,yy); ctx.lineTo(pl+0.07*D*s,yy); ctx.moveTo(pr,yy); ctx.lineTo(pr-0.07*D*s,yy); ctx.stroke();});
+  ctx.beginPath(); ctx.arc(sx,sy,w1+2,0,Math.PI*2); ctx.fillStyle=P.adi; ctx.fill(); ctx.strokeStyle=P.fg; ctx.stroke();
+  ctx.beginPath(); ctx.arc(sx,sy,0.07*D*s,0,Math.PI*2); ctx.fillStyle=P.page; ctx.fill(); ctx.stroke();
+  // muñequilla y apoyo
+  ctx.beginPath(); ctx.arc(bx,by,rp*s,0,Math.PI*2); ctx.fillStyle=P.sunk; ctx.fill(); ctx.strokeStyle=P.fg; ctx.lineWidth=1.4; ctx.stroke();
+  ctx.beginPath(); ctx.arc(X(0),Y(0),rj*s,0,Math.PI*2); ctx.fillStyle=P.page; ctx.fill(); ctx.stroke();
+  ctx.fillStyle=P.fg; ctx.beginPath(); ctx.arc(X(0),Y(0),2.5,0,Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(bx,by,2.5,0,Math.PI*2); ctx.fill();
+  // ejes y ángulo θ
+  ctx.setLineDash([6,3,1.5,3]); ctx.strokeStyle=P.muted; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(X(e),Y(yHead)+4); ctx.lineTo(X(e),Y(0)); ctx.stroke(); ctx.setLineDash([]);
+  ctx.strokeStyle=P.acc; ctx.lineWidth=2.4; ctx.beginPath(); ctx.moveTo(X(0),Y(0)); ctx.lineTo(bx,by); ctx.stroke();
+  const ra=Math.max(18,0.55*r*s), a0=-Math.PI/2, a1=a0+th;
+  if(th>0.01){ctx.lineWidth=1.8; ctx.beginPath(); ctx.arc(X(0),Y(0),ra,a0,a1); ctx.stroke();}
+  const am=(a0+a1)/2, lr=ra+15; ctx.fillStyle=P.acc; ctx.font='700 12px "JetBrains Mono", ui-monospace, monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText('θ',X(0)+Math.cos(am)*lr,Y(0)+Math.sin(am)*lr);
+  // flecha de giro
+  const rr=Rcw*s+9; ctx.strokeStyle=P.muted; ctx.lineWidth=1.4; ctx.beginPath(); ctx.arc(X(0),Y(0),rr,-0.2*Math.PI,0.05*Math.PI); ctx.stroke();
+  const ea=0.05*Math.PI, ex=X(0)+Math.cos(ea)*rr, ey=Y(0)+Math.sin(ea)*rr; ctx.fillStyle=P.muted; ctx.beginPath(); ctx.moveTo(ex-5,ey-2); ctx.lineTo(ex+4,ey-3); ctx.lineTo(ex,ey+6); ctx.closePath(); ctx.fill();
+  // PMS / PMI y cota de carrera
+  const yPMS=Y(K.yTop+hc), yPMI=Y(K.yBot+hc), rx=X(e+D/2+wall)+6;
+  ctx.setLineDash([4,3]); ctx.strokeStyle=P.muted; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(pl,yPMS); ctx.lineTo(rx+34,yPMS); ctx.moveTo(pl,yPMI); ctx.lineTo(rx+34,yPMI); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle=P.fg; ctx.font='600 11px "JetBrains Mono", ui-monospace, monospace'; ctx.textAlign='left'; ctx.textBaseline='bottom';
+  ctx.fillText('PMS',rx+2,yPMS-2); ctx.fillText('PMI',rx+2,yPMI-2);
+  const dxl=rx+44; ctx.strokeStyle=P.fg; ctx.lineWidth=1.2; ctx.beginPath(); ctx.moveTo(dxl,yPMS); ctx.lineTo(dxl,yPMI); ctx.stroke();
+  ctx.fillStyle=P.fg; [[yPMS,1],[yPMI,-1]].forEach(([yy,d])=>{ctx.beginPath(); ctx.moveTo(dxl,yy); ctx.lineTo(dxl-4,yy+d*8); ctx.lineTo(dxl+4,yy+d*8); ctx.closePath(); ctx.fill();});
+  ctx.textAlign='left'; ctx.textBaseline='middle'; ctx.font='700 12px "JetBrains Mono", ui-monospace, monospace';
+  const midS=(yPMS+yPMI)/2; ctx.fillText('S',dxl+6,midS-8); ctx.font='11px "JetBrains Mono", ui-monospace, monospace'; ctx.fillText(fx(R.Seff,1),dxl+6,midS+7); ctx.fillText('mm',dxl+6,midS+20);
+  // posición actual x
+  const yCur=Y(yp+hc); ctx.strokeStyle=P.acc; ctx.lineWidth=1; ctx.setLineDash([2,2]); ctx.beginPath(); ctx.moveTo(pr,yCur); ctx.lineTo(rx+30,yCur); ctx.stroke(); ctx.setLineDash([]);
+  // vector velocidad
+  const v=K.v(th), vmx=Math.max(Math.abs(R.vmax),Math.abs(R.vmin))||1, len=(v/vmx)*0.55*D*s, ax0=X(e), ay0=Y(yp+hc)-1;
+  if(Math.abs(len)>3){ const ay1=ay0+len; ctx.strokeStyle=P.acc; ctx.fillStyle=P.acc; ctx.lineWidth=3.5; ctx.beginPath(); ctx.moveTo(ax0,ay0); ctx.lineTo(ax0,ay1-Math.sign(len)*8); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(ax0,ay1); ctx.lineTo(ax0-6,ay1-Math.sign(len)*11); ctx.lineTo(ax0+6,ay1-Math.sign(len)*11); ctx.closePath(); ctx.fill();
+    ctx.font='700 12px "JetBrains Mono", ui-monospace, monospace'; ctx.textAlign='left'; ctx.textBaseline='middle'; ctx.fillText('v',ax0+8,ay0+len/2); }
+  // β junto al bulón
+  ctx.fillStyle=P.fg; ctx.font='11px "JetBrains Mono", ui-monospace, monospace'; ctx.textAlign='left'; ctx.textBaseline='middle';
+  // nombres de piezas
+  if(names){
+    const cwAng=opp, cwx=X(0)+Math.cos(cwAng)*Rcw*0.75*s, cwy=Y(0)+Math.sin(cwAng)*Rcw*0.75*s;
+    const items=[
+      ['Culata',X(e-D/2-wall*0.5),(hy0+hy1)/2],
+      ['Cilindro',X(e-D/2-wall*0.5),Y((yHead+yLin)/2+0.25*D)],
+      ['Pistón',pl+4,(pt+Y(yp+0.1*D))/2],
+      ['Bulón',sx,sy],
+      ['Biela',(sx+bx)/2,(sy+by)/2],
+      ['Muñequilla',bx,by],
+      ['Contrapeso',cwx,cwy],
+      ['Bancada',X(0),Y(0)]
+    ].map(a=>({t:a[0],x:a[1],y:a[2],ly:a[2]}));
+    items.sort((a,b)=>a.y-b.y);
+    for(let i=0;i<items.length;i++){ items[i].ly=Math.max(items[i].ly,10); if(i&&items[i].ly<items[i-1].ly+15) items[i].ly=items[i-1].ly+15; }
+    for(let i=items.length-1;i>=0;i--){ if(items[i].ly>H-8) items[i].ly=H-8; if(i<items.length-1&&items[i].ly>items[i+1].ly-15) items[i].ly=items[i+1].ly-15; }
+    ctx.font='500 12px Barlow, system-ui, sans-serif'; ctx.textAlign='left'; ctx.textBaseline='middle';
+    items.forEach(it=>{const tw=ctx.measureText(it.t).width; ctx.strokeStyle=P.muted; ctx.globalAlpha=.8; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(6+tw+4,it.ly); ctx.lineTo(Lz-4,it.ly); ctx.lineTo(it.x,it.y); ctx.stroke(); ctx.globalAlpha=1;
+      ctx.fillStyle=P.muted; ctx.beginPath(); ctx.arc(it.x,it.y,2.2,0,Math.PI*2); ctx.fill(); ctx.fillStyle=P.fg; ctx.fillText(it.t,6,it.ly);});
+  }
+  // lectura rápida
+  ctx.font='600 12px "JetBrains Mono", ui-monospace, monospace'; ctx.fillStyle=P.fg; ctx.textAlign='right'; ctx.textBaseline='bottom';
+  ctx.fillText(`θ ${fx(S.theta,1)}°`,W-8,H-24); ctx.fillStyle=P.muted; ctx.font='11px "JetBrains Mono", ui-monospace, monospace'; ctx.fillText(`β ${fx(K.beta(th),1)}°`,W-8,H-8);
+}
+
+/* ---------- valores instantáneos, KPI, tabla ---------- */
+function renderInst(){
+  const R=S.res, K=R.K, th=S.theta*DEG, v=K.v(th), a=K.a(th);
+  const dir=Math.abs(v)<0.05?'en punto muerto':v>0?'baja':'sube';
+  $('#inst').innerHTML=`<div><dt>Posición x</dt><dd>${fx(K.x(th),2)} mm</dd></div>
+    <div><dt>Velocidad v (${dir})</dt><dd>${fx(v,2)} m/s</dd></div>
+    <div><dt>Aceleración a</dt><dd>${fg(a,0)} m/s²</dd></div>
+    <div><dt>Ángulo de biela β</dt><dd>${fx(K.beta(th),2)}°</dd></div>
+    <div><dt>a en múltiplos de g</dt><dd>${fx(a/G0,1)} g</dd></div>
+    <div><dt>Fuerza de inercia m·a</dt><dd>${R.mk>0?fg(R.mk*a,0)+' N':'—'}</dd></div>`;
+  $('#thRg').value=S.theta; if(document.activeElement!==$('#thIn')) $('#thIn').value=+S.theta.toFixed(1);
+  document.querySelectorAll('#tVals tr[data-t]').forEach(tr=>{const t=+tr.dataset.t, d=Math.abs(((S.theta-t+540)%360)-180); tr.classList.toggle('on',d<15);});
+}
+function kpi(l,v,u,s,main){return `<div class="kpi${main?' main':''}"><div class="l">${l}</div><div class="v">${v}${u?`<small>${u}</small>`:''}</div>${s?`<div class="s">${s}</div>`:''}</div>`;}
+function cls(sd){return sd<0.95?'Supercuadrado (carrera corta)':sd>1.05?'Alargado (carrera larga)':'Cuadrado';}
+function renderKpis(){
+  const R=S.res, F=S.ref, rf=t=>F?`<br>Ref.: ${t(F)}`:'';
+  let h='';
+  h+=kpi('Cilindrada unitaria V<sub>C</sub>',fx(R.Vc,1),'cm³',`Total (${S.p.z} cil.): ${fx(R.Vc*S.p.z,1)} cm³`+rf(x=>fx(x.Vc,1)+' cm³'),true);
+  h+=kpi('Relación carrera/diámetro S/D',fx(R.sd,3),'',`<span class="cls">${cls(R.sd)}</span>`+rf(x=>fx(x.sd,3)));
+  const cmNote=R.cm>25?'Muy alta: fuera de lo habitual':R.cm>20?'Alta: cerca del límite de turismos':'Dentro de lo habitual (&lt; 20 m/s)';
+  h+=kpi('Velocidad media del pistón c<sub>m</sub>',fx(R.cm,2),'m/s',cmNote+rf(x=>fx(x.cm,2)+' m/s'));
+  h+=kpi('Velocidad máxima del pistón',fx(R.vmax,2),'m/s',`A θ = ${fx(R.thv,1)}° (no a 90°) · ${fx(R.vmax/R.cm,2)}·c<sub>m</sub>`+rf(x=>`${fx(x.vmax,2)} m/s a ${fx(x.thv,1)}°`));
+  h+=kpi('Aceleración en el PMS',fg(R.aPMS,0),'m/s²',`${fx(R.aPMS/G0,0)} g`+rf(x=>fg(x.aPMS,0)+' m/s²'));
+  h+=kpi('Aceleración en el PMI',fg(R.aPMI,0),'m/s²',`${fx(R.aPMI/G0,0)} g · |a<sub>PMS</sub>/a<sub>PMI</sub>| = ${fx(Math.abs(R.aPMS/R.aPMI),2)}`+(R.aPMI-R.amin>1?`<br>Mínimo ${fg(R.amin,0)} a ${fx(R.tha,1)}°`:'')+rf(x=>fg(x.aPMI,0)+' m/s²'));
+  if(R.mk>0){
+    h+=kpi('Fuerza de inercia máxima (PMS)',fg(R.FPMS,0),'N',`${fx(R.FPMS/1000,2)} kN · ${fx(R.aPMS/G0,0)} veces el peso`+rf(x=>x.mk>0?fg(x.FPMS,0)+' N':'—'));
+    h+=kpi('Fuerza de inercia en el PMI',fg(R.FPMI,0),'N',`${fx(R.FPMI/1000,2)} kN`);
+  }
+  h+=kpi('Relación de biela λ = r/L',fx(R.lam,3),'',`L/r = ${fx(1/R.lam,2)} · β máx = ${fx(R.bmax,1)}°`+rf(x=>fx(x.lam,3)));
+  h+=kpi('Velocidad angular ω',fx(R.w,1),'rad/s',`${fx(S.p.rpm/60,1)} vueltas/s`);
+  $('#kpis').innerHTML=h;
+}
+function renderTable(){
+  const R=S.res, K=R.K; let h=`<thead><tr><th>θ (°)</th><th>x (mm)</th><th>x 2 términos (mm)</th><th>v (m/s)</th><th>v 2 términos (m/s)</th><th>a (m/s²)</th><th>a 2 términos (m/s²)</th><th>a (g)</th><th>β (°)</th></tr></thead><tbody>`;
+  for(let t=0;t<=360;t+=30){const th=t*DEG, a=K.a(th);
+    h+=`<tr data-t="${t}"><td>${t}${t===0||t===360?' PMS':t===180?' PMI':''}</td><td>${fx(K.x(th),2)}</td><td>${fx(K.xA(th),2)}</td><td>${fx(K.v(th),2)}</td><td>${fx(K.vA(th),2)}</td><td>${fg(a,0)}</td><td>${fg(K.aA(th),0)}</td><td>${fx(a/G0,1)}</td><td>${fx(K.beta(th),2)}</td></tr>`;}
+  $('#tVals').innerHTML=h+'</tbody>';
+}
+function renderMsgs(){
+  let h=''; S.err.forEach(e=>h+=`<div class="msg err">${e}</div>`);
+  if(!S.err.length&&S.res){
+    const R=S.res;
+    if(R.cm>25) h+=`<div class="msg err">c<sub>m</sub> = ${fx(R.cm,1)} m/s supera los 25 m/s: solo lo alcanzan motores de competición. Baje las rpm o la carrera.</div>`;
+    else if(R.cm>20) h+=`<div class="msg warn">c<sub>m</sub> = ${fx(R.cm,1)} m/s: por encima de unos 20 m/s crecen mucho el desgaste de segmentos y cilindro y las pérdidas por fricción. Es el límite habitual de los motores de turismo.</div>`;
+    S.warn.forEach(w=>h+=`<div class="msg warn">${w}</div>`);
+    if(S.ref) h+=`<div class="msg">Referencia fijada: ${S.ref.tag}. Se dibuja con línea gris discontinua.</div>`;
+  }
+  $('#msgs').innerHTML=h;
+}
+function updateHints(){DEFS.forEach(d=>{const h=$('#hn_'+d.id); if(!h) return; let t=''; try{t=d.hint(S.p[d.id]);}catch(e){} h.innerHTML=t;});}
+function renderLive(){
+  const R=S.res, r=R.r/1000, w=R.w;
+  const el1=document.querySelector('[data-live="a"]'), el2=document.querySelector('[data-live="c"]');
+  el1.innerHTML=`Ahora: r·ω² = ${fx(r,5)}·${fx(w,1)}² = ${fg(r*w*w,0)} m/s² → a<sub>PMS</sub> ≈ ${fg(r*w*w*(1+R.lam),0)} · a<sub>PMI</sub> ≈ ${fg(-r*w*w*(1-R.lam),0)} m/s²`;
+  el2.innerHTML=`c<sub>m</sub> = 2·${fx(S.p.S/1000,4)}·${S.p.rpm}/60 = ${fx(R.cm,2)} m/s · V<sub>C</sub> = π·${fx(S.p.D/10,2)}²/4·${fx(S.p.S/10,2)} = ${fx(R.Vc,1)} cm³`;
+}
+function renderDynamic(){ if(!S.res) return; drawMech(); drawGraphs(); renderInst(); }
+function renderAll(){ renderKpis(); renderTable(); renderMsgs(); updateHints(); renderLive(); renderDynamic(); }
+
+/* ---------- animación ---------- */
+let last=0;
+function tick(ts){ if(!S.playing){last=0; return;}
+  if(last){const dt=Math.min(0.1,(ts-last)/1000); S.theta=(S.theta+360*S.speed*dt)%360;}
+  last=ts; renderDynamic(); requestAnimationFrame(tick);}
+function setPlaying(on){S.playing=on; $('#playBtn').textContent=on?'❚❚ Pausar':'▶ Animar'; if(on) requestAnimationFrame(tick);}
+function setTheta(t){S.theta=Math.max(0,Math.min(360,t)); renderDynamic();}
+
+/* ---------- geometría de igual cilindrada ---------- */
+function reshape(k){
+  if(!S.res) return; const V=S.res.Vc*1000, lam=S.res.lam; // mm³
+  const D=Math.cbrt(4*V/(Math.PI*k)); S.p.D=+D.toFixed(1); S.p.S=+(k*D).toFixed(1); S.p.L=+((S.p.S/2)/lam).toFixed(1); S.p.lam=+(S.p.S/2/S.p.L).toFixed(4);
+  syncAll(); recompute();
+}
+
+/* ---------- inicio ---------- */
+function init(){
+  setDefaults(); buildRows(); syncAll();
+  $('#resetBtn').addEventListener('click',()=>{setDefaults(); syncAll(); recompute();});
+  $('#refBtn').addEventListener('click',()=>{ if(S.ref){S.ref=null; $('#refBtn').textContent='Fijar como referencia';} else if(S.res){S.ref=S.res; $('#refBtn').textContent='Quitar referencia';} renderAll(); });
+  $('#bSuper').addEventListener('click',()=>reshape(0.8));
+  $('#bSquare').addEventListener('click',()=>reshape(1));
+  $('#bLong').addEventListener('click',()=>reshape(1.25));
+  $('#playBtn').addEventListener('click',()=>setPlaying(!S.playing));
+  $('#speedSel').addEventListener('change',e=>S.speed=+e.target.value);
+  $('#thRg').addEventListener('input',e=>{setPlaying(false); setTheta(+e.target.value);});
+  $('#thIn').addEventListener('input',e=>{const v=parseFloat(e.target.value); if(Number.isFinite(v)){setPlaying(false); setTheta(v);}});
+  ['#names','#showApx','#showHar'].forEach(id=>$(id).addEventListener('change',renderDynamic));
+  Object.keys(GR).forEach(id=>{const cv=$('#'+id);
+    cv.addEventListener('pointermove',e=>{const t=thetaFromEvent(cv,e); S.hover=t; S.hoverCv=t==null?null:id; if(e.buttons&1&&t!=null){setPlaying(false); S.theta=t;} renderDynamic();});
+    cv.addEventListener('pointerdown',e=>{const t=thetaFromEvent(cv,e); if(t!=null){setPlaying(false); setTheta(t);}});
+    cv.addEventListener('pointerleave',()=>{S.hover=null; S.hoverCv=null; renderDynamic();});});
+  const redraw=()=>renderDynamic();
+  if(window.ResizeObserver){const ro=new ResizeObserver(redraw); ['#cMech','#gX','#gV','#gA'].forEach(id=>ro.observe($(id)));} else window.addEventListener('resize',redraw);
+  try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',redraw);}catch(e){}
+  new MutationObserver(redraw).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme','class','style']});
+  if(document.fonts&&document.fonts.ready) document.fonts.ready.then(redraw);
+  recompute();
+  window.__bm={makeKin,compute,S};
+}
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
+})();
+</script>
+
+</body>
+</html>

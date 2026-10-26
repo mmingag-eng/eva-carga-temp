@@ -1,0 +1,1100 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Simulador Batería Plomo-Ácido</title>
+<style>
+:root{--bg:#f3f5f8;--card:#fff;--ink:#1c2533;--muted:#5b6778;--line:#d9dfe7;--brand:#12355b;--brand2:#1f5a94;--accent:#e07b00;--ok:#1d8a4e;--okbg:#e6f4ec;--bad:#c62828;--badbg:#fdecea;--warnbg:#fff4e0;--wire:#2b3440;--flow:#ffb300}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.45}
+header{background:linear-gradient(90deg,var(--brand),var(--brand2));color:#fff;padding:14px 22px}
+header h1{margin:0;font-size:1.35rem;font-weight:600}
+header p{margin:3px 0 0;opacity:.85;font-size:.9rem}
+main{max-width:1320px;margin:0 auto;padding:16px;display:grid;grid-template-columns:minmax(0,1.75fr) minmax(320px,1fr);gap:16px}
+main>section,main>aside{min-width:0}
+@media(max-width:980px){main{grid-template-columns:1fr}}
+@media(max-width:480px){main{padding:10px}header{padding:12px 14px}header h1{font-size:1.12rem}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:16px}
+.card h2{font-size:1.02rem;margin:0 0 10px;color:var(--brand)}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.tabs button,.btn{border:1px solid var(--line);background:#fff;color:var(--ink);padding:7px 13px;border-radius:7px;cursor:pointer;font-size:.9rem}
+.tabs button.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+.btn:hover,.tabs button:hover{border-color:var(--brand2)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.small{padding:4px 9px;font-size:.82rem}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.on{background:var(--brand2);color:#fff;border-color:var(--brand2)}
+svg#scene{width:100%;height:auto;background:#fbfcfe;border:1px solid var(--line);border-radius:8px;user-select:none;display:block}
+.lbl{font-size:13px;fill:var(--ink);font-weight:600}
+.lbl2{font-size:12px;fill:var(--muted)}
+.lbl3{font-size:11px;fill:var(--muted)}
+.clk{cursor:pointer}
+.flow{fill:none;stroke:var(--flow);stroke-width:4;stroke-dasharray:3 15;stroke-linecap:round;pointer-events:none}
+.ctl{margin-bottom:10px}
+.ctl label{display:block;font-size:.86rem;color:var(--muted);margin-bottom:3px}
+.ctl .row{display:flex;gap:8px;align-items:center}
+.ctl input[type=range]{flex:1;min-width:0}
+.ctl input.num{width:84px;padding:4px 6px;border:1px solid var(--line);border-radius:6px}
+.ctl select{padding:5px 6px;border:1px solid var(--line);border-radius:6px;min-width:130px;max-width:100%}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:4px 18px}
+@media(max-width:620px){.grid2{grid-template-columns:1fr}}
+.eq{background:#f7f9fc;border-left:4px solid var(--brand2);padding:10px 14px;border-radius:6px;font-size:.92rem}
+.eq p{margin:5px 0}
+.eq table{margin:8px 0}
+.f{font-family:"Cambria Math","Times New Roman",serif;font-size:1.05rem}
+/* multímetro */
+.meter{background:#39414d;border-radius:14px;padding:14px;color:#fff;box-shadow:inset 0 0 0 3px #e0a100}
+.lcd{background:#b9c9a4;color:#1d2616;border-radius:6px;padding:10px 12px;font-family:"Consolas","Courier New",monospace;display:flex;justify-content:space-between;align-items:flex-end;min-height:66px;box-shadow:inset 0 2px 6px rgba(0,0,0,.35)}
+.lcd .val{font-size:2.2rem;font-weight:700;letter-spacing:1px}
+.lcd .unit{font-size:1.2rem;font-weight:700}
+.lcd .fn{font-size:.8rem;align-self:flex-start}
+.modes{display:flex;gap:6px;margin:12px 0 8px}
+.modes button{flex:1;padding:9px 0;border-radius:8px;border:0;background:#555f6d;color:#fff;font-weight:700;cursor:pointer;font-size:.95rem}
+.modes button.on{background:#e0a100;color:#1c1c1c}
+.mrow{display:flex;gap:6px;align-items:center;font-size:.85rem;flex-wrap:wrap}
+.mrow select{background:#555f6d;color:#fff;border:1px solid #8a94a3;border-radius:6px;padding:4px 6px;font-size:.85rem;max-width:100%}
+.mnote{font-size:.83rem;color:#e7ecf2;margin-top:8px;min-height:2.4em}
+.mstat{font-size:.8rem;color:#c6cfda;margin-top:4px}
+table{border-collapse:collapse;width:100%;font-size:.88rem}
+th,td{border-bottom:1px solid var(--line);padding:5px 6px;text-align:right}
+th:first-child,td:first-child{text-align:left}
+th{background:#eef2f7;color:var(--brand);font-weight:600}
+tr.tot td{font-weight:700;background:#f7f9fc}
+td input{width:84px;padding:3px 5px;border:1px solid var(--line);border-radius:5px;text-align:right}
+td input.ok,td select.ok{background:var(--okbg);border-color:var(--ok)}
+td input.bad,td select.bad{background:var(--badbg);border-color:var(--bad)}
+td select{padding:4px;border:1px solid var(--line);border-radius:6px;max-width:190px}
+.tblwrap{overflow-x:auto}
+.msgs div{padding:7px 10px;border-radius:6px;margin-bottom:6px;font-size:.87rem}
+.msgs .w{background:var(--warnbg);border-left:4px solid var(--accent)}
+.msgs .e{background:var(--badbg);border-left:4px solid var(--bad)}
+.msgs .i{background:#e8f1fb;border-left:4px solid var(--brand2)}
+.msgs .o{background:var(--okbg);border-left:4px solid var(--ok)}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.switch{display:flex;align-items:center;gap:8px;font-size:.9rem;margin:6px 0}
+details summary{cursor:pointer;font-weight:600;color:var(--brand)}
+details ol{padding-left:20px;margin:8px 0}
+details li{margin-bottom:4px}
+.score{font-weight:700;margin-left:6px}
+.muted{color:var(--muted);font-size:.85rem}
+.vok{color:var(--ok);font-weight:700}.vbad{color:var(--bad);font-weight:700}.vw{color:var(--accent);font-weight:700}
+.hide{display:none!important}
+footer{text-align:center;color:var(--muted);font-size:.8rem;padding:10px 12px 24px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Simulador 4 · Batería de plomo-ácido: estado de carga, resistencia interna, prueba de carga y proceso de carga</h1>
+  <p>Electricidad Automotriz · Práctica de baterías (partes 1 a 5) · Tecnología Superior en Mecánica Automotriz · ISTS</p>
+</header>
+
+<main>
+<section>
+  <div class="card">
+    <div class="tabs" id="tabs"></div>
+    <svg id="scene" viewBox="0 0 760 440" aria-label="Vista de la batería y de la prueba"></svg>
+    <div class="muted" id="caption" style="margin-top:6px"></div>
+  </div>
+
+  <div class="card">
+    <h2>Parámetros de la batería</h2>
+    <div class="grid2" id="bctl"></div>
+    <div class="bar">
+      <button class="btn" data-act="lights" id="btnLights">Encender faros 1 min</button>
+      <button class="btn" data-act="rest">Reposo de 2 h</button>
+      <button class="btn" data-act="surf" id="btnSurf">Provocar carga superficial</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 id="tctlTitle">Controles de la prueba</h2>
+    <div id="tctl"></div>
+  </div>
+
+  <div class="card">
+    <h2>Ecuaciones de trabajo y valores de referencia</h2>
+    <div class="eq" id="eqs"></div>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>¿Cómo usar el simulador?</summary>
+      <ol>
+        <li><b>Parte 1 · Estado de carga:</b> elija la batería, la tecnología y la temperatura. Mida la tensión en reposo con el multímetro (puntas en los postes) y tome una muestra de cada celda con el densímetro haciendo clic en su tapón. Corrija cada lectura a 25 °C y compare con la tabla de referencia.</li>
+        <li>Si la batería se acaba de cargar o el vehículo se acaba de usar, tiene <b>carga superficial</b>: encienda los faros 1 min (o deje la batería en reposo ≥ 2 h) antes de medir la tensión en reposo.</li>
+        <li><b>Parte 2 · Resistencia interna:</b> lea U<sub>0</sub> sin carga, conecte una carga conocida, lea U con carga y la corriente (pinza amperimétrica). Calcule R<sub>i</sub> = (U<sub>0</sub> − U<sub>carga</sub>) / I. Cambie el punto de medición a «terminales» o «caída en el borne» para localizar conexiones corroídas.</li>
+        <li><b>Parte 3 · Prueba de descarga:</b> con SOC ≥ 75 %, conecte el probador de pila de carbón a los postes, ajuste ½ CCA y aplique la carga 15 s. Compare la tensión a los 15 s con la mínima de la tabla según la temperatura y observe la recuperación.</li>
+        <li><b>Parte 4 · Conductancia:</b> introduzca el CCA nominal de la etiqueta y ejecute la prueba. Interprete CCA medido, SOH, SOC y veredicto.</li>
+        <li><b>Parte 5 · Carga:</b> elija el método (corriente constante, tensión constante o IUoU), ajuste la corriente (≈ 10 % de C<sub>20</sub>) y la tensión, y observe la gráfica acelerada de U, I, SOC y temperatura. En «Arranque auxiliar» conecte las pinzas en el orden correcto haciendo clic sobre los bornes.</li>
+        <li><b>Averías:</b> seleccione una avería y compruebe cómo cambian todas las lecturas (densímetro, tensión, R<sub>i</sub>, prueba de carga, conductancia y carga).</li>
+        <li><b>Modo evaluación:</b> el simulador genera una batería con estado oculto. Mida con el densímetro, el multímetro, la carga de la pestaña 2 y el probador de descarga; escriba SOC, densidades corregidas, R<sub>i</sub> y veredicto; pulse «Comprobar».</li>
+        <li>Use «Registrar lectura» y descargue el registro en CSV (se abre con Excel).</li>
+      </ol>
+    </details>
+  </div>
+</section>
+
+<aside>
+  <div class="card">
+    <h2>Multímetro digital</h2>
+    <div class="meter">
+      <div class="lcd"><span class="fn" id="lcdFn">V⎓</span><span><span class="val" id="lcdVal">- - -</span> <span class="unit" id="lcdUnit">V</span></span></div>
+      <div class="modes" id="modes">
+        <button data-m="V" class="on">V⎓</button><button data-m="A">A (pinza)</button><button data-m="OFF">OFF</button>
+      </div>
+      <div class="mrow">Puntas en:
+        <select id="mPoint">
+          <option value="postes">Postes de la batería (+ / −)</option>
+          <option value="term">Terminales de los cables (+ / −)</option>
+          <option value="borne">Caída en el borne +: poste → terminal</option>
+        </select>
+      </div>
+      <div class="mstat" id="mstat"></div>
+      <div class="mnote" id="mnote"></div>
+      <div class="bar"><button class="btn small" id="btnLog">Registrar lectura</button></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Avisos</h2>
+    <div class="msgs" id="msgs"></div>
+  </div>
+
+  <div class="card">
+    <h2>Resultados</h2>
+    <div id="results" class="tblwrap"></div>
+  </div>
+
+  <div class="card">
+    <h2>Modo evaluación</h2>
+    <label class="switch"><input type="checkbox" id="evalMode"> Activar (batería con estado oculto aleatorio)</label>
+    <div id="evalBody" class="hide">
+      <p class="muted" id="evalInfo"></p>
+      <div class="tblwrap"><table>
+        <tr><th>Respuesta</th><th>Valor</th></tr>
+        <tr><td>SOC calculado (%)</td><td><input id="evSoc" inputmode="decimal"></td></tr>
+        <tr><td>ρ<sub>25</sub> corregida, celda más alta (g/cm³)</td><td><input id="evRmax" inputmode="decimal"></td></tr>
+        <tr><td>ρ<sub>25</sub> corregida, celda más baja (g/cm³)</td><td><input id="evRmin" inputmode="decimal"></td></tr>
+        <tr><td>R<sub>i</sub> calculada (mΩ)</td><td><input id="evRi" inputmode="decimal"></td></tr>
+        <tr><td>Veredicto</td><td><select id="evVer">
+          <option value="">— elija —</option>
+          <option value="ok">Buena: sigue en servicio</option>
+          <option value="rec">Recargar y repetir la prueba</option>
+          <option value="rep">Reemplazar (baja capacidad / Rᵢ alta)</option>
+          <option value="cel">Reemplazar: celda defectuosa</option>
+          <option value="bor">Limpiar y ajustar bornes, repetir</option>
+        </select></td></tr>
+      </table></div>
+      <div class="bar">
+        <button class="btn primary" id="btnCheck">Comprobar</button>
+        <button class="btn" id="btnNew">Nuevo caso</button>
+        <span class="score" id="score"></span>
+      </div>
+      <div class="msgs" id="evalFb" style="margin-top:10px"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Registro de mediciones</h2>
+    <div id="logTbl" class="tblwrap"></div>
+    <div class="bar">
+      <button class="btn small" id="btnCsv">Descargar CSV</button>
+      <button class="btn small" id="btnClr">Limpiar registro</button>
+    </div>
+  </div>
+</aside>
+</main>
+<footer>Simulador didáctico · Carrera de Mecánica Automotriz · Instituto Superior Tecnológico Sudamericano</footer>
+
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+function nf(x,d){if(!isFinite(x))return '—';const v=Math.abs(x)<0.5*Math.pow(10,-d)?0:x;return v.toLocaleString('es-EC',{minimumFractionDigits:d,maximumFractionDigits:d,useGrouping:false}).replace('-','−');}
+function parseNum(s){if(s==null)return NaN;s=String(s).trim().replace(',','.');return s===''?NaN:Number(s);}
+function fmtT(sec){const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60);return `${h} h ${String(m).padStart(2,'0')} min`;}
+
+/* ================= datos de referencia ================= */
+const BATS={
+  '45':{C:45,CCA:400,Ri0:6.5,name:'12 V · 45 Ah · 400 CCA'},
+  '60':{C:60,CCA:550,Ri0:5.0,name:'12 V · 60 Ah · 550 CCA'},
+  '75':{C:75,CCA:680,Ri0:4.2,name:'12 V · 75 Ah · 680 CCA'}};
+const TECH={
+  fl:{name:'Inundada convencional (con tapones)',short:'inundada',riF:1,ocvF:0,Uabs:14.4,hyd:true},
+  efb:{name:'EFB (inundada mejorada, sellada)',short:'EFB',riF:0.95,ocvF:0.05,Uabs:14.4,hyd:false},
+  agm:{name:'AGM (electrolito absorbido, sellada)',short:'AGM',riF:0.85,ocvF:0.15,Uabs:14.6,hyd:false}};
+const AGES=[{n:'Nueva',f:1},{n:'2 años de servicio',f:1.15},{n:'4 años de servicio',f:1.4},{n:'6 años de servicio (desgastada)',f:2.2}];
+const FAULTS=[['none','Ninguna (batería sana)'],['celda','Celda en cortocircuito'],['sulf','Sulfatación de placas'],['sup','Carga superficial (recién cargada o conducida)'],['prof','Descarga profunda'],['corr','Borne positivo corroído']];
+const SP=[0,.25,.5,.75,1],UP=[11.89,12.06,12.24,12.45,12.65],RP=[1.120,1.155,1.190,1.225,1.265];
+const FRR=[1.120,1.155,1.190,1.225,1.265],FRT=[-9,-16,-25,-37,-57];
+const UMIN=[[21,9.6],[10,9.5],[4,9.4],[-1,9.3],[-7,9.1],[-12,8.9],[-18,8.7]];
+const RILOADS={faros:['Faros de cruce (≈ 10 A)',10],desemp:['Faros + desempañador (≈ 25 A)',25],res100:['Resistencia de carga (100 A)',100],arr:['Arranque sin encendido (≈ 150 A)',150],pers:['Corriente personalizada',null]};
+const TABS=[['soc','1 · Estado de carga'],['ri','2 · Resistencia interna'],['lt','3 · Prueba de descarga'],['ct','4 · Conductancia'],['ch','5 · Carga y arranque auxiliar']];
+const VERD={ok:'Buena: sigue en servicio',rec:'Recargar y repetir la prueba',rep:'Reemplazar (baja capacidad / Rᵢ alta)',cel:'Reemplazar: celda defectuosa',bor:'Limpiar y ajustar bornes, repetir'};
+const KIND={buena:'Batería sana y cargada',descargada:'Batería sana pero descargada',profunda:'Descarga profunda',superficial:'Carga superficial sobre batería parcialmente descargada',sulf:'Sulfatación de placas',vieja:'Envejecimiento avanzado (6 años)',celda:'Celda en cortocircuito',corr:'Borne positivo corroído'};
+
+function interp(xs,ys,x){const n=xs.length;let i=0;if(x<=xs[0])i=0;else if(x>=xs[n-1])i=n-2;else while(x>xs[i+1])i++;return ys[i]+(x-xs[i])*(ys[i+1]-ys[i])/(xs[i+1]-xs[i]);}
+const Utab=s=>interp(SP,UP,s), Rtab=s=>interp(SP,RP,s);
+const socFromU=u=>interp(UP,SP,u), socFromRho=r=>interp(RP,SP,r);
+const freezeT=r=>interp(FRR,FRT,r);
+function Umin(T){for(const [t,u] of UMIN)if(T>=t)return u;return 8.7;}
+function UminRow(T){for(const [t] of UMIN)if(T>=t)return t;return -18;}
+
+/* ================= estado ================= */
+const B={type:'60',tech:'fl',soc:0.9,T:25,Tamb:25,age:0,fault:'none',sc:0,off:[0.002,-0.003,0.001,0.004,-0.002,-0.001],shortIdx:2};
+const S={tab:'soc',I:0,Iterm:0,pol:0,lightsT:0,charging:false,redraw:true,events:[],log:[],
+  meter:{mode:'V',pt:'postes'},clamp:'postes',
+  hyd:{cell:null,t:0,anim:false,samples:{},showCorr:true,sel:0},
+  ri:{sel:'faros',I:10,on:false,U0:null,UL:null,IL:null,pt:null,flow:0},
+  lt:{phase:'idle',t:0,I:275,speed:3,data:[],U15:null,U0:null,Umin:null,Urec:null,polEnd:0,sc0:0,verdict:null},
+  g:{v:0,a:0},
+  ct:{phase:'idle',t:0,cca:550,res:null},
+  ch:{view:'chg',method:'iuou',Iset:6,Uset:14.4,Uf:13.6,speed:1800,run:false,phase:'—',ph:'I',t:0,data:[],Ah:0,U:0,I:0,Ich:0,Igas:0,lastS:-1e9},
+  js:{phase:'con',step:0,done:[],msg:null,anim:0},
+  ev:{on:false,case:null,checked:false}};
+
+/* ================= modelo físico ================= */
+const cap=()=>BATS[B.type].C;
+const ncell=()=>B.fault==='celda'?5:6;
+const smax=()=>B.fault==='sulf'?0.85:1;
+function ocv0(){const s=B.soc;let u=Utab(s);if(B.fault==='celda')u=u*5/6+0.03;return u+TECH[B.tech].ocvF*clamp(s,0,1);}
+const ocv=()=>ocv0()+B.sc;
+const fT=T=>T<25?1+0.013*(25-T):Math.max(0.85,1-0.005*(T-25));
+const fSOC=s=>1+Math.pow(1-clamp(s,-0.15,1),2);
+function RiOhm(){let f=TECH[B.tech].riF*fSOC(B.soc)*fT(B.T)*AGES[B.age].f;if(B.fault==='sulf')f*=3;if(B.fault==='celda')f*=1.4;return BATS[B.type].Ri0*f/1000;}
+const RiNew=()=>BATS[B.type].Ri0*TECH[B.tech].riF/1000;
+const Rcorr=()=>B.fault==='corr'?0.010:0.0003;
+function cellRho25(i){if(B.fault==='celda'&&i===B.shortIdx)return 1.100;return Rtab(B.soc)+B.off[i];}
+const cellRhoT=i=>cellRho25(i)-0.0007*(B.T-25);
+function Upost(){return S.charging?S.ch.U:ocv()-S.I*RiOhm()-S.pol;}
+function meterU(pt){const up=Upost(),d=S.Iterm*Rcorr();if(pt==='postes')return up;if(pt==='term')return up-d;return d;}
+const ltU=()=>Upost()-(S.clamp==='term'?S.Iterm*Rcorr():0);
+
+/* carga */
+function gasI(U){const n=ncell();const x=(U/n-2.40+0.004*(B.T-25)-(B.tech==='agm'?0.05:0))/0.03;return 0.005*cap()*Math.exp(Math.min(x,12));}
+function chgI(U){const s=B.soc,n=ncell(),C=cap();const up=(n/6)*(0.5+1.7*Math.exp((s-smax()-0.01)/0.05));
+  const Rch=0.05*(60/C)*(B.fault==='sulf'?3:1)*(1+0.013*Math.max(0,25-B.T));
+  const Ich=Math.max(0,(U-ocv0()-up)/Rch),Ig=gasI(U);return {Ich,Igas:Ig,tot:Ich+Ig};}
+function solveU(I){let a=ocv0()-0.3,b=20;for(let k=0;k<48;k++){const m=(a+b)/2;if(chgI(m).tot<I)a=m;else b=m;}return (a+b)/2;}
+function chStep(dt){
+  const ch=S.ch,C=cap();let U,I;
+  if(ch.method==='cc'){I=ch.Iset;U=solveU(I);ch.ph='I';}
+  else{
+    const Ut=(ch.method==='iuou'&&ch.ph==='Uo')?ch.Uf:ch.Uset;const r=chgI(Ut);
+    if(r.tot>ch.Iset){I=ch.Iset;U=solveU(I);if(ch.ph!=='Uo')ch.ph='I';}
+    else{U=Ut;I=r.tot;if(ch.ph!=='Uo')ch.ph='U';}
+    if(ch.method==='iuou'&&ch.ph==='U'&&I<0.02*C){ch.ph='Uo';event('o',`IUoU: la corriente bajó a menos del 2 % de C<sub>20</sub> (${nf(I,2)} A). El cargador pasa a flotación U<sub>o</sub> = ${nf(ch.Uf,2)} V: batería cargada.`);}
+  }
+  const r=chgI(U);const stored=B.soc<smax()?r.Ich:0;
+  B.soc=Math.min(smax(),B.soc+stored*dt/(3600*C));
+  const n=ncell();
+  const P=r.Ich*(stored?Math.max(0,U-ocv0()):U)+r.Igas*(B.tech==='agm'?U:Math.max(0,U-1.48*n));
+  B.T+=(P-0.04*C*(B.T-B.Tamb))/(280*C)*dt;
+  ch.Ah+=I*dt/3600;ch.t+=dt;ch.U=U;ch.I=I;ch.Ich=r.Ich;ch.Igas=r.Igas;
+  ch.phase={cc:'Corriente constante',cv:ch.ph==='I'?'Tensión constante (limitada en corriente)':'Tensión constante',iuou:ch.ph==='I'?'IUoU · fase I (corriente constante)':ch.ph==='U'?'IUoU · fase U (absorción)':'IUoU · fase Uo (flotación)'}[ch.method];
+  if(ch.t-ch.lastS>=60){ch.data.push([ch.t,U,I,clamp(B.soc,0,1)*100,B.T]);ch.lastS=ch.t;}
+  if(B.T>=60){ch.run=false;event('e','Simulación detenida: la batería llegó a 60 °C. Riesgo de ebullición del electrolito, deformación de la caja y explosión por hidrógeno. Suspenda la carga.');}
+  if(ch.t>=48*3600){ch.run=false;event('i','Se alcanzó el límite de 48 h de simulación.');}
+}
+
+/* ================= eventos / avisos ================= */
+function event(cls,txt){S.events.unshift({cls,txt});S.events=S.events.slice(0,4);}
+
+/* ================= física por cuadro ================= */
+function physics(dt){
+  let I=0,It=0,Q=0;
+  if(S.lightsT>0){const d=Math.min(S.lightsT,dt*10);S.lightsT-=d;I+=10;It+=10;Q+=10*d;
+    if(S.lightsT<=0){S.lightsT=0;S.redraw=true;event('i','Faros apagados tras 1 min (simulación ×10). La carga superficial se ha eliminado: la tensión en reposo ya es representativa del estado de carga.');}}
+  if(S.tab==='ri'&&S.ri.on&&!S.charging){I+=S.ri.I;It+=S.ri.I;Q+=S.ri.I*dt;}
+  const L=S.lt;
+  if(L.phase==='load'){const d=dt*L.speed,tn=Math.min(15,L.t+d),dd=tn-L.t;L.t=tn;I+=L.I;if(S.clamp==='term')It+=L.I;Q+=L.I*dd;}
+  else if(L.phase==='rec'){L.t=Math.min(45,L.t+dt*L.speed);}
+  S.I=I;S.Iterm=It;
+  const C=cap();
+  B.sc*=Math.exp(-Q/150-dt/2400);if(B.sc<1e-4)B.sc=0;
+  B.soc=Math.max(-0.15,B.soc-Q/(3600*C));
+  if(L.phase==='load')S.pol=L.I*RiOhm()*0.25*(1-Math.exp(-L.t/4));
+  else if(L.phase==='rec')S.pol=L.polEnd*Math.exp(-(L.t-15)/8);
+  else if(S.pol>0){S.pol*=Math.exp(-dt/8);if(S.pol<1e-4)S.pol=0;}
+  if(L.phase==='load'||L.phase==='rec'){
+    const U=ltU();L.data.push([L.t,U]);
+    if(L.phase==='load'&&L.t>=15){L.U15=U;L.polEnd=S.pol;L.phase='rec';}
+    else if(L.phase==='rec'&&L.t>=45){L.phase='done';L.Urec=U;finishLT();}
+  }
+  if(S.ch.run){let rem=dt*S.ch.speed;while(rem>0&&S.ch.run){const d=Math.min(10,rem);chStep(d);rem-=d;}}
+  S.charging=S.ch.run;
+  if(S.ct.phase==='test'){S.ct.t+=dt;if(S.ct.t>=2.5){S.ct.phase='done';S.ct.res=ctMeasure();logCT();S.redraw=true;}}
+  if(S.hyd.anim){S.hyd.t+=dt;if(S.hyd.t>=2.6){S.hyd.anim=false;const i=S.hyd.cell;S.hyd.samples[i]=Math.round(cellRhoT(i)*1000)/1000;S.redraw=true;S.dirty=true;}}
+  // agujas del probador
+  const tv=S.tab==='lt'?ltU():0,ta=(S.tab==='lt'&&L.phase==='load')?L.I:0,k=1-Math.exp(-dt*9);
+  S.g.v+=(tv-S.g.v)*k;S.g.a+=(ta-S.g.a)*k;
+  if(S.js.anim>0)S.js.anim=Math.max(0,S.js.anim-dt);
+}
+
+/* ================= utilidades SVG ================= */
+const svg=$('scene');
+function T(x,y,txt,cls='lbl2',extra=''){return `<text class="${cls}" x="${x}" y="${y}" ${extra}>${txt}</text>`;}
+function gauge(cx,cy,r,v,vmax,major,minor,bands,unit,title,fmt){
+  const pt=(val,rr)=>{const a=Math.PI*(1-clamp(val,0,vmax)/vmax);return [cx+rr*Math.cos(a),cy-rr*Math.sin(a)];};
+  let s=`<path d="M${cx-r} ${cy} A${r} ${r} 0 0 1 ${cx+r} ${cy} Z" fill="#f5f3e8" stroke="#1c2533" stroke-width="2"/>`;
+  for(const [a,b,c] of bands){const p1=pt(a,r-9),p2=pt(b,r-9);s+=`<path d="M${p1[0].toFixed(1)} ${p1[1].toFixed(1)} A${r-9} ${r-9} 0 0 1 ${p2[0].toFixed(1)} ${p2[1].toFixed(1)}" fill="none" stroke="${c}" stroke-width="10" opacity=".75"/>`;}
+  for(let x=0;x<=vmax+1e-9;x+=minor){const mj=Math.abs(x/major-Math.round(x/major))<1e-6;const a=pt(x,r-(mj?18:10)),b=pt(x,r-3);s+=`<line x1="${a[0].toFixed(1)}" y1="${a[1].toFixed(1)}" x2="${b[0].toFixed(1)}" y2="${b[1].toFixed(1)}" stroke="#1c2533" stroke-width="${mj?2:1}"/>`;
+    if(mj){const p=pt(x,r-32);s+=`<text x="${p[0].toFixed(1)}" y="${(p[1]+4).toFixed(1)}" text-anchor="middle" font-size="12" fill="#1c2533">${fmt(x)}</text>`;}}
+  const n=pt(v,r-16);
+  s+=`<line x1="${cx}" y1="${cy}" x2="${n[0].toFixed(1)}" y2="${n[1].toFixed(1)}" stroke="#c62828" stroke-width="3" stroke-linecap="round"/><circle cx="${cx}" cy="${cy}" r="7" fill="#1c2533"/>`;
+  s+=`<text x="${cx}" y="${cy-r*0.42}" text-anchor="middle" font-size="16" font-weight="700" fill="#1c2533">${unit}</text>`;
+  s+=`<text x="${cx}" y="${cy+20}" text-anchor="middle" font-size="12" fill="#e7ecf2">${title}</text>`;
+  return s;
+}
+function axes(x0,y0,x1,y1,xmin,xmax,xstep,ymin,ymax,ystep,xl,yl,fx,fy){
+  const X=v=>x0+(v-xmin)/(xmax-xmin)*(x1-x0),Y=v=>y1-(v-ymin)/(ymax-ymin)*(y1-y0);
+  let s=`<rect x="${x0}" y="${y0}" width="${x1-x0}" height="${y1-y0}" fill="#fff" stroke="#c9d2dd"/>`;
+  for(let v=xmin;v<=xmax+1e-9;v+=xstep){const x=X(v);s+=`<line x1="${x}" y1="${y0}" x2="${x}" y2="${y1}" stroke="#eef1f5"/><text x="${x}" y="${y1+15}" text-anchor="middle" class="lbl3">${fx(v)}</text>`;}
+  for(let v=ymin;v<=ymax+1e-9;v+=ystep){const y=Y(v);s+=`<line x1="${x0}" y1="${y}" x2="${x1}" y2="${y}" stroke="#eef1f5"/><text x="${x0-6}" y="${y+4}" text-anchor="end" class="lbl3">${fy(v)}</text>`;}
+  s+=`<text x="${(x0+x1)/2}" y="${y1+31}" text-anchor="middle" class="lbl2">${xl}</text><text x="${x0}" y="${y0-8}" class="lbl2">${yl}</text>`;
+  return {s,X,Y};
+}
+const pathOf=(pts,X,Y)=>pts.length?'M'+pts.map(p=>X(p[0]).toFixed(1)+' '+Y(p[1]).toFixed(1)).join('L'):'';
+function battIcon(x,y,w,h,opts={}){
+  let s=`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6" fill="${opts.fill||'#2f3a46'}" stroke="#1c2533" stroke-width="2"/>`;
+  s+=`<rect x="${x+14}" y="${y-12}" width="24" height="12" fill="#b0b8c1" stroke="#1c2533"/><rect x="${x+w-38}" y="${y-12}" width="24" height="12" fill="#b0b8c1" stroke="#1c2533"/>`;
+  s+=`<text x="${x+26}" y="${y+20}" text-anchor="middle" fill="#ff8a80" font-size="18" font-weight="700">+</text><text x="${x+w-26}" y="${y+20}" text-anchor="middle" fill="#cfd8dc" font-size="18" font-weight="700">−</text>`;
+  if(opts.label)s+=`<text x="${x+w/2}" y="${y+h/2+6}" text-anchor="middle" fill="#fff" font-size="13" font-weight="600">${opts.label}</text>`;
+  if(opts.label2)s+=`<text x="${x+w/2}" y="${y+h/2+24}" text-anchor="middle" fill="#cfd8dc" font-size="11">${opts.label2}</text>`;
+  return s;
+}
+
+/* ================= escena 1: estado de carga ================= */
+function drawSOC(){
+  const tech=TECH[B.tech],ev=S.ev.on,H=S.hyd;
+  let s=T(26,22,`Batería ${BATS[B.type].name} · ${tech.name}`,'lbl');
+  s+=T(26,40,tech.hyd?'Haga clic en el tapón de una celda para tomar la muestra con el densímetro.':'Batería sellada: no hay acceso al electrolito; use la tensión en reposo y el probador de conductancia.');
+  // cables del vehículo
+  s+=`<path d="M52 92 H14 V56" fill="none" stroke="#c62828" stroke-width="6" stroke-linecap="round"/><path d="M478 92 H514 V56" fill="none" stroke="#1c2533" stroke-width="6" stroke-linecap="round"/>`;
+  s+=T(18,52,'al vehículo','lbl3')+T(470,52,'a masa','lbl3');
+  // tapa y caja
+  s+=`<rect x="26" y="126" width="480" height="266" rx="6" fill="#e9edf2" stroke="#2b3440" stroke-width="2"/><rect x="22" y="100" width="488" height="28" rx="5" fill="#3b4652"/>`;
+  // postes y terminales
+  s+=`<rect x="60" y="74" width="26" height="28" fill="#9e9e9e" stroke="#1c2533"/><rect x="446" y="74" width="26" height="28" fill="#9e9e9e" stroke="#1c2533"/>`;
+  s+=`<rect x="52" y="86" width="42" height="14" rx="3" fill="#c0c7cf" stroke="#1c2533"/><rect x="438" y="86" width="42" height="14" rx="3" fill="#c0c7cf" stroke="#1c2533"/>`;
+  s+=`<text x="73" y="70" text-anchor="middle" font-size="16" font-weight="700" fill="#c62828">+</text><text x="459" y="70" text-anchor="middle" font-size="18" font-weight="700" fill="#1c2533">−</text>`;
+  if(B.fault==='corr'){for(const [dx,dy,r] of [[-14,4,7],[-6,10,6],[4,6,8],[13,11,6],[-2,-2,5],[18,2,5]])s+=`<circle cx="${73+dx}" cy="${92+dy}" r="${r}" fill="${dx%2?'#c5e1a5':'#eef7e4'}" stroke="#8bc34a" stroke-width=".8"/>`;
+    s+=T(100,84,'sulfato en el borne','lbl3','style="fill:#558b2f"');}
+  // celdas
+  for(let i=0;i<6;i++){
+    const x0=34+i*78,w=74,cx=x0+w/2;
+    s+=`<rect x="${x0}" y="132" width="${w}" height="254" fill="#f7fafc" stroke="#9aa7b5"/>`;
+    s+=`<rect x="${x0+2}" y="152" width="${w-4}" height="232" fill="${B.tech==='agm'?'rgba(190,190,175,.55)':'rgba(110,165,220,.30)'}"/>`;
+    for(let p=0;p<7;p++){const px=x0+7+p*9.6;s+=`<rect x="${px.toFixed(1)}" y="170" width="5" height="206" fill="${p%2?'#6d4c2f':'#5f6770'}"/>`;}
+    if(B.fault==='sulf'&&!ev)for(let k=0;k<14;k++){const px=x0+8+((k*37+i*13)%60),py=190+((k*53+i*29)%170);s+=`<circle cx="${px}" cy="${py}" r="2.6" fill="#fafafa" stroke="#bbb" stroke-width=".5"/>`;}
+    if(B.fault==='celda'&&i===B.shortIdx&&!ev)s+=`<polyline points="${x0+10},300 ${x0+22},292 ${x0+34},306 ${x0+46},292 ${x0+60},300" fill="none" stroke="#c62828" stroke-width="3"/>`+T(cx,326,'puente','lbl3','text-anchor="middle" style="fill:#c62828;font-weight:700"');
+    if(i<5)s+=`<rect x="${x0+w-4}" y="134" width="12" height="8" fill="#6d6d6d"/>`;
+    if(tech.hyd){const sel=H.cell===i;s+=`<g class="clk" data-cell="${i}"><circle cx="${cx}" cy="114" r="15" fill="transparent"/><circle cx="${cx}" cy="114" r="9" fill="${sel?'#e07b00':'#20262e'}" stroke="#8a94a3"/><line x1="${cx-5}" y1="114" x2="${cx+5}" y2="114" stroke="#8a94a3" stroke-width="2"/></g>`;}
+    s+=T(cx,406,`Celda ${i+1}`,'lbl2','text-anchor="middle"');
+    if(H.samples[i]!==undefined)s+=T(cx,426,nf(H.samples[i],3),'lbl','text-anchor="middle"');
+  }
+  if(!tech.hyd)s+=T(266,118,'Tapa sellada (sin tapones)','lbl3','text-anchor="middle" style="fill:#cfd8dc"');
+  // puntas del multímetro
+  if(S.meter.mode==='V'){const pr={postes:[[73,76],[459,76]],term:[[50,93],[482,93]],borne:[[73,76],[50,93]]}[S.meter.pt];
+    s+=`<circle cx="${pr[0][0]}" cy="${pr[0][1]}" r="6" fill="#e53935" stroke="#fff" stroke-width="2"/><circle cx="${pr[1][0]}" cy="${pr[1][1]}" r="6" fill="#111" stroke="#fff" stroke-width="2"/>`;}
+  // faros
+  if(S.lightsT>0){s+=`<g transform="translate(300 62)"><circle r="13" fill="#ffd54f" stroke="#2b3440" stroke-width="2"/>${[0,1,2,3,4].map(k=>{const a=(-40+k*20)*Math.PI/180;return `<line x1="${16*Math.cos(a)}" y1="${16*Math.sin(a)}" x2="${30*Math.cos(a)}" y2="${30*Math.sin(a)}" stroke="#ffb300" stroke-width="3"/>`;}).join('')}</g>`;
+    s+=T(222,90,`Faros encendidos · ${nf(S.lightsT,0)} s`,'lbl3');}
+  // densímetro
+  s+=drawHydro();
+  return s;
+}
+function drawHydro(){
+  const H=S.hyd,tech=TECH[B.tech];let s='';
+  s+=T(540,22,'Densímetro y termómetro','lbl');
+  // termómetro
+  const th=clamp((B.T+20)/70,0,1)*180;
+  s+=`<rect x="548" y="100" width="12" height="200" rx="6" fill="#fff" stroke="#7b8ea3"/><circle cx="554" cy="306" r="10" fill="#e53935" stroke="#7b8ea3"/><rect x="551" y="${(298-th).toFixed(1)}" width="6" height="${(th+4).toFixed(1)}" fill="#e53935"/>`;
+  for(let t=-20;t<=50;t+=10){const y=298-(t+20)/70*180;s+=`<line x1="560" y1="${y}" x2="566" y2="${y}" stroke="#7b8ea3"/>`;}
+  s+=T(554,334,`${nf(B.T,0)} °C`,'lbl','text-anchor="middle"');
+  // tubo
+  const t=H.t,anim=H.anim,has=H.cell!==null;
+  const rho=has?cellRhoT(H.cell):1.2;
+  let lvl=0,rd=null;
+  if(has){if(anim){lvl=clamp(t/0.9,0,1);if(t>=0.9){const u=t-0.9;rd=rho+(1.10-rho)*Math.exp(-u/0.35)*Math.cos(9*u);}}else{lvl=1;rd=rho;}}
+  if(!tech.hyd){lvl=0;rd=null;}
+  const sq=anim&&t<0.9?Math.sin(t/0.9*Math.PI):0;
+  s+=`<ellipse cx="616" cy="60" rx="${(24*(1-0.25*sq)).toFixed(1)}" ry="22" fill="#2b2b2b"/><rect x="598" y="76" width="36" height="8" fill="#2b2b2b"/>`;
+  s+=`<rect x="596" y="82" width="40" height="292" rx="16" fill="rgba(210,230,248,.45)" stroke="#7b8ea3" stroke-width="2"/>`;
+  s+=`<rect x="609" y="374" width="14" height="34" rx="3" fill="#2b2b2b"/>`;
+  if(lvl>0){const top=372-lvl*(372-165);s+=`<rect x="599" y="${top.toFixed(1)}" width="34" height="${(372-top).toFixed(1)}" rx="12" fill="rgba(100,160,220,.45)"/>`;}
+  const fy=rd===null?192:150-(rd-1.10)*300;
+  s+=`<rect x="612" y="${fy.toFixed(1)}" width="8" height="104" fill="#fffde7" stroke="#8d8d8d"/><ellipse cx="616" cy="${(fy+140).toFixed(1)}" rx="13" ry="38" fill="#f4f4f4" stroke="#8d8d8d"/><ellipse cx="616" cy="${(fy+170).toFixed(1)}" rx="8" ry="6" fill="#616161"/>`;
+  for(let v=1.10;v<=1.3001;v+=0.02){const y=fy+25+(v-1.10)*300;s+=`<line x1="612" y1="${y.toFixed(1)}" x2="617" y2="${y.toFixed(1)}" stroke="#c62828" stroke-width="1"/>`;}
+  // ventana de lectura
+  s+=`<defs><clipPath id="zc"><rect x="648" y="120" width="104" height="180" rx="6"/></clipPath></defs>`;
+  s+=`<rect x="648" y="120" width="104" height="180" rx="6" fill="#fffde7" stroke="#7b8ea3"/>`;
+  if(rd!==null){
+    s+=`<line x1="636" y1="165" x2="648" y2="210" stroke="#7b8ea3" stroke-dasharray="3 3"/><g clip-path="url(#zc)">`;
+    const v0=Math.ceil((rd-0.045)/0.005)*0.005;
+    for(let v=v0;v<=rd+0.045;v+=0.005){const y=210+(v-rd)*2000,mj=Math.abs(v*100-Math.round(v*100))<1e-6;
+      s+=`<line x1="648" y1="${y.toFixed(1)}" x2="${mj?678:666}" y2="${y.toFixed(1)}" stroke="#1c2533" stroke-width="${mj?1.6:1}"/>`;
+      if(mj)s+=`<text x="684" y="${(y+4).toFixed(1)}" font-size="12" fill="#1c2533">${nf(v,2)}</text>`;}
+    s+=`<rect x="648" y="210" width="104" height="90" fill="rgba(100,160,220,.25)"/><line x1="648" y1="210" x2="752" y2="210" stroke="#1f5a94" stroke-width="2"/></g>`;
+  }else s+=T(700,214,tech.hyd?'Sin muestra':'No aplicable','lbl3','text-anchor="middle"');
+  s+=T(700,114,'Lectura (zoom)','lbl3','text-anchor="middle"');
+  if(anim&&has){const cx=34+H.cell*78+37;s+=`<path d="M${cx} 100 Q ${(cx+600)/2} 30 598 ${lvl<1?380:300}" fill="none" stroke="#e07b00" stroke-width="2" stroke-dasharray="5 5"/>`;}
+  if(has&&!anim&&tech.hyd){
+    const r=H.samples[H.cell];
+    s+=T(700,322,`Celda ${H.cell+1} (g/cm³)`,'lbl2','text-anchor="middle"');
+    s+=T(700,342,`ρ<tspan font-size="9" dy="3">T</tspan><tspan dy="-3"> = ${nf(r,3)}</tspan>`,'lbl','text-anchor="middle"');
+    if(!S.ev.on&&H.showCorr){const c=r+0.0007*(B.T-25);s+=T(700,362,`ρ₂₅ = ${nf(c,3)}`,'lbl2','text-anchor="middle"')+T(700,378,'(corregida)','lbl3','text-anchor="middle"');}
+  }
+  if(!tech.hyd)s+=`<rect x="530" y="140" width="226" height="60" rx="6" fill="rgba(255,244,224,.92)" stroke="#e07b00"/>`+T(643,164,'Batería sellada (EFB/AGM):','lbl3','text-anchor="middle" style="fill:#1c2533;font-weight:700"')+T(643,182,'el densímetro no es aplicable','lbl3','text-anchor="middle" style="fill:#1c2533"');
+  return s;
+}
+
+/* ================= escena 2: resistencia interna ================= */
+function drawRI(){
+  const ev=S.ev.on,Ri=RiOhm(),on=S.ri.on,I=S.ri.I;
+  let s=T(20,22,'Circuito equivalente de la batería con carga','lbl');
+  s+=`<rect x="24" y="64" width="190" height="296" rx="8" fill="#f3f6fa" stroke="#7b8ea3" stroke-dasharray="6 4"/>`+T(34,82,'Batería','lbl2');
+  s+=`<path d="M70 189 V110 H100 M160 110 H200 M70 241 V330 H200" class="wire" fill="none" stroke="#2b3440" stroke-width="3"/>`;
+  s+=`<circle cx="70" cy="215" r="26" fill="#fff" stroke="#2b3440" stroke-width="2.4"/><line x1="58" y1="207" x2="82" y2="207" stroke="#2b3440" stroke-width="2"/><line x1="70" y1="199" x2="70" y2="215" stroke="#2b3440" stroke-width="2"/><line x1="60" y1="226" x2="80" y2="226" stroke="#2b3440" stroke-width="2"/>`;
+  s+=T(104,212,'U₀','lbl')+T(104,230,ev?'= ?':`= ${nf(ocv(),2)} V`,'lbl2');
+  s+=`<rect x="100" y="100" width="60" height="20" rx="2" fill="#fff" stroke="#2b3440" stroke-width="2.4"/>`+T(130,94,'Rᵢ','lbl','text-anchor="middle"')+T(130,138,ev?'= ?':`${nf(Ri*1000,2)} mΩ`,'lbl2','text-anchor="middle"');
+  s+=`<rect x="194" y="104" width="12" height="12" fill="#9e9e9e" stroke="#1c2533"/><rect x="194" y="324" width="12" height="12" fill="#9e9e9e" stroke="#1c2533"/>`+T(184,100,'+','lbl','style="fill:#c62828"')+T(184,352,'−','lbl');
+  // exterior
+  const cor=B.fault==='corr';
+  s+=`<path d="M206 110 H226 M256 110 H380 V180 M380 260 V330 H206" fill="none" stroke="#2b3440" stroke-width="3"/>`;
+  s+=`<rect x="226" y="102" width="30" height="16" rx="2" fill="${cor?'#c5e1a5':'#fff'}" stroke="#2b3440" stroke-width="2"/>`+T(241,94,'borne','lbl3','text-anchor="middle"');
+  if(!ev)s+=T(241,136,`${nf(Rcorr()*1000,1)} mΩ`,'lbl3','text-anchor="middle"');
+  s+=`<circle cx="290" cy="110" r="5" fill="#1c2533"/><circle cx="290" cy="330" r="5" fill="#1c2533"/>`+T(268,352,'terminales','lbl3');
+  s+=`<rect x="360" y="180" width="40" height="80" rx="3" fill="${on?'#fff3c4':'#fff'}" stroke="#2b3440" stroke-width="2.4"/>`+T(380,224,'R','lbl','text-anchor="middle"');
+  s+=T(250,378,'Carga: '+RILOADS[S.ri.sel][0].split(' (')[0],'lbl3');
+  s+=`<circle cx="330" cy="110" r="14" fill="none" stroke="#e07b00" stroke-width="3"/>`+T(330,90,'A','lbl','text-anchor="middle" style="fill:#e07b00"');
+  s+=T(300,160,on?`I = ${nf(I,0)} A`:'carga desconectada','lbl2');
+  if(on)s+=`<path class="flow" id="riflow" d="M70 189 V110 H380 V330 H70 V241" style="stroke-dashoffset:${S.ri.flow.toFixed(1)}"/>`;
+  if(S.meter.mode==='V'){const pr={postes:[[200,110],[200,330]],term:[[290,110],[290,330]],borne:[[200,110],[290,110]]}[S.meter.pt];
+    s+=`<circle cx="${pr[0][0]}" cy="${pr[0][1]}" r="7" fill="#e53935" stroke="#fff" stroke-width="2"/><circle cx="${pr[1][0]}" cy="${pr[1][1]+(S.meter.pt==='borne'?0:0)}" r="7" fill="#111" stroke="#fff" stroke-width="2"/>`+T(20,392,'● roja / ● negra: puntas del multímetro','lbl3');}
+  // gráfica U-I
+  const g=axes(470,60,740,380,0,400,100,7,13.5,1,'I (A)','U (V)',v=>nf(v,0),v=>nf(v,0));
+  s+=T(470,30,'Curva U–I en bornes (E = U₀ − I · Rᵢ)','lbl');
+  s+=g.s;
+  const line=(u0,R,col,dash)=>{const Iend=Math.min(400,(u0-7)/R);return `<line x1="${g.X(0)}" y1="${g.Y(u0)}" x2="${g.X(Iend)}" y2="${g.Y(u0-Iend*R)}" stroke="${col}" stroke-width="2.5" ${dash?'stroke-dasharray="6 5"':''}/>`;};
+  if(!ev){
+    s+=line(12.65,RiNew(),'#9aa7b5',true);
+    s+=line(ocv(),Ri,'#1f5a94',false);
+    if(cor)s+=line(ocv(),Ri+Rcorr(),'#e07b00',false);
+    s+=`<g font-size="11"><line x1="482" y1="352" x2="500" y2="352" stroke="#9aa7b5" stroke-width="2.5" stroke-dasharray="6 5"/><text x="504" y="356" fill="#5b6778">nueva, 25 °C, 100 %</text><line x1="482" y1="368" x2="500" y2="368" stroke="#1f5a94" stroke-width="2.5"/><text x="504" y="372" fill="#5b6778">batería actual (postes)</text>${cor?'<line x1="626" y1="368" x2="644" y2="368" stroke="#e07b00" stroke-width="2.5"/><text x="648" y="372" fill="#5b6778">en terminales</text>':''}</g>`;
+  }
+  const R=S.ri;
+  if(R.U0!==null)s+=`<circle cx="${g.X(0)}" cy="${g.Y(clamp(R.U0,7,13.5))}" r="6" fill="#e07b00" stroke="#fff" stroke-width="1.5"/>`;
+  if(R.UL!==null){s+=`<circle cx="${g.X(R.IL)}" cy="${g.Y(clamp(R.UL,7,13.5))}" r="6" fill="#e07b00" stroke="#fff" stroke-width="1.5"/>`;
+    if(R.U0!==null)s+=`<line x1="${g.X(0)}" y1="${g.Y(clamp(R.U0,7,13.5))}" x2="${g.X(R.IL)}" y2="${g.Y(clamp(R.UL,7,13.5))}" stroke="#e07b00" stroke-width="1.5" stroke-dasharray="3 3"/>`;}
+  if(on&&S.meter.mode==='V'&&S.meter.pt!=='borne'){const u=meterU(S.meter.pt);s+=`<circle cx="${g.X(Math.min(400,I))}" cy="${g.Y(clamp(u,7,13.5))}" r="5" fill="#1c2533"/>`;}
+  return s;
+}
+
+/* ================= escena 3: prueba de descarga ================= */
+function drawLT(){
+  const L=S.lt,ev=S.ev.on,um=Umin(B.T);
+  let s=`<rect x="14" y="14" width="732" height="222" rx="12" fill="#37414d" stroke="#e0a100" stroke-width="3"/>`;
+  s+=`<text x="30" y="36" font-size="13" font-weight="700" fill="#e7ecf2">Probador de descarga (pila de carbón)</text>`;
+  s+=gauge(170,202,138,S.g.v,16,2,0.5,ev?[]:[[0,um,'#e53935'],[um,16,'#43a047']],'V','Voltímetro',v=>nf(v,0));
+  s+=gauge(460,202,138,S.g.a,600,100,25,[],'A','Amperímetro',v=>nf(v,0));
+  const onL=L.phase==='load';
+  s+=`<circle cx="640" cy="64" r="11" fill="${onL?'#ff3d00':'#5d4037'}" stroke="#1c2533" stroke-width="2"/><text x="658" y="69" font-size="12" fill="#e7ecf2" font-weight="700">CARGA</text>`;
+  s+=`<text x="626" y="104" font-size="12" fill="#c6cfda">Tiempo</text><text x="626" y="130" font-size="24" font-weight="700" fill="#fff">${nf(Math.min(L.t,45),1)} s</text>`;
+  s+=`<text x="626" y="158" font-size="12" fill="#c6cfda">I ajustada: ${nf(L.I,0)} A</text><text x="626" y="176" font-size="12" fill="#c6cfda">Pinzas: ${S.clamp==='postes'?'postes':'terminales'}</text>`;
+  s+=`<text x="626" y="194" font-size="12" fill="#c6cfda">T batería: ${nf(B.T,0)} °C</text>`;
+  s+=`<text x="626" y="212" font-size="12" fill="#c6cfda">${{idle:'Listo',load:'Aplicando carga',rec:'Recuperación',done:'Prueba terminada'}[L.phase]}</text>`;
+  // gráfica U(t)
+  const g=axes(70,262,730,410,0,45,5,6,14,1,'t (s)','U en bornes (V)',v=>nf(v,0),v=>nf(v,0));
+  s+=g.s;
+  s+=`<rect x="${g.X(0)}" y="262" width="${g.X(15)-g.X(0)}" height="148" fill="rgba(224,123,0,.07)"/>`+T(g.X(7.5),278,'carga ½ CCA · 15 s','lbl3','text-anchor="middle"')+T(g.X(30),278,'recuperación sin carga','lbl3','text-anchor="middle"');
+  s+=`<line x1="${g.X(15)}" y1="262" x2="${g.X(15)}" y2="410" stroke="#7b8ea3" stroke-dasharray="4 4"/>`;
+  if(!ev){s+=`<line x1="${g.X(0)}" y1="${g.Y(um)}" x2="${g.X(45)}" y2="${g.Y(um)}" stroke="#c62828" stroke-width="1.8" stroke-dasharray="7 5"/>`+T(g.X(45)-4,g.Y(um)-6,`U mín (${nf(B.T,0)} °C) = ${nf(um,1)} V`,'lbl3','text-anchor="end" style="fill:#c62828;font-weight:700"');}
+  if(L.data.length){const pts=L.data.map(p=>[p[0],clamp(p[1],6,14)]);s+=`<path d="${pathOf(pts,g.X,g.Y)}" fill="none" stroke="#1f5a94" stroke-width="2.5"/>`;}
+  if(L.U15!==null)s+=`<circle cx="${g.X(15)}" cy="${g.Y(clamp(L.U15,6,14))}" r="6" fill="#e07b00" stroke="#fff" stroke-width="1.5"/>`+T(g.X(15)+8,g.Y(clamp(L.U15,6,14))+16,`U₁₅ = ${nf(L.U15,2)} V`,'lbl','style="fill:#e07b00"');
+  return s;
+}
+
+/* ================= escena 4: conductancia ================= */
+function drawCT(){
+  const C=S.ct,ev=S.ev.on,b=BATS[B.type];
+  let s=`<rect x="30" y="24" width="300" height="392" rx="26" fill="#3a4450" stroke="#e0a100" stroke-width="3"/>`;
+  s+=`<text x="180" y="50" text-anchor="middle" font-size="13" font-weight="700" fill="#e7ecf2">Probador de conductancia</text>`;
+  s+=`<rect x="50" y="62" width="260" height="226" rx="6" fill="#b9c9a4" stroke="#1d2616"/>`;
+  const L=(y,t,bold)=>`<text x="62" y="${y}" font-family="Consolas,Courier New,monospace" font-size="${bold?16:14}" font-weight="${bold?700:400}" fill="#1d2616">${t}</text>`;
+  if(ev)s+=L(100,'MODO EVALUACIÓN')+L(124,'Probador no disponible:')+L(146,'use el densímetro, el')+L(168,'multímetro y la prueba')+L(190,'de descarga.');
+  else if(C.phase==='idle')s+=L(96,'PRUEBA DE BATERÍA',true)+L(124,`CCA nominal: ${C.cca}`)+L(146,`Norma: SAE/EN`)+L(168,`Pinzas: ${S.clamp==='postes'?'postes':'terminales'}`)+L(206,'Pulse «Iniciar prueba»');
+  else if(C.phase==='test'){const p=clamp(C.t/2.5,0,1);s+=L(110,'Probando…',true)+`<rect x="62" y="130" width="236" height="16" fill="none" stroke="#1d2616"/><rect x="64" y="132" width="${(232*p).toFixed(1)}" height="12" fill="#1d2616"/>`+L(176,'Señal de CA aplicada');}
+  else{const r=C.res;s+=L(88,`U: ${nf(r.U,2)} V`)+L(110,`CCA medido: ${r.cca}`)+L(132,`CCA nominal: ${C.cca}`)+L(154,`SOH: ${r.soh} %`)+L(176,`SOC: ${r.soc} %`)+L(198,`G: ${nf(r.G,0)} S`);
+    const col={ok:'#1b5e20',rec:'#e65100',rep:'#b71c1c',cel:'#b71c1c'}[r.v];
+    s+=`<rect x="58" y="214" width="244" height="64" rx="4" fill="${col}"/><text x="180" y="240" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">${r.vt[0]}</text><text x="180" y="262" text-anchor="middle" font-size="13" fill="#fff">${r.vt[1]}</text>`;}
+  for(let k=0;k<3;k++)s+=`<rect x="${70+k*80}" y="306" width="60" height="30" rx="8" fill="#555f6d"/>`;
+  s+=`<text x="100" y="326" text-anchor="middle" font-size="11" fill="#fff">MENÚ</text><text x="180" y="326" text-anchor="middle" font-size="11" fill="#fff">PROBAR</text><text x="260" y="326" text-anchor="middle" font-size="11" fill="#fff">IMPR.</text>`;
+  // cables a la batería
+  const px=S.clamp==='postes'?0:14;
+  s+=battIcon(470,262,240,120,{label:`${b.name.replace('12 V · ','12 V  ')}`,label2:`${TECH[B.tech].short} · EN/SAE`});
+  s+=`<path d="M330 350 C 420 350, 440 236, ${496-px} 246" fill="none" stroke="#c62828" stroke-width="5"/><path d="M330 380 C 700 440, 780 250, ${684+px} 246" fill="none" stroke="#1c2533" stroke-width="5"/>`;
+  s+=`<rect x="${486-px}" y="240" width="20" height="12" rx="3" fill="#c62828"/><rect x="${674+px}" y="240" width="20" height="12" rx="3" fill="#1c2533"/>`+T(590,404,S.clamp==='postes'?'pinzas en los postes':'pinzas en los terminales de los cables','lbl3','text-anchor="middle"');
+  // principio
+  s+=`<rect x="360" y="24" width="380" height="200" rx="8" fill="#f7f9fc" stroke="#c9d2dd"/>`+T(374,46,'Principio: conductancia G = I~ / U~ = 1 / Rᵢ','lbl');
+  const amp=ev?14:clamp(14*(RiOhm()+(S.clamp==='term'?Rcorr():0))/RiNew(),6,40);
+  let pI='',pU='';for(let x=0;x<=340;x+=4){const yI=110-18*Math.sin(x/340*6*Math.PI),yU=180-Math.min(amp,32)*Math.sin(x/340*6*Math.PI);pI+=(x?'L':'M')+(380+x)+' '+yI.toFixed(1);pU+=(x?'L':'M')+(380+x)+' '+yU.toFixed(1);}
+  s+=`<path d="${pI}" fill="none" stroke="#e07b00" stroke-width="2"/><path d="${pU}" fill="none" stroke="#1f5a94" stroke-width="2"/>`;
+  s+=T(380,76,'Corriente alterna pequeña inyectada (I~)','lbl3','style="fill:#e07b00"')+T(380,144,'Respuesta de tensión U~ (mayor si Rᵢ es alta)','lbl3','style="fill:#1f5a94"');
+  s+=T(374,212,'No descarga la batería: solo aplica una señal de pocos amperios.','lbl3');
+  return s;
+}
+
+/* ================= escena 5: carga / arranque auxiliar ================= */
+function drawCH(){
+  const ch=S.ch,ev=S.ev.on,C=cap(),n=ncell();
+  let s=`<rect x="20" y="20" width="268" height="132" rx="10" fill="#37414d" stroke="#e0a100" stroke-width="3"/>`;
+  s+=`<rect x="34" y="34" width="150" height="104" rx="5" fill="#b9c9a4"/>`;
+  const on=ch.run;
+  s+=`<text x="44" y="64" font-family="Consolas,monospace" font-size="22" font-weight="700" fill="#1d2616">${on?nf(ch.U,2):'--,--'} V</text><text x="44" y="94" font-family="Consolas,monospace" font-size="22" font-weight="700" fill="#1d2616">${on?nf(ch.I,1):'--,-'} A</text>`;
+  s+=`<text x="44" y="124" font-family="Consolas,monospace" font-size="12" fill="#1d2616">${{cc:'MODO I',cv:'MODO U',iuou:'MODO IUoU'}[ch.method]}</text>`;
+  const led=(y,c,txt,onx)=>`<circle cx="204" cy="${y}" r="7" fill="${onx?c:'#4a525c'}"/><text x="216" y="${y+4}" font-size="11" fill="#e7ecf2">${txt}</text>`;
+  s+=led(50,'#ff9800','CARGA',on&&ch.ph!=='Uo')+led(76,'#43a047','FLOTACIÓN',on&&ch.ph==='Uo')+led(102,'#e53935','T ALTA',B.T>=45)+led(128,'#29b6f6','GASES',on&&ch.U/n>2.4);
+  // cables y batería
+  s+=`<path d="M288 60 C 320 60, 330 40, 354 40" fill="none" stroke="#c62828" stroke-width="5"/><path d="M288 120 C 340 120, 470 20, 486 40" fill="none" stroke="#1c2533" stroke-width="5"/>`;
+  const hot=clamp((B.T-30)/25,0,1);
+  s+=battIcon(330,52,180,96,{fill:`rgb(${Math.round(47+160*hot)},${Math.round(58-20*hot)},${Math.round(70-30*hot)})`,label:BATS[B.type].name.replace('12 V · ',''),label2:TECH[B.tech].short});
+  if(on&&ch.Igas>0.02*C){const k=clamp(ch.Igas/(0.1*C),0.2,1),tt=performance.now()/1000;for(let j=0;j<Math.round(10*k);j++){const x=350+((j*47)%140),y=140-((tt*40+j*23)%80);s+=`<circle cx="${x}" cy="${y.toFixed(1)}" r="${2+(j%3)}" fill="rgba(255,255,255,.85)" stroke="#90a4ae" stroke-width=".6"/>`;}}
+  const est=Math.max(0,(1-B.soc))*C*1.2/ch.Iset;
+  const info=[['Tiempo simulado',fmtT(ch.t)],['Ah entregados',nf(ch.Ah,1)+' Ah'],['SOC',ev?'—':nf(clamp(B.soc,0,1)*100,0)+' %'],['Temperatura',nf(B.T,1)+' °C'],['U por celda',on?nf(ch.U/n,2)+' V':'—'],['t estimado restante',ev?'—':nf(est,1)+' h']];
+  info.forEach((r,i)=>{s+=T(530,38+i*20,r[0]+':','lbl3')+T(740,38+i*20,r[1],'lbl2','text-anchor="end" style="font-weight:600;fill:#1c2533"');});
+  // gráficas
+  const th=ch.t/3600,tmax=Math.max(2,Math.ceil(th/2)*2),xs=tmax<=12?1:tmax<=24?2:4;
+  const Imax=Math.max(5,Math.ceil(ch.Iset*1.1/5)*5);
+  const gA=axes(62,184,700,324,0,tmax,xs,11,16,1,'','U (V)',v=>nf(v,0),v=>nf(v,0));
+  s+=gA.s;
+  for(let v=0;v<=Imax+1e-9;v+=Imax/5){const y=324-v/Imax*140;s+=T(706,y+4,nf(v,0),'lbl3');}
+  s+=T(700,176,'I (A)','lbl2','text-anchor="end" style="fill:#e07b00"');
+  const ug=2.4*n;s+=`<line x1="62" y1="${gA.Y(ug)}" x2="700" y2="${gA.Y(ug)}" stroke="#29b6f6" stroke-dasharray="6 4"/>`+T(696,gA.Y(ug)+14,`inicio de gasificación ≈ ${nf(ug,1)} V (2,4 V/celda)`,'lbl3','text-anchor="end" style="fill:#0277bd"');
+  const d=ch.data.concat(on?[[ch.t,ch.U,ch.I,clamp(B.soc,0,1)*100,B.T]]:[]);
+  const X=v=>62+v/3600/tmax*638;
+  if(d.length>1){
+    s+=`<path d="${'M'+d.map(p=>X(p[0]).toFixed(1)+' '+gA.Y(clamp(p[1],11,16)).toFixed(1)).join('L')}" fill="none" stroke="#1f5a94" stroke-width="2.2"/>`;
+    s+=`<path d="${'M'+d.map(p=>X(p[0]).toFixed(1)+' '+(324-clamp(p[2],0,Imax)/Imax*140).toFixed(1)).join('L')}" fill="none" stroke="#e07b00" stroke-width="2.2"/>`;
+  }
+  const gB=axes(62,366,700,480,0,tmax,xs,0,100,25,'t (h)','SOC (%)',v=>nf(v,0),v=>nf(v,0));
+  s+=gB.s;
+  for(let v=0;v<=60;v+=15){const y=480-v/60*114;s+=T(706,y+4,nf(v,0),'lbl3');}
+  s+=T(700,358,'T (°C)','lbl2','text-anchor="end" style="fill:#c62828"');
+  s+=`<line x1="62" y1="${480-45/60*114}" x2="700" y2="${480-45/60*114}" stroke="#c62828" stroke-dasharray="6 4" opacity=".7"/>`+T(696,480-45/60*114-4,'45 °C','lbl3','text-anchor="end" style="fill:#c62828"');
+  if(d.length>1){
+    if(!ev)s+=`<path d="${'M'+d.map(p=>X(p[0]).toFixed(1)+' '+gB.Y(p[3]).toFixed(1)).join('L')}" fill="none" stroke="#1d8a4e" stroke-width="2.2"/>`;
+    s+=`<path d="${'M'+d.map(p=>X(p[0]).toFixed(1)+' '+(480-clamp(p[4],0,60)/60*114).toFixed(1)).join('L')}" fill="none" stroke="#c62828" stroke-width="2.2"/>`;
+  }
+  s+=`<g font-size="11"><rect x="360" y="160" width="12" height="4" fill="#1f5a94"/><text x="376" y="165" fill="#5b6778">U</text><rect x="396" y="160" width="12" height="4" fill="#e07b00"/><text x="412" y="165" fill="#5b6778">I</text><rect x="430" y="160" width="12" height="4" fill="#1d8a4e"/><text x="446" y="165" fill="#5b6778">SOC</text><rect x="480" y="160" width="12" height="4" fill="#c62828"/><text x="496" y="165" fill="#5b6778">T</text></g>`;
+  if(ev)s+=`<rect x="140" y="220" width="480" height="70" rx="8" fill="rgba(255,244,224,.95)" stroke="#e07b00"/>`+T(380,250,'Cargador bloqueado en modo evaluación','lbl','text-anchor="middle"')+T(380,272,'(cargar cambiaría el estado oculto de la batería)','lbl2','text-anchor="middle"');
+  return s;
+}
+const JSSEQ=['A+','B+','B-','M'],JSDIS=['M','B-','B+','A+'];
+const JSP={'A+':[118,230],'A-':[242,230],'B+':[538,230],'B-':[662,230],'M':[190,122]};
+const JSNAME={'A+':'borne + de la batería descargada','A-':'borne − de la batería descargada','B+':'borne + de la batería donante','B-':'borne − de la batería donante','M':'masa del motor averiado (lejos de la batería)'};
+function drawJS(){
+  const js=S.js;let s=T(20,24,'Arranque auxiliar (puente de baterías) · haga clic en los puntos de conexión en orden','lbl');
+  s+=`<rect x="40" y="56" width="300" height="120" rx="10" fill="#8d99a6" stroke="#37414d" stroke-width="2"/>`;
+  for(let k=0;k<4;k++)s+=`<rect x="${70+k*60}" y="40" width="40" height="22" rx="4" fill="#78858f" stroke="#37414d"/>`;
+  s+=T(60,160,'Bloque motor · vehículo averiado','lbl3','style="fill:#fff"');
+  s+=`<circle cx="190" cy="122" r="9" fill="#cfd8dc" stroke="#37414d" stroke-width="2"/><path d="M186 118 L194 126 M194 118 L186 126" stroke="#37414d" stroke-width="2"/>`+T(206,118,'masa (perno)','lbl3','style="fill:#fff"');
+  s+=battIcon(90,242,180,110,{label:'Descargada',label2:'vehículo averiado'});
+  s+=battIcon(510,242,180,110,{fill:'#1f3b57',label:'Donante',label2:'vehículo de apoyo'});
+  s+=`<rect x="512" y="60" width="176" height="110" rx="10" fill="#b0bec5" stroke="#37414d" stroke-width="2"/>`+T(600,120,'Motor del donante','lbl3','text-anchor="middle"');
+  const has=p=>js.done.includes(p);
+  if(has('A+')){const [x1,y1]=JSP['A+'];const [x2,y2]=has('B+')?JSP['B+']:[330,300];s+=`<path d="M${x1} ${y1} C ${x1} 190, ${x2} 190, ${x2} ${y2}" fill="none" stroke="#c62828" stroke-width="6" stroke-linecap="round"/>`;}
+  if(has('B-')){const [x1,y1]=JSP['B-'];const [x2,y2]=has('M')?JSP['M']:[420,300];s+=`<path d="M${x1} ${y1} C ${x1} 180, ${x2+140} ${has('M')?40:220}, ${x2} ${y2}" fill="none" stroke="#1c2533" stroke-width="6" stroke-linecap="round"/>`;}
+  for(const p of ['A+','A-','B+','B-','M']){const [x,y]=JSP[p];const c=has(p);
+    s+=`<g class="clk" data-js="${p}"><circle cx="${x}" cy="${y}" r="18" fill="transparent"/><circle cx="${x}" cy="${y}" r="11" fill="${c?(p.includes('+')?'#c62828':'#1c2533'):'rgba(255,255,255,.25)'}" stroke="${c?'#fff':'#e07b00'}" stroke-width="2.5" stroke-dasharray="${c?'':'4 3'}"/></g>`;}
+  const step=js.phase==='con'?js.step:js.phase==='dis'?js.step:4;
+  const list=js.phase==='dis'?JSDIS:JSSEQ;
+  s+=T(20,390,js.phase==='dis'?'Desconexión (orden inverso):':'Secuencia de conexión:','lbl2');
+  list.forEach((p,i)=>{const done=js.phase==='con'?i<js.step:js.phase==='dis'?i<js.step:(js.phase==='fin');const cur=(js.phase==='con'||js.phase==='dis')&&i===step;
+    s+=T(20+i*185,412,`${i+1}. ${{'A+':'+ descargada','B+':'+ donante','B-':'− donante','M':'masa del motor'}[p]}${done?' ✓':''}`,'lbl3',`style="fill:${done?'#1d8a4e':cur?'#e07b00':'#5b6778'};font-weight:${cur||done?700:400}"`);});
+  if(js.phase==='run'||js.anim>0)s+=T(380,200,'Motor en marcha ✓','lbl','text-anchor="middle" style="fill:#1d8a4e"');
+  if(js.flash){const [x,y]=JSP[js.flash];s+=`<circle cx="${x}" cy="${y}" r="24" fill="none" stroke="#c62828" stroke-width="3"/>`;}
+  return s;
+}
+
+function drawScene(){
+  let s='',vb='0 0 760 440';
+  switch(S.tab){
+    case 'soc':s=drawSOC();break;
+    case 'ri':s=drawRI();vb='0 0 760 440';break;
+    case 'lt':s=drawLT();vb='0 0 760 460';break;
+    case 'ct':s=drawCT();vb='0 0 760 440';break;
+    case 'ch':if(S.ch.view==='chg'){s=drawCH();vb='0 0 760 500';}else s=drawJS();break;
+  }
+  if(svg.getAttribute('viewBox')!==vb)svg.setAttribute('viewBox',vb);
+  svg.innerHTML=s;S.redraw=false;
+}
+function animActive(){return S.hyd.anim||S.lightsT>0||(S.tab==='ri'&&S.ri.on)||(S.tab==='lt'&&(S.lt.phase==='load'||S.lt.phase==='rec'||Math.abs(S.g.v-ltU())>0.005||S.g.a>0.5))||(S.tab==='ct'&&S.ct.phase==='test')||(S.tab==='ch'&&S.ch.run);}
+
+/* ================= pruebas ================= */
+function sampleCell(i){
+  if(!TECH[B.tech].hyd){event('w','Batería sellada: no se puede extraer electrolito. Use la tensión en reposo o el probador de conductancia.');S.dirty=true;return;}
+  if(S.hyd.anim)return;
+  S.hyd.cell=i;S.hyd.t=0;S.hyd.anim=true;S.hyd.sel=i;S.redraw=true;
+}
+function sampleAll(){if(!TECH[B.tech].hyd){sampleCell(0);return;}for(let i=0;i<6;i++)S.hyd.samples[i]=Math.round(cellRhoT(i)*1000)/1000;S.hyd.cell=5;S.hyd.anim=false;S.redraw=true;S.dirty=true;}
+function startLT(){
+  const L=S.lt;if(L.phase==='load'||L.phase==='rec')return;
+  S.ri.on=false;S.lightsT=0;S.pol=0;
+  Object.assign(L,{phase:'load',t:0,data:[],U15:null,Urec:null,verdict:null,U0:ltU(),sc0:B.sc,Umin:Umin(B.T),T:B.T,soc0:B.soc});
+  event('i',`Prueba de descarga iniciada: ${nf(L.I,0)} A durante 15 s (U en reposo al inicio: ${nf(L.U0,2)} V).`);
+  S.redraw=true;
+}
+function ltVerdict(){
+  const L=S.lt,socE=socFromU(L.U0),pass=L.U15>=L.Umin;
+  if(L.U0<11.0)return ['cel','Reemplazar: celda defectuosa',`La tensión en reposo era ${nf(L.U0,2)} V (≈ 10,5 V indica una celda en cortocircuito).`];
+  if(pass)return ['ok','Buena',`U a 15 s = ${nf(L.U15,2)} V ≥ ${nf(L.Umin,1)} V (mínimo para ${nf(L.T,0)} °C).${socE<0.75?' Aun así, la batería no estaba al 75 %: recárguela.':''}`];
+  if(socE<0.75)return ['rec','Recargar y repetir la prueba',`U a 15 s = ${nf(L.U15,2)} V < ${nf(L.Umin,1)} V, pero la batería estaba por debajo del 75 % (U reposo ${nf(L.U0,2)} V): la prueba no es válida.`];
+  return ['rep','Reemplazar',`U a 15 s = ${nf(L.U15,2)} V < ${nf(L.Umin,1)} V con SOC ≥ 75 %: la batería no puede entregar la corriente de arranque.`];
+}
+function finishLT(){
+  const L=S.lt;L.verdict=ltVerdict();
+  if(!S.ev.on){event(L.verdict[0]==='ok'?'o':L.verdict[0]==='rec'?'w':'e',`Prueba de descarga: <b>${L.verdict[1]}</b>. ${L.verdict[2]} Recuperación a los 30 s: ${nf(L.Urec,2)} V.`);
+    if(L.sc0>0.05)event('w','Había carga superficial al iniciar la prueba: la tensión en reposo medida antes de la prueba no representaba el estado de carga real.');}
+  else event('i',`Prueba terminada: U a 15 s = ${nf(L.U15,2)} V con ${nf(L.I,0)} A a ${nf(L.T,0)} °C. Compare con la tabla de tensión mínima.`);
+  addRow('Prueba de descarga',`U a 15 s (I = ${nf(L.I,0)} A)`,`T = ${nf(L.T,0)} °C; pinzas en ${S.clamp==='postes'?'postes':'terminales'}`,nf(L.U15,2)+' V');
+  addRow('Prueba de descarga','U recuperada a los 30 s','sin carga',nf(L.Urec,2)+' V');
+  S.dirty=true;S.redraw=true;
+}
+function ctMeasure(){
+  const Rm=RiOhm()+(S.clamp==='term'?Rcorr():0);
+  const k=BATS[B.type].CCA*RiNew()*fT(B.T);
+  const cca=Math.round(k/Rm),U=ocv();
+  const soh=Math.round(100*cca/S.ct.cca);
+  const socE=clamp(socFromU(U-TECH[B.tech].ocvF),0,1);
+  let v,vt;
+  if(U<11.3){v='cel';vt=['CELDA DEFECTUOSA','Reemplazar'];}
+  else if(socE<0.75){v='rec';vt=['CARGAR Y','VOLVER A PROBAR'];}
+  else if(soh>=70){v='ok';vt=['BATERÍA BUENA','Sigue en servicio'];}
+  else{v='rep';vt=['REEMPLAZAR','Capacidad insuficiente'];}
+  return {U,cca,soh:Math.min(soh,120),soc:Math.round(socE*100),G:1/Rm,v,vt,Rm};
+}
+function logCT(){const r=S.ct.res;addRow('Conductancia','CCA medido / SOH / SOC',`CCA nominal ${S.ct.cca}; pinzas en ${S.clamp==='postes'?'postes':'terminales'}`,`${r.cca} A / ${r.soh} % / ${r.soc} %`);
+  event(r.v==='ok'?'o':r.v==='rec'?'w':'e',`Probador de conductancia: <b>${r.vt.join(' ')}</b> (CCA medido ${r.cca} de ${S.ct.cca}; SOH ${r.soh} %; SOC ${r.soc} %).`);
+  if(B.sc>0.05)event('w','El probador estima el SOC con la tensión en reposo: la carga superficial lo engaña. Elimínela y repita la prueba.');
+  if(S.ct.cca!==BATS[B.type].CCA)event('w',`El CCA nominal introducido (${S.ct.cca}) no coincide con la etiqueta (${BATS[B.type].CCA}): el SOH calculado es incorrecto.`);}
+function jsClick(p){
+  const js=S.js,ph0=js.phase;js.flash=null;
+  if(js.phase==='con'){
+    const exp=JSSEQ[js.step];
+    if(js.done.includes(p)){js.msg=['i','Esa pinza ya está conectada.'];}
+    else if(p===exp){js.done.push(p);js.step++;js.msg=['o',`Paso ${js.step}: pinza ${p.includes('+')?'roja':'negra'} en el ${JSNAME[p]}. Correcto.`];
+      if(js.step===4){js.phase='ready';js.msg=['o','Conexión completa y en el orden correcto. Arranque primero el motor del vehículo donante, espere unos minutos y luego arranque el vehículo averiado.'];}}
+    else{js.flash=p;js.msg=['e',jsExplain(exp,p)];event('e',jsExplain(exp,p));}
+  }else if(js.phase==='dis'){
+    const exp=JSDIS[js.step];
+    if(p===exp){js.done=js.done.filter(x=>x!==p);js.step++;js.msg=['o',`Pinza retirada del ${JSNAME[p]}.`];if(js.step===4){js.phase='fin';js.msg=['o','Desconexión terminada en orden inverso. Procedimiento correcto.'];}}
+    else{js.flash=p;js.msg=['e',`Orden de desconexión incorrecto: se retira primero la última pinza conectada. Ahora corresponde el ${JSNAME[exp]}.`];}
+  }else if(js.phase==='ready'||js.phase==='run'){js.msg=['i',js.phase==='ready'?'Todas las pinzas conectadas: pulse «Arrancar motor».':'Pulse «Desconectar pinzas» para retirarlas en orden inverso.'];}
+  if(js.phase!==ph0)buildTest();
+  S.redraw=true;S.dirty=true;
+}
+function jsExplain(exp,p){
+  if(p==='A-')return 'Incorrecto: no conecte la pinza negra al borne − de la batería descargada. La última conexión siempre produce una chispa y la batería puede desprender hidrógeno (gas explosivo). Conéctela a una masa del motor alejada de la batería.';
+  const why={'A+':'Primero se conecta la pinza roja al borne + de la batería descargada: el cable aún no está energizado, así que no hay riesgo si el otro extremo toca masa.',
+    'B+':'Ahora se conecta el otro extremo del cable rojo al borne + de la batería donante. El cable negro todavía no se conecta.',
+    'B-':'Ahora corresponde la pinza negra en el borne − de la batería donante.',
+    'M':'La última conexión es la pinza negra en la masa del motor averiado, lejos de la batería, para que la chispa se produzca lejos de los gases.'};
+  return `Orden incorrecto (${JSNAME[p]}). ${why[exp]}`;
+}
+
+/* ================= multímetro ================= */
+function updateMeter(){
+  const m=S.meter;let v='',u='',note='',st='';
+  if(m.mode==='OFF'){v='';u='';note='Instrumento apagado.';}
+  else if(m.mode==='V'){
+    const x=meterU(m.pt);
+    if(m.pt==='borne'){v=nf(x,3);u='V';note=S.Iterm>0.5?`Caída de tensión entre el poste + y el terminal del cable con ${nf(S.Iterm,0)} A.`:'Sin corriente por el borne no hay caída de tensión: conecte una carga (pestaña 2) para evaluar la conexión.';}
+    else{v=nf(x,2);u='V';
+      if(S.charging)note='Tensión de carga en los postes.';
+      else if(S.I>0.5)note=`Tensión bajo carga (${nf(S.I,0)} A de descarga).`;
+      else note='Tensión en circuito abierto (reposo).'+(S.ev.on?'':B.sc>0.05?' Incluye carga superficial.':'');}
+    st=`Puntas: ${{postes:'postes de la batería',term:'terminales de los cables',borne:'poste + → terminal +'}[m.pt]}`;
+  }else{const I=S.charging?-S.ch.I:S.I;v=nf(I,Math.abs(I)<100?1:0);u='A';note='Pinza amperimétrica en el cable de la batería. Signo − = corriente de carga (entra a la batería).';st='Pinza amperimétrica DC';}
+  $('lcdVal').textContent=v;$('lcdUnit').textContent=u;$('lcdFn').textContent={V:'V⎓',A:'A⎓',OFF:''}[m.mode];
+  $('mnote').textContent=note;$('mstat').textContent=st;
+  document.querySelectorAll('#modes button').forEach(b=>b.classList.toggle('on',b.dataset.m===m.mode));
+  return {v,u};
+}
+
+/* ================= resultados ================= */
+function tbl(rows,head){return `<table>${head?`<tr><th>${head[0]}</th><th>${head[1]}</th></tr>`:''}${rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('')}</table>`;}
+function updateResults(){
+  const ev=S.ev.on,C=cap();let h='';
+  if(S.tab==='soc'){
+    const U=ocv(),sm=S.hyd.samples,ks=Object.keys(sm).map(Number).sort();
+    if(ev){h=`<p class="muted">Modo evaluación: realice los cálculos. Lecturas tomadas:</p>`+tbl([['Temperatura del electrolito',nf(B.T,0)+' °C'],...ks.map(i=>[`Densímetro, celda ${i+1} (sin corregir)`,nf(sm[i],3)+' g/cm³'])],['Magnitud','Valor']);}
+    else{
+      const rows=[['U en reposo (postes)',nf(U,2)+' V'],['SOC estimado por tensión',nf(clamp(socFromU(U-TECH[B.tech].ocvF*clamp(B.soc,0,1)),0,1)*100,0)+' %'+(B.sc>0.05?' <span class="vw">(falso: carga superficial)</span>':'')],['SOC real del modelo',nf(clamp(B.soc,0,1)*100,0)+' %'+(B.soc<0?' (descarga profunda)':'')]];
+      h=tbl(rows,['Magnitud','Valor']);
+      if(ks.length){const c25=ks.map(i=>sm[i]+0.0007*(B.T-25));
+        h+=`<table style="margin-top:8px"><tr><th>Celda</th><th>ρ<sub>T</sub></th><th>ρ<sub>25</sub></th><th>SOC</th></tr>${ks.map((i,j)=>`<tr><td>${i+1}</td><td>${nf(sm[i],3)}</td><td>${nf(c25[j],3)}</td><td>${nf(clamp(socFromRho(c25[j]),0,1)*100,0)} %</td></tr>`).join('')}</table>`;
+        if(ks.length>1){const d=Math.max(...c25)-Math.min(...c25);h+=`<p class="muted" style="margin:6px 0 0">Δρ entre celdas medidas = <b class="${d>0.05?'vbad':'vok'}">${nf(d,3)} g/cm³</b> (máx. 0,050). Comprobación: 6 · (ρ̄₂₅ + 0,84) = ${nf(6*(c25.reduce((a,b)=>a+b,0)/c25.length+0.84),2)} V.</p>`;}}
+      else h+='<p class="muted" style="margin:6px 0 0">Tome muestras con el densímetro para ver la tabla por celda.</p>';
+    }
+  }else if(S.tab==='ri'){
+    const R=S.ri;const rows=[['U₀ leída (sin carga)',R.U0!==null?nf(R.U0,2)+' V':'—'],['U leída con carga',R.UL!==null?nf(R.UL,2)+' V':'—'],['Corriente de la carga',R.IL!==null?nf(R.IL,0)+' A':'—']];
+    if(!ev){const Ri=RiOhm();
+      if(R.U0!==null&&R.UL!==null)rows.push(['Rᵢ calculada = (U₀ − U)/I',`<b>${nf((R.U0-R.UL)/R.IL*1000,2)} mΩ</b>`]);
+      rows.push(['Rᵢ del modelo (postes)',nf(Ri*1000,2)+' mΩ'],['Rᵢ de una batería nueva a 25 °C',nf(RiNew()*1000,2)+' mΩ'],['Caída en el borne + con la carga actual',S.ri.on?nf(S.ri.I*Rcorr(),3)+' V':'—'],['Potencia perdida en Rᵢ (I² · Rᵢ)',S.ri.on?nf(S.ri.I*S.ri.I*Ri,1)+' W':'—']);}
+    h=tbl(rows,['Magnitud','Valor']);
+    if(ev)h+='<p class="muted">Calcule R<sub>i</sub> con sus lecturas.</p>';
+  }else if(S.tab==='lt'){
+    const L=S.lt;const rows=[['Corriente de prueba (½ CCA = '+nf(BATS[B.type].CCA/2,0)+' A)',nf(L.I,0)+' A'],['U en reposo al iniciar',L.U0!==null?nf(L.U0,2)+' V':'—'],['U a los 15 s',L.U15!==null?`<b>${nf(L.U15,2)} V</b>`:'—'],['U recuperada (30 s sin carga)',L.Urec!==null?nf(L.Urec,2)+' V':'—'],['Temperatura de la batería',nf(B.T,0)+' °C']];
+    if(!ev){rows.push(['U mínima según tabla (fila '+nf(UminRow(B.T),0)+' °C)',nf(Umin(B.T),1)+' V']);if(L.verdict)rows.push(['Resultado',`<span class="${L.verdict[0]==='ok'?'vok':L.verdict[0]==='rec'?'vw':'vbad'}">${L.verdict[1]}</span>`]);}
+    h=tbl(rows,['Magnitud','Valor']);if(!ev&&L.verdict)h+=`<p class="muted" style="margin:6px 0 0">${L.verdict[2]}</p>`;
+  }else if(S.tab==='ct'){
+    if(ev)h='<p class="muted">Probador de conductancia no disponible en modo evaluación.</p>';
+    else{const r=S.ct.res;h=r?tbl([['Tensión en reposo',nf(r.U,2)+' V'],['Conductancia G = 1/R',nf(r.G,0)+' S'],['R medida por el equipo',nf(r.Rm*1000,2)+' mΩ'],['CCA medido / nominal',`${r.cca} / ${S.ct.cca} A`],['SOH (estado de salud)',r.soh+' %'],['SOC estimado',r.soc+' %'],['Veredicto',`<span class="${r.v==='ok'?'vok':r.v==='rec'?'vw':'vbad'}">${r.vt.join(' ')}</span>`]],['Magnitud','Valor']):'<p class="muted">Pulse «Iniciar prueba».</p>';}
+  }else{
+    const ch=S.ch;
+    if(ch.view==='js'){const js=S.js;h=`<div class="msgs">${js.msg?`<div class="${js.msg[0]}">${js.msg[1]}</div>`:'<div class="i">Haga clic en el primer punto de conexión.</div>'}</div>`;}
+    else{const Ahr=Math.max(0,1-B.soc)*C;const est=Ahr*1.2/ch.Iset;
+      const rows=[['Método',{cc:'Corriente constante (I)',cv:'Tensión constante (U)',iuou:'IUoU'}[ch.method]],['Fase actual',ch.run?ch.phase:'cargador detenido'],['Corriente recomendada (10 % de C₂₀)',nf(0.1*C,1)+' A'],['Tensión de carga',ch.run?nf(ch.U,2)+' V ('+nf(ch.U/ncell(),2)+' V/celda)':'—'],['Corriente de carga',ch.run?nf(ch.I,2)+' A':'—'],['Corriente que se va en gases',ch.run?nf(ch.Igas,2)+' A':'—'],['Ah entregados',nf(ch.Ah,1)+' Ah'],['Tiempo simulado',fmtT(ch.t)]];
+      if(!S.ev.on)rows.push(['SOC',nf(clamp(B.soc,0,1)*100,0)+' %'],['Ah a reponer ≈ (1 − SOC) · C₂₀',nf(Ahr,1)+' Ah'],['t estimado = Ah · 1,2 / I',nf(est,1)+' h']);
+      rows.push(['Temperatura',nf(B.T,1)+' °C']);
+      h=tbl(rows,['Magnitud','Valor']);}
+  }
+  $('results').innerHTML=h;
+}
+
+/* ================= avisos ================= */
+function updateMsgs(){
+  const w=[],ev=S.ev.on,C=cap();
+  if(!ev){
+    if(B.sc>0.05)w.push(['w',`Carga superficial: la tensión en reposo está elevada en ≈ ${nf(B.sc,2)} V y aparenta un SOC mayor. Encienda los faros 1 min (o deje la batería en reposo ≥ 2 h) antes de medir.`]);
+    if(B.soc<0)w.push(['e','Descarga profunda: tensión por debajo de 11,89 V y densidad ≈ 1,10 g/cm³. Recargue cuanto antes con corriente baja; si permanece así se sulfata.']);
+    else if(B.soc<0.75)w.push(['w',`SOC ≈ ${nf(B.soc*100,0)} %: por debajo del 75 %. Cargue la batería antes de la prueba de descarga.`]);
+    if(TECH[B.tech].hyd){const r=[0,1,2,3,4,5].map(cellRho25),d=Math.max(...r)-Math.min(...r);if(d>0.05)w.push(['e',`Diferencia entre celdas de ${nf(d,3)} g/cm³ (> 0,050): celda defectuosa. Reemplace la batería.`]);
+      const fz=freezeT(Math.min(...r));if(B.T<fz+5)w.push(['e',`Riesgo de congelación del electrolito: con ρ ≈ ${nf(Math.min(...r),3)} se congela a ≈ ${nf(fz,0)} °C (orientativo).`]);}
+    if(B.fault==='celda')w.push(['e','Celda en cortocircuito: la tensión en reposo cae a ≈ 10,5 V (5 celdas activas) y una celda marca ≈ 1,10 g/cm³ aunque se cargue.']);
+    if(B.fault==='sulf')w.push(['w',`Sulfatación: Rᵢ ≈ ${nf(RiOhm()*1000,1)} mΩ (≈ 3 veces lo normal), baja capacidad y la batería no supera ≈ 85 % de carga.`]);
+    if(B.fault==='corr')w.push(['w',`Borne + corroído (≈ ${nf(Rcorr()*1000,0)} mΩ): sin corriente no se nota; con 150 A la caída poste → terminal sería ≈ ${nf(150*Rcorr(),2)} V (orientativo ≤ 0,1 V por conexión).`]);
+    if(AGES[B.age].f>=2)w.push(['w','Batería desgastada por envejecimiento: Rᵢ elevada; es probable que no supere la prueba de descarga.']);
+    if(!TECH[B.tech].hyd&&S.tab==='soc')w.push(['i',`Batería ${TECH[B.tech].short}: sellada, sin acceso al electrolito. ${B.tech==='agm'?'AGM a plena carga en reposo ≈ 12,8 V (orientativo; consulte el manual del fabricante).':''}`]);
+    if(S.tab==='ri'&&S.ri.on&&S.ri.I>=100)w.push(['i',`Con ${nf(S.ri.I,0)} A la batería se descarga ≈ ${nf(S.ri.I/3600*60,2)} Ah por minuto: tome la lectura en pocos segundos.`]);
+  }
+  if(!S.charging&&B.T-B.Tamb>2)w.push(['w',`La batería sigue caliente por la carga (${nf(B.T,1)} °C frente a ${nf(B.Tamb,0)} °C de ambiente). Use «Reposo de 2 h» para que se enfríe antes de medir.`]);
+  if(S.tab==='lt'&&S.lt.phase==='idle'&&Math.abs(S.lt.I-BATS[B.type].CCA/2)>5)w.push(['w',`La corriente de prueba (${nf(S.lt.I,0)} A) no es ½ CCA (${nf(BATS[B.type].CCA/2,0)} A): el criterio de 9,6 V no aplica.`]);
+  if(S.tab==='lt'&&S.clamp==='term')w.push(['i','Pinzas en los terminales de los cables: la corriente de prueba atraviesa la conexión del borne. Lo correcto es conectarlas en los postes.']);
+  if(S.tab==='ch'&&S.ch.view==='chg'&&S.ch.run){
+    const ch=S.ch,n=ncell(),upc=ch.U/n;
+    if(B.tech==='agm'&&ch.U>14.72)w.push(['e',`AGM: ${nf(ch.U,2)} V supera 14,7 V. La sobretensión seca el separador de fibra de vidrio y la daña de forma irreversible.`]);
+    else if(upc>2.4)w.push(['w',`Gasificación: ${nf(upc,2)} V/celda (> 2,4 V/celda ≈ ${nf(2.4*n,1)} V). Se descompone el agua en hidrógeno y oxígeno: ventile, no produzca chispas${B.tech==='fl'?' y revise el nivel de electrolito':''}.`]);
+    if(B.soc>=0.98&&ch.method==='cc')w.push(['w','Sobrecarga: la batería ya está llena y la corriente constante sigue entrando; toda la energía se convierte en calor y gases. Detenga la carga.']);
+    if(B.T>=50)w.push(['e',`Temperatura ${nf(B.T,1)} °C (> 50 °C): interrumpa la carga de inmediato.`]);
+    else if(B.T>=45)w.push(['w',`Temperatura ${nf(B.T,1)} °C (≥ 45 °C): reduzca la corriente o suspenda la carga.`]);
+    if(ch.Iset>0.2*C)w.push(['w',`Corriente ${nf(ch.Iset,1)} A > 20 % de C₂₀: carga rápida, solo con supervisión y control de temperatura.`]);
+    if(ncell()===5&&!ev)w.push(['e','Con una celda en cortocircuito el cargador no alcanza la tensión de absorción: las 5 celdas sanas se sobrecargan, gasifican y se calientan.']);
+  }
+  if(S.tab==='ch'&&S.ch.view==='chg'&&!S.ch.run&&B.tech==='agm'&&S.ch.Uset>14.7&&S.ch.method!=='cc')w.push(['w','Para AGM no ajuste más de 14,7 V.']);
+  if(S.tab==='ch'&&S.ch.view==='chg'&&!S.ch.run&&B.tech!=='agm'&&S.ch.Uset>14.4&&S.ch.method!=='cc')w.push(['i','Tensión ajustada > 14,4 V: la batería inundada gasificará en la fase final (pérdida de agua).']);
+  if(ev)w.push(['i','Modo evaluación: los avisos de diagnóstico están ocultos. Solo se muestran mensajes del procedimiento.']);
+  const all=[...S.events.map(e=>[e.cls,e.txt]),...w];
+  $('msgs').innerHTML=all.length?all.map(([c,t])=>`<div class="${c}">${t}</div>`).join(''):'<div class="i">Sin avisos: la batería está en buen estado y dentro de sus valores nominales.</div>';
+}
+
+/* ================= controles ================= */
+function ctlRange(k,label,val,min,max,step){return `<div class="ctl"><label>${label}</label><div class="row"><input type="range" data-k="${k}" min="${min}" max="${max}" step="${step}" value="${val}"><input class="num" data-k="${k}" inputmode="decimal" value="${String(val).replace('.',',')}"></div></div>`;}
+function ctlSelect(k,label,opts,val){return `<div class="ctl"><label>${label}</label><select data-k="${k}">${opts.map(o=>`<option value="${o[0]}" ${String(o[0])===String(val)?'selected':''}>${o[1]}</option>`).join('')}</select></div>`;}
+function buildBattery(){
+  const ev=S.ev.on;let h='';
+  if(!ev){
+    h+=ctlSelect('bat','Batería (12 V)',Object.keys(BATS).map(k=>[k,BATS[k].name]),B.type);
+    h+=ctlSelect('tech','Tecnología',Object.keys(TECH).map(k=>[k,TECH[k].name]),B.tech);
+    h+=ctlRange('soc','Estado de carga real, SOC (%)',Math.round(clamp(B.soc,0,1)*100),0,100,1);
+    h+=ctlRange('T','Temperatura ambiente y de la batería en reposo (°C)',Math.round(B.Tamb),-18,45,1);
+    h+=ctlSelect('age','Antigüedad',AGES.map((a,i)=>[i,a.n]),B.age);
+    h+=ctlSelect('fault','Avería simulada',FAULTS,B.fault);
+  }else{
+    h+=`<div class="ctl"><label>Batería del caso</label><b>${BATS[B.type].name}</b><br><span class="muted">${TECH[B.tech].name}</span></div><div class="ctl"><label>Temperatura del electrolito (termómetro)</label><b>${nf(B.T,0)} °C</b></div><p class="muted" style="grid-column:1/-1;margin:0">El estado de carga, la antigüedad y la avería están ocultos. Mida para diagnosticar.</p>`;
+  }
+  $('bctl').innerHTML=h;$('btnSurf').classList.toggle('hide',ev);
+  bind($('bctl'));
+}
+function buildTest(){
+  const ev=S.ev.on;let h='',title='Controles de la prueba';
+  const C=cap();
+  if(S.tab==='soc'){title='Densímetro';
+    h+=`<div class="grid2">${ctlSelect('cell','Celda a medir',[0,1,2,3,4,5].map(i=>[i,'Celda '+(i+1)]),S.hyd.sel)}<div class="ctl"><label>&nbsp;</label><button class="btn" data-act="sample">Tomar muestra</button> <button class="btn" data-act="sampleAll">Muestrear las 6 celdas</button></div></div>`;
+    if(!ev)h+=`<label class="switch"><input type="checkbox" data-k="showCorr" ${S.hyd.showCorr?'checked':''}> Mostrar densidad corregida a 25 °C en la vista</label>`;
+    h+=`<p class="muted">Lea la densidad a la altura del menisco (ventana de zoom). Devuelva siempre el electrolito a la misma celda. Mida la temperatura del electrolito para corregir la lectura.</p>`;
+  }else if(S.tab==='ri'){title='Carga para medir Rᵢ';
+    h+=`<div class="grid2">${ctlSelect('riSel','Carga aplicada',Object.keys(RILOADS).map(k=>[k,RILOADS[k][0]]),S.ri.sel)}${S.ri.sel==='pers'?ctlRange('riI','Corriente de la carga (A)',S.ri.I,5,400,5):'<div></div>'}</div>`;
+    h+=`<label class="switch"><input type="checkbox" data-k="riOn" ${S.ri.on?'checked':''}> Carga conectada</label>`;
+    h+=`<div class="bar"><button class="btn" data-act="readU0">Leer U₀ (sin carga)</button><button class="btn" data-act="readUL">Leer U con carga</button><button class="btn small" data-act="riClr">Borrar lecturas</button></div>`;
+    h+=`<p class="muted">Las lecturas toman el valor del multímetro en el punto elegido (postes o terminales).</p>`;
+  }else if(S.tab==='lt'){title='Probador de descarga';
+    h+=`<div class="grid2">${ctlRange('ltI','Corriente de prueba (A)',S.lt.I,50,500,5)}${ctlSelect('clamp','Pinzas del probador en',[['postes','Postes de la batería'],['term','Terminales de los cables']],S.clamp)}${ctlSelect('ltSp','Velocidad de la animación',[[1,'Tiempo real (1×)'],[3,'Rápida (3×)'],[5,'Muy rápida (5×)']],S.lt.speed)}<div class="ctl"><label>&nbsp;</label><button class="btn small" data-act="halfCCA">Ajustar ½ CCA (${nf(BATS[B.type].CCA/2,0)} A)</button></div></div>`;
+    h+=`<div class="bar"><button class="btn primary" data-act="ltStart">Aplicar carga 15 s</button><button class="btn" data-act="ltReset">Reiniciar</button></div>`;
+  }else if(S.tab==='ct'){title='Probador de conductancia';
+    h+=`<div class="grid2">${ctlRange('cca','CCA nominal de la etiqueta (A)',S.ct.cca,200,1000,10)}${ctlSelect('clamp','Pinzas del probador en',[['postes','Postes de la batería'],['term','Terminales de los cables']],S.clamp)}</div>`;
+    h+=`<div class="bar"><button class="btn primary" data-act="ctStart" ${ev?'disabled':''}>Iniciar prueba</button></div>`;
+  }else{title='Cargador y arranque auxiliar';
+    const ch=S.ch;
+    h+=`<div class="tabs" style="margin-bottom:8px"><button data-act="vchg" class="${ch.view==='chg'?'on':''}">Cargador</button><button data-act="vjs" class="${ch.view==='js'?'on':''}">Arranque auxiliar</button></div>`;
+    if(ch.view==='chg'){
+      h+=`<div class="grid2">${ctlSelect('chM','Método de carga',[['cc','Corriente constante (I)'],['cv','Tensión constante (U)'],['iuou','IUoU (cargador automático)']],ch.method)}${ctlSelect('chSp','Velocidad de simulación',[[600,'1 s = 10 min'],[1800,'1 s = 30 min'],[3600,'1 s = 1 h']],ch.speed)}`;
+      h+=ctlRange('chI',ch.method==='cc'?'Corriente de carga I (A)':'Corriente máxima / fase I (A)',ch.Iset,1,30,0.5);
+      if(ch.method!=='cc')h+=ctlRange('chU',ch.method==='iuou'?'Tensión de absorción U (V)':'Tensión de carga U (V)',ch.Uset,13.2,16,0.05);
+      if(ch.method==='iuou')h+=ctlRange('chUf','Tensión de flotación Uo (V)',ch.Uf,13.2,14,0.05);
+      h+=`</div><div class="bar"><button class="btn small" data-act="i10">I = 10 % de C₂₀ (${nf(0.1*C,1)} A)</button><button class="btn primary" data-act="chRun" ${ev?'disabled':''}>${ch.run?'Pausar':'Iniciar / reanudar carga'}</button><button class="btn" data-act="chStop" ${ev?'disabled':''}>Desconectar cargador</button><button class="btn small" data-act="chReset" ${ev?'disabled':''}>Reiniciar gráfica</button></div>`;
+    }else{
+      const js=S.js;
+      h+=`<div class="bar"><button class="btn primary" data-act="jsStart" ${js.phase==='ready'?'':'disabled'}>Arrancar motor</button><button class="btn" data-act="jsDis" ${js.phase==='run'?'':'disabled'}>Desconectar pinzas</button><button class="btn" data-act="jsReset">Reiniciar secuencia</button></div><p class="muted">Ambas baterías deben ser de 12 V. Haga clic en los círculos punteados (bornes y masa) en el orden correcto.</p>`;
+    }
+  }
+  $('tctlTitle').textContent=title;$('tctl').innerHTML=h;bind($('tctl'));
+  $('caption').textContent=S.tab==='ch'&&S.ch.view==='js'?'Arranque auxiliar: pinza roja + descargada → + donante; pinza negra − donante → masa del motor averiado, lejos de la batería (la última conexión produce chispa). Se desconecta en orden inverso.':CAPTION[S.tab];
+}
+function bind(root){
+  root.querySelectorAll('[data-k]').forEach(inp=>{
+    const evn=inp.type==='checkbox'||inp.tagName==='SELECT'?'change':(inp.type==='range'?'input':'change');
+    inp.addEventListener(evn,()=>{const k=inp.dataset.k;let v;
+      if(inp.type==='checkbox')v=inp.checked;else if(inp.tagName==='SELECT')v=inp.value;else{v=parseNum(inp.value);if(!isFinite(v))return;const mn=parseNum(inp.getAttribute('min')??root.querySelector(`input[type=range][data-k="${k}"]`)?.min),mx=parseNum(root.querySelector(`input[type=range][data-k="${k}"]`)?.max);if(isFinite(mn)&&isFinite(mx))v=clamp(v,mn,mx);}
+      root.querySelectorAll(`[data-k="${k}"]`).forEach(o=>{if(o!==inp&&o.type!=='checkbox'&&o.tagName!=='SELECT')o.value=o.type==='range'?v:String(v).replace('.',',');});
+      if(inp.classList.contains('num'))inp.value=String(v).replace('.',',');
+      setVal(k,v);});
+  });
+}
+function clearReadings(){S.hyd.samples={};S.hyd.cell=null;S.hyd.anim=false;S.ri.U0=S.ri.UL=S.ri.IL=null;S.lt.data=[];S.lt.U15=S.lt.Urec=S.lt.U0=null;S.lt.verdict=null;S.lt.phase='idle';S.lt.t=0;S.ct.phase='idle';S.ct.res=null;}
+function setVal(k,v){
+  const C=()=>BATS[B.type];
+  switch(k){
+    case 'bat':B.type=v;S.lt.I=C().CCA/2;S.ct.cca=C().CCA;S.ch.Iset=Math.round(C().C*0.1*2)/2;clearReadings();buildTest();break;
+    case 'tech':B.tech=v;S.ch.Uset=TECH[v].Uabs;clearReadings();buildTest();break;
+    case 'soc':B.soc=Math.min(v/100,smax());B.sc=0;if(B.fault==='prof'){B.fault='none';buildBattery();}clearReadings();break;
+    case 'T':B.T=B.Tamb=v;clearReadings();break;
+    case 'age':B.age=+v;clearReadings();break;
+    case 'fault':B.fault=v;B.sc=0;if(v==='sup'){B.sc=0.45;}if(v==='prof')B.soc=-0.10;if(v==='sulf')B.soc=Math.min(B.soc,0.82);if(v==='none'&&B.soc<0)B.soc=0.9;clearReadings();buildBattery();break;
+    case 'cell':S.hyd.sel=+v;break;
+    case 'showCorr':S.hyd.showCorr=v;break;
+    case 'riSel':S.ri.sel=v;if(RILOADS[v][1])S.ri.I=RILOADS[v][1];buildTest();break;
+    case 'riI':S.ri.I=v;break;
+    case 'riOn':S.ri.on=v;if(v)event('i',`Carga conectada: ${RILOADS[S.ri.sel][0]}${S.ri.sel==='pers'?' '+nf(S.ri.I,0)+' A':''}.`);break;
+    case 'ltI':S.lt.I=v;break;
+    case 'clamp':S.clamp=v;buildTest();break;
+    case 'ltSp':S.lt.speed=+v;break;
+    case 'cca':S.ct.cca=v;S.ct.res=null;S.ct.phase='idle';break;
+    case 'chM':S.ch.method=v;S.ch.ph='I';buildTest();break;
+    case 'chSp':S.ch.speed=+v;break;
+    case 'chI':S.ch.Iset=v;break;
+    case 'chU':S.ch.Uset=v;break;
+    case 'chUf':S.ch.Uf=v;break;
+  }
+  S.redraw=true;S.dirty=true;
+}
+function syncSliders(){
+  if(S.ev.on)return;
+  const pairs={soc:Math.round(clamp(B.soc,0,1)*100)};
+  for(const k in pairs)document.querySelectorAll(`#bctl [data-k="${k}"]`).forEach(o=>{if(document.activeElement!==o)o.value=o.type==='range'?pairs[k]:String(pairs[k]);});
+}
+function act(a){
+  const C=cap();
+  switch(a){
+    case 'lights':S.lightsT=60;event('i','Faros encendidos 1 min (≈ 10 A) para eliminar la carga superficial. Simulación acelerada ×10.');break;
+    case 'rest':B.sc*=Math.exp(-3);if(B.sc<0.005)B.sc=0;S.pol=0;B.T=B.Tamb;S.lightsT=0;event('i','Batería en reposo 2 h sin carga ni descarga: la carga superficial y la polarización desaparecen.');break;
+    case 'surf':B.sc=0.45;clearReadings();event('i','Se simula una batería recién cargada o tras conducir: carga superficial de ≈ 0,45 V.');break;
+    case 'sample':sampleCell(S.hyd.sel);break;
+    case 'sampleAll':sampleAll();break;
+    case 'readU0':{if(S.meter.mode!=='V'||S.meter.pt==='borne'){event('w','Ponga el multímetro en V⎓ con las puntas en los postes (o en los terminales).');break;}
+      if(S.I>0.5){event('w','¡Hay carga conectada! U₀ debe leerse sin carga: desconecte la carga primero.');break;}
+      S.ri.U0=meterU(S.meter.pt);addRow('Resistencia interna','U₀ sin carga',S.meter.pt==='postes'?'postes':'terminales',nf(S.ri.U0,2)+' V');break;}
+    case 'readUL':{if(S.meter.mode!=='V'||S.meter.pt==='borne'){event('w','Ponga el multímetro en V⎓ con las puntas en los postes (o en los terminales).');break;}
+      if(!S.ri.on){event('w','Conecte primero la carga (casilla «Carga conectada»).');break;}
+      S.ri.UL=meterU(S.meter.pt);S.ri.IL=S.ri.I;addRow('Resistencia interna',`U con carga (I = ${nf(S.ri.I,0)} A)`,S.meter.pt==='postes'?'postes':'terminales',nf(S.ri.UL,2)+' V');break;}
+    case 'riClr':S.ri.U0=S.ri.UL=S.ri.IL=null;break;
+    case 'halfCCA':S.lt.I=BATS[B.type].CCA/2;buildTest();break;
+    case 'ltStart':startLT();break;
+    case 'ltReset':Object.assign(S.lt,{phase:'idle',t:0,data:[],U15:null,Urec:null,U0:null,verdict:null});S.pol=0;break;
+    case 'ctStart':if(S.ev.on)break;S.ct.phase='test';S.ct.t=0;S.ct.res=null;break;
+    case 'vchg':S.ch.view='chg';buildTest();break;
+    case 'vjs':S.ch.view='js';S.ch.run=false;buildTest();break;
+    case 'i10':S.ch.Iset=Math.round(C*0.1*2)/2;buildTest();break;
+    case 'chRun':if(S.ev.on)break;S.ch.run=!S.ch.run;if(S.ch.run){B.sc=0;S.lightsT=0;S.ri.on=false;if(S.ch.t===0){S.ch.data=[];S.ch.lastS=-1e9;S.ch.ph='I';}
+        const Ahr=Math.max(0,1-B.soc)*C;event('i',`Carga iniciada. Ah a reponer ≈ ${nf(Ahr,1)} Ah → t ≈ ${nf(Ahr,1)} × 1,2 / ${nf(S.ch.Iset,1)} A = ${nf(Ahr*1.2/S.ch.Iset,1)} h.`);}
+      buildTest();break;
+    case 'chStop':if(S.ch.Ah>0.3){B.sc=clamp(0.15+0.3*B.soc,0,0.45);event('i','Cargador desconectado. La batería queda con carga superficial: deje reposar 2 h o encienda los faros 1 min antes de medir la tensión en reposo.');}
+      S.ch.run=false;S.charging=false;S.ch.ph='I';buildTest();break;
+    case 'chReset':S.ch.run=false;S.charging=false;Object.assign(S.ch,{t:0,data:[],Ah:0,U:0,I:0,Ich:0,Igas:0,lastS:-1e9,ph:'I',phase:'—'});B.T=B.Tamb;buildTest();break;
+    case 'jsStart':if(S.js.phase==='ready'){S.js.phase='run';S.js.anim=2;S.js.msg=['o','El vehículo averiado arrancó. Déjelo en marcha y retire las pinzas en orden inverso.'];buildTest();}break;
+    case 'jsDis':if(S.js.phase==='run'){S.js.phase='dis';S.js.step=0;S.js.msg=['i','Retire las pinzas en orden inverso: primero la de masa del motor.'];buildTest();}break;
+    case 'jsReset':S.js={phase:'con',step:0,done:[],msg:null,anim:0};buildTest();break;
+  }
+  S.redraw=true;S.dirty=true;
+}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(b&&!b.disabled)act(b.dataset.act);});
+svg.addEventListener('pointerdown',e=>{
+  const c=e.target.closest('[data-cell]');if(c){S.hyd.sel=+c.dataset.cell;sampleCell(+c.dataset.cell);const sel=document.querySelector('#tctl select[data-k="cell"]');if(sel)sel.value=c.dataset.cell;return;}
+  const j=e.target.closest('[data-js]');if(j){jsClick(j.dataset.js);return;}
+});
+
+/* ================= registro ================= */
+function addRow(p,m,c,l){S.log.push({n:S.log.length+1,p,m,c,l});drawLog();}
+function addLog(){
+  const m=updateMeter(),tn=TABS.find(t=>t[0]===S.tab)[1].replace(/^\d · /,'');
+  const cond=`T = ${nf(B.T,0)} °C${S.charging?'; en carga':S.I>0.5?'; I = '+nf(S.I,0)+' A':'; sin carga'}`;
+  if(S.meter.mode!=='OFF'&&m.v)addRow(tn,S.meter.mode==='V'?{postes:'Tensión en postes',term:'Tensión en terminales',borne:'Caída poste → terminal +'}[S.meter.pt]:'Corriente (pinza)',cond,m.v+' '+m.u);
+  if(S.tab==='soc'&&S.hyd.cell!==null&&S.hyd.samples[S.hyd.cell]!==undefined)addRow(tn,`Densidad celda ${S.hyd.cell+1} (sin corregir)`,`T = ${nf(B.T,0)} °C`,nf(S.hyd.samples[S.hyd.cell],3)+' g/cm³');
+  if(S.tab==='ch'&&S.ch.view==='chg'&&S.ch.t>0)addRow(tn,'U / I / T en carga',`t = ${fmtT(S.ch.t)}; ${S.ch.phase}`,`${nf(S.ch.U,2)} V / ${nf(S.ch.I,2)} A / ${nf(B.T,1)} °C`);
+}
+function drawLog(){
+  $('logTbl').innerHTML=S.log.length?`<table><tr><th>N.º</th><th>Prueba</th><th>Magnitud</th><th>Condición</th><th>Lectura</th></tr>${S.log.map(r=>`<tr><td>${r.n}</td><td>${r.p}</td><td>${r.m}</td><td>${r.c}</td><td>${r.l}</td></tr>`).join('')}</table>`:'<p class="muted">Aún no hay lecturas registradas.</p>';
+}
+function csv(){
+  const lines=['N;Prueba;Magnitud;Condición;Lectura',...S.log.map(r=>[r.n,r.p,r.m,r.c,r.l].map(x=>String(x).replace(/;/g,',')).join(';'))];
+  const blob=new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='registro_bateria_plomo_acido.csv';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+
+/* ================= modo evaluación ================= */
+function newCase(){
+  const k=pick(Object.keys(KIND));
+  B.type=pick(['45','60','75']);B.tech='fl';B.age=pick([0,1]);B.fault='none';B.sc=0;
+  B.T=B.Tamb=pick([-5,2,8,15,20,25,30,35]);
+  B.off=[0,1,2,3,4,5].map(()=>Math.round(rnd(-0.004,0.004)*1000)/1000);B.shortIdx=Math.floor(Math.random()*6);
+  const v={buena:'ok',descargada:'rec',profunda:'rec',superficial:'rec',sulf:'rep',vieja:'rep',celda:'cel',corr:'bor'}[k];
+  switch(k){
+    case 'buena':B.soc=rnd(0.8,1);break;
+    case 'descargada':B.soc=rnd(0.35,0.65);break;
+    case 'profunda':B.soc=rnd(-0.1,-0.03);B.fault='prof';break;
+    case 'superficial':B.soc=rnd(0.45,0.65);B.sc=rnd(0.35,0.5);B.fault='sup';break;
+    case 'sulf':B.fault='sulf';B.soc=rnd(0.8,0.85);break;
+    case 'vieja':B.age=3;B.soc=rnd(0.8,1);break;
+    case 'celda':B.fault='celda';B.soc=rnd(0.8,1);break;
+    case 'corr':B.fault='corr';B.soc=rnd(0.8,1);break;
+  }
+  clearReadings();S.pol=0;S.lightsT=0;S.ri.on=false;S.ch.run=false;S.charging=false;Object.assign(S.ch,{t:0,data:[],Ah:0,U:0,I:0,lastS:-1e9,ph:'I'});
+  S.lt.I=BATS[B.type].CCA/2;S.ct.cca=BATS[B.type].CCA;S.js={phase:'con',step:0,done:[],msg:null,anim:0};
+  S.ev.case={k,v};S.ev.checked=false;S.events=[];
+  ['evSoc','evRmax','evRmin','evRi'].forEach(id=>{$(id).value='';$(id).className='';$(id).title='';});$('evVer').value='';$('evVer').className='';
+  $('score').textContent='';$('evalFb').innerHTML='';
+  $('evalInfo').innerHTML=`Caso nuevo: batería <b>${BATS[B.type].name}</b>, inundada, electrolito a <b>${nf(B.T,0)} °C</b>. Mida con el densímetro (pestaña 1), el multímetro y la carga de la pestaña 2, y el probador de descarga (pestaña 3). Luego responda.`;
+  buildBattery();buildTest();S.redraw=true;S.dirty=true;
+}
+function mark(el,ok,exp){el.classList.toggle('ok',ok);el.classList.toggle('bad',!ok);el.title=ok?'Correcto':'Valor esperado ≈ '+exp;}
+function checkEval(){
+  const c=S.ev.case;if(!c)return;
+  const socT=clamp(B.soc,0,1)*100,cells=[0,1,2,3,4,5].map(cellRho25),rmax=Math.max(...cells),rmin=Math.min(...cells),Ri=RiOhm()*1000,dT=B.T-25;
+  const iMax=cells.indexOf(rmax),iMin=cells.indexOf(rmin);
+  const fb=[];let ok=0;
+  // SOC
+  let a=parseNum($('evSoc').value),g=isFinite(a)&&Math.abs(a-socT)<=8;mark($('evSoc'),g,nf(socT,0)+' %');
+  if(g){ok++;fb.push(['o',`<b>SOC correcto.</b> SOC real ≈ ${nf(socT,0)} % (tolerancia ± 8 puntos).`]);}
+  else{let why='Use la densidad corregida y la tabla de referencia (1,265 → 100 %; 1,225 → 75 %; 1,190 → 50 %; 1,155 → 25 %; 1,120 → 0 %) o la tensión en reposo sin carga superficial, interpolando linealmente.';
+    if(c.k==='superficial'&&isFinite(a)&&a>socT)why='La tensión en reposo estaba elevada por <b>carga superficial</b>: había que encender los faros 1 min (o reposo ≥ 2 h) antes de medir. La densidad no se ve afectada y da el SOC real.';
+    if(c.k==='celda')why='Con una celda en cortocircuito la tensión total (≈ 10,5 V) no sirve para estimar el SOC: use la densidad de las celdas sanas.';
+    if(c.k==='profunda')why='Por debajo de 11,89 V y 1,120 g/cm³ la batería está totalmente descargada: SOC = 0 %.';
+    fb.push(['e',`<b>SOC:</b> esperado ≈ ${nf(socT,0)} %. ${why}`]);}
+  // densidades
+  const rT=v=>v-0.0007*dT;
+  const fmtCorr=(r)=>`ρ₂₅ = ρ<sub>T</sub> + 0,0007 · (T − 25) = ${nf(rT(r),3)} + 0,0007 · (${nf(B.T,0)} − 25) = ${nf(r,3)} g/cm³`;
+  a=parseNum($('evRmax').value);g=isFinite(a)&&Math.abs(a-rmax)<=0.008;mark($('evRmax'),g,nf(rmax,3));
+  if(g){ok++;fb.push(['o',`<b>ρ₂₅ máxima correcta</b> (celda ${iMax+1}): ${fmtCorr(rmax)}.`]);}
+  else fb.push(['e',`<b>ρ₂₅ máxima:</b> celda ${iMax+1}, ${fmtCorr(rmax)}. ${B.T<25?'El electrolito está más frío que 25 °C, así que la corrección se resta.':B.T>25?'El electrolito está más caliente que 25 °C, así que la corrección se suma.':''}`]);
+  a=parseNum($('evRmin').value);g=isFinite(a)&&Math.abs(a-rmin)<=0.008;mark($('evRmin'),g,nf(rmin,3));
+  const dd=rmax-rmin;
+  if(g){ok++;fb.push(['o',`<b>ρ₂₅ mínima correcta</b> (celda ${iMin+1}): ${nf(rmin,3)} g/cm³. Δρ = ${nf(dd,3)} g/cm³ ${dd>0.05?'> 0,050 → celda defectuosa.':'≤ 0,050 → celdas parejas.'}`]);}
+  else fb.push(['e',`<b>ρ₂₅ mínima:</b> celda ${iMin+1}, ${fmtCorr(rmin)}. Δρ = ${nf(dd,3)} g/cm³ ${dd>0.05?'(> 0,050: celda defectuosa).':'(≤ 0,050).'}`]);
+  // Ri
+  a=parseNum($('evRi').value);g=isFinite(a)&&Math.abs(a-Ri)<=0.2*Ri;mark($('evRi'),g,nf(Ri,2)+' mΩ');
+  if(g){ok++;fb.push(['o',`<b>Rᵢ correcta:</b> ≈ ${nf(Ri,2)} mΩ (tolerancia ± 20 %). ${Ri>2*RiNew()*1000*fT(B.T)?'Es muy alta para esta batería.':'Valor normal para su temperatura y estado de carga.'}`]);}
+  else{let why='Calcule Rᵢ = (U₀ − U<sub>carga</sub>) / I con lecturas instantáneas en la pestaña 2, midiendo en los postes y sin carga superficial.';
+    if(isFinite(a)&&Math.abs(a-1.25*Ri)<=0.15*Ri)why='Su valor se parece a (U₀ − U₁₅)/I de la prueba de 15 s: allí la tensión incluye además la <b>polarización</b>, que crece durante la descarga. Use lecturas instantáneas (pestaña 2).';
+    else if(c.k==='corr'&&isFinite(a)&&Math.abs(a-(Ri+Rcorr()*1000))<=0.2*Ri)why='Midió en los terminales del cable: incluyó la resistencia del borne corroído. Rᵢ de la batería se mide en los postes.';
+    else if(c.k==='superficial')why+=' Con carga superficial, U₀ sale alta y Rᵢ resulta exagerada.';
+    fb.push(['e',`<b>Rᵢ:</b> esperada ≈ ${nf(Ri,2)} mΩ. ${why}`]);}
+  // veredicto
+  const vv=$('evVer').value;g=vv===c.v;$('evVer').classList.toggle('ok',g);$('evVer').classList.toggle('bad',!g);
+  const why={buena:'SOC ≥ 75 %, celdas parejas (Δρ ≤ 0,050) y la tensión a los 15 s con ½ CCA queda sobre el mínimo de la tabla para la temperatura: la batería está buena.',
+    descargada:'SOC < 75 %: la prueba de descarga no es válida con la batería descargada. Primero se recarga y luego se repite la prueba.',
+    profunda:'Descarga profunda (U < 11,9 V; ρ ≈ 1,10): se recarga lentamente (≈ 10 % de C₂₀) y se repite la prueba; si no recupera, se reemplaza.',
+    superficial:'La tensión inicial alta era carga superficial; al eliminarla, el SOC real es < 75 %: recargar y repetir la prueba.',
+    sulf:`SOC ≥ 75 %, pero Rᵢ ≈ ${nf(Ri,1)} mΩ (≈ 3 veces lo normal) y la tensión a los 15 s cae bajo el mínimo: placas sulfatadas → reemplazar.`,
+    vieja:`SOC ≥ 75 % y celdas parejas, pero Rᵢ ≈ ${nf(Ri,1)} mΩ y la tensión a los 15 s cae bajo el mínimo: desgaste por envejecimiento → reemplazar.`,
+    celda:'Una celda marca ≈ 1,10 g/cm³ (Δρ > 0,050) y la tensión en reposo es ≈ 10,5 V: celda en cortocircuito → reemplazar la batería.',
+    corr:`La batería está sana (densidad, Rᵢ y prueba en los postes correctas), pero con carga la caída entre el poste + y el terminal es alta (≈ ${nf(150*Rcorr(),2)} V con 150 A): limpiar y ajustar el borne y repetir.`}[c.k];
+  if(g){ok++;fb.push(['o',`<b>Veredicto correcto: ${VERD[c.v]}.</b> ${why}`]);}
+  else fb.push(['e',`<b>Veredicto:</b> lo correcto es «${VERD[c.v]}». ${why}`]);
+  $('score').textContent=`${ok} / 5 correctos`;
+  fb.push(['i',`<b>Caso:</b> ${KIND[c.k]} · ${BATS[B.type].name} · SOC real ${nf(socT,0)} % · Rᵢ ${nf(Ri,2)} mΩ · T ${nf(B.T,0)} °C.`]);
+  $('evalFb').innerHTML=fb.map(([k,t])=>`<div class="${k}">${t}</div>`).join('');
+  S.ev.checked=true;S.redraw=true;
+}
+$('evalMode').onchange=e=>{S.ev.on=e.target.checked;$('evalBody').classList.toggle('hide',!S.ev.on);
+  if(S.ev.on)newCase();else{S.ev.case=null;S.events=[];buildBattery();buildTest();}
+  S.redraw=true;S.dirty=true;};
+$('btnCheck').onclick=checkEval;$('btnNew').onclick=newCase;
+
+/* ================= ecuaciones ================= */
+const REFSOC=`<table><tr><th>SOC</th><th>U reposo</th><th>ρ<sub>25</sub> (g/cm³)</th><th>Congela ≈</th></tr>
+<tr><td>100 %</td><td>12,65 V</td><td>1,265</td><td>−57 °C</td></tr><tr><td>75 %</td><td>12,45 V</td><td>1,225</td><td>−37 °C</td></tr><tr><td>50 %</td><td>12,24 V</td><td>1,190</td><td>−25 °C</td></tr><tr><td>25 %</td><td>12,06 V</td><td>1,155</td><td>−16 °C</td></tr><tr><td>0 %</td><td>11,89 V</td><td>1,120</td><td>−9 °C</td></tr></table>`;
+const REFLT=`<table><tr><th>T batería</th><th>U mín. a 15 s</th></tr>${UMIN.map(([t,u])=>`<tr><td>${t===21?'21 °C o más':nf(t,0)+' °C'}</td><td>${nf(u,1)} V</td></tr>`).join('')}</table>`;
+const EQ={
+ soc:`<p class="f">U<sub>reposo</sub> ≈ ρ + 0,84 &nbsp;[V por celda] &nbsp;→&nbsp; U<sub>batería</sub> ≈ 6 · (ρ<sub>25</sub> + 0,84)</p>
+  <p class="f">ρ<sub>25</sub> = ρ<sub>T</sub> + 0,0007 · (T − 25 °C) &nbsp;(se suma si el electrolito está más caliente que 25 °C)</p>
+  <p class="f">Δρ = ρ<sub>máx</sub> − ρ<sub>mín</sub> ≤ 0,050 g/cm³ &nbsp;(más indica celda defectuosa)</p>
+  <p class="f">SOC ≈ 25 % · (ρ<sub>25</sub> − ρ<sub>inf</sub>) / (ρ<sub>sup</sub> − ρ<sub>inf</sub>) + SOC<sub>inf</sub> &nbsp;(interpolación en la tabla)</p>
+  ${REFSOC}
+  <p class="muted">Valores de referencia a 25 °C, batería en reposo ≥ 2 h o sin carga superficial. Tras cargar o conducir, la tensión en reposo es falsamente alta: encienda los faros 1 min. En AGM a plena carga la tensión en reposo es ≈ 12,8 V; EFB/AGM son selladas y no admiten densímetro. Puntos de congelación orientativos; consulte el manual del fabricante.</p>`,
+ ri:`<p class="f">E = U<sub>0</sub> − I · R<sub>i</sub> &nbsp;(tensión en bornes bajo carga; guía 4-P1)</p>
+  <p class="f">R<sub>i</sub> = (U<sub>0</sub> − U<sub>carga</sub>) / I</p>
+  <p class="f">P<sub>pérdida</sub> = I² · R<sub>i</sub> &nbsp;&nbsp;·&nbsp;&nbsp; ΔU<sub>borne</sub> = I · R<sub>contacto</sub></p>
+  <table><tr><th>Condición (modelo, orientativo)</th><th>Factor sobre R<sub>i</sub></th></tr><tr><td>Batería nueva, 100 %, 25 °C</td><td>4–7 mΩ (×1)</td></tr><tr><td>SOC 50 % / 0 %</td><td>×1,25 / ×2</td></tr><tr><td>0 °C / −18 °C</td><td>×1,33 / ×1,56</td></tr><tr><td>Envejecimiento 2 / 4 / 6 años</td><td>×1,15 / ×1,4 / ×2,2</td></tr><tr><td>Sulfatación</td><td>×3</td></tr></table>
+  <p class="muted">R<sub>i</sub> aumenta con la descarga, la sulfatación, el frío y el envejecimiento. Caída en una conexión de borne con corriente de arranque: orientativo ≤ 0,1 V; consulte el manual del fabricante.</p>`,
+ lt:`<p class="f">I<sub>prueba</sub> = ½ · CCA &nbsp;durante 15 s &nbsp;(requisito: SOC ≥ 75 %)</p>
+  <p class="f">U(t) = U<sub>0</sub> − I · R<sub>i</sub> − U<sub>pol</sub>(t) &nbsp;&nbsp;·&nbsp;&nbsp; U<sub>15 s</sub> ≥ U<sub>mín</sub>(T)</p>
+  ${REFLT}
+  <p class="muted">Se toma la fila de temperatura inmediatamente inferior a la de la batería. Resultado: U<sub>15 s</sub> ≥ U<sub>mín</sub> → buena; si no la alcanza con SOC &lt; 75 % → recargar y repetir; con SOC ≥ 75 % → reemplazar. Tras retirar la carga la tensión se recupera; U<sub>pol</sub> es la polarización que aparece durante la descarga. Conecte las pinzas en los postes, no en los terminales del vehículo.</p>`,
+ ct:`<p class="f">G = 1 / R<sub>i</sub> &nbsp;[S] &nbsp;&nbsp;·&nbsp;&nbsp; CCA<sub>medido</sub> ∝ G</p>
+  <p class="f">SOH = CCA<sub>medido</sub> / CCA<sub>nominal</sub> · 100 %</p>
+  <table><tr><th>Lectura (orientativa)</th><th>Veredicto</th></tr><tr><td>U reposo &lt; 11,3 V (celda en corto)</td><td>Celda defectuosa</td></tr><tr><td>SOC &lt; 75 %</td><td>Cargar y volver a probar</td></tr><tr><td>SOC ≥ 75 % y SOH ≥ 70 %</td><td>Buena</td></tr><tr><td>SOC ≥ 75 % y SOH &lt; 70 %</td><td>Reemplazar</td></tr></table>
+  <p class="muted">El probador inyecta una pequeña corriente alterna y mide la respuesta de tensión: obtiene la conductancia sin descargar la batería. Compensa la temperatura, pero estima el SOC con la tensión en reposo, por lo que la carga superficial lo engaña. Umbrales orientativos; consulte el manual del equipo.</p>`,
+ ch:`<p class="f">I<sub>carga</sub> ≈ 0,1 · C<sub>20</sub> &nbsp;(carga normal)</p>
+  <p class="f">t ≈ (Ah a reponer × 1,2) / I &nbsp;&nbsp;·&nbsp;&nbsp; Ah a reponer ≈ (1 − SOC) · C<sub>20</sub> &nbsp;(factor de carga 1,1–1,2)</p>
+  <p class="f">Gasificación: U &gt; 2,4 V/celda ≈ 14,4 V</p>
+  <table><tr><th>Tecnología</th><th>Absorción</th><th>Flotación</th></tr><tr><td>Inundada</td><td>14,4 V máx.</td><td>13,5–13,8 V</td></tr><tr><td>EFB</td><td>14,4 V (orientativo)</td><td>13,5–13,8 V</td></tr><tr><td>AGM</td><td>14,4–14,7 V sin sobrepasar</td><td>13,5–13,8 V</td></tr></table>
+  <p class="muted">IUoU: fase I (corriente constante) hasta la tensión de absorción, fase U hasta que la corriente cae por debajo de ≈ 2 % de C<sub>20</sub>, y luego flotación U<sub>o</sub>. Interrumpa la carga si la temperatura supera 45–50 °C. <b>Arranque auxiliar:</b> conecte + descargada → + donante → − donante → masa del motor lejos de la batería; desconecte en orden inverso. Valores orientativos; consulte el manual del fabricante.</p>`};
+const CAPTION={soc:'Vista en corte de la batería: seis celdas de ≈ 2,1 V en serie. El densímetro flota más alto cuanto mayor es la densidad del electrolito. Los puntos rojo y negro sobre los bornes indican dónde están las puntas del multímetro.',
+  ri:'Modelo de la batería: fuente ideal U₀ en serie con la resistencia interna Rᵢ. La pendiente de la recta U–I es −Rᵢ; los puntos naranja son sus lecturas.',
+  lt:'El probador aplica ½ CCA durante 15 s y registra la tensión; luego se retira la carga y se observa la recuperación.',
+  ct:'El probador de conductancia estima el CCA disponible a partir de 1/Rᵢ sin descargar la batería.',
+  ch:'Carga acelerada: la gráfica superior muestra U e I; la inferior, SOC y temperatura. Las burbujas indican gasificación.'};
+
+/* ================= pestañas y ciclo ================= */
+function buildTabs(){
+  $('tabs').innerHTML=TABS.map(([k,n])=>`<button data-tab="${k}" class="${k===S.tab?'on':''}">${n}</button>`).join('');
+  $('tabs').querySelectorAll('button').forEach(b=>b.onclick=()=>{
+    if(S.tab===b.dataset.tab)return;
+    S.tab=b.dataset.tab;S.ri.on=false;if(S.lt.phase==='load'||S.lt.phase==='rec'){S.lt.phase='idle';S.lt.data=[];S.lt.t=0;}S.pol=0;if(S.ct.phase==='test')S.ct.phase='idle';S.ch.run=false;S.charging=false;
+    buildTabs();buildTest();S.redraw=true;S.dirty=true;});
+  $('eqs').innerHTML=EQ[S.tab];$('caption').textContent=CAPTION[S.tab];
+}
+document.querySelectorAll('#modes button').forEach(b=>b.addEventListener('click',()=>{S.meter.mode=b.dataset.m;S.redraw=true;updateMeter();}));
+$('mPoint').onchange=e=>{S.meter.pt=e.target.value;S.redraw=true;};
+$('btnLog').onclick=addLog;$('btnCsv').onclick=csv;$('btnClr').onclick=()=>{S.log=[];drawLog();};
+
+let last=performance.now(),acc=0;
+function tick(now){
+  const dt=Math.min(0.05,Math.max(0,(now-last)/1000));last=now;
+  physics(dt);
+  if(S.tab==='ri'&&S.ri.on){S.ri.flow-=dt*(20+S.ri.I*0.4);if(S.ri.flow<-1800)S.ri.flow+=1800;}
+  if(S.redraw||animActive())drawScene();
+  updateMeter();
+  acc+=dt;if(acc>0.25||S.dirty){acc=0;S.dirty=false;updateResults();updateMsgs();syncSliders();
+    const lb=$('btnLights');lb.disabled=S.lightsT>0;}
+  requestAnimationFrame(tick);
+}
+buildTabs();buildBattery();buildTest();drawLog();drawScene();updateResults();updateMsgs();
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>

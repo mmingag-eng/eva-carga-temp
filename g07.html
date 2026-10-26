@@ -1,0 +1,1091 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Simulador Sistema de Arranque</title>
+<style>
+:root{--bg:#f3f5f8;--card:#fff;--ink:#1c2533;--muted:#5b6778;--line:#d9dfe7;--brand:#12355b;--brand2:#1f5a94;--accent:#e07b00;--ok:#1d8a4e;--okbg:#e6f4ec;--bad:#c62828;--badbg:#fdecea;--warnbg:#fff4e0;--wire:#2b3440;--flow:#ffb300}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.45}
+header{background:linear-gradient(90deg,var(--brand),var(--brand2));color:#fff;padding:14px 22px}
+header h1{margin:0;font-size:1.35rem;font-weight:600}
+header p{margin:3px 0 0;opacity:.85;font-size:.9rem}
+main{max-width:1320px;margin:0 auto;padding:16px;display:grid;grid-template-columns:minmax(0,1.75fr) minmax(320px,1fr);gap:16px}
+@media(max-width:980px){main{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:16px}
+.card h2{font-size:1.02rem;margin:0 0 10px;color:var(--brand)}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.tabs button,.btn{border:1px solid var(--line);background:#fff;color:var(--ink);padding:7px 13px;border-radius:7px;cursor:pointer;font-size:.9rem}
+.tabs button.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+.btn:hover,.tabs button:hover{border-color:var(--brand2)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.small{padding:4px 9px;font-size:.82rem}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+svg#circ,svg#graph{width:100%;height:auto;background:#fbfcfe;border:1px solid var(--line);border-radius:8px;user-select:none;display:block}
+.wire{stroke:var(--wire);stroke-width:3;stroke-linecap:round;stroke-linejoin:round;fill:none}
+.wire.main{stroke-width:7;stroke:#3a2f2f}
+.wire.pos{stroke:#8e2323}
+.wire.gnd{stroke-width:6;stroke:#222}
+.wire.ctrl{stroke-width:2.5}
+.wire.jump{stroke-dasharray:14 5}
+.wire.off{stroke:#b8c0cb;stroke-dasharray:6 6}
+.chit{stroke:transparent;stroke-width:22;fill:none;cursor:pointer}
+.flow{fill:none;stroke:var(--flow);stroke-width:3;stroke-dasharray:3 15;stroke-linecap:round;pointer-events:none}
+.flow.big{stroke-width:3.5;stroke-dasharray:4 12}
+.sym{stroke:var(--wire);stroke-width:2;fill:#fff}
+.lbl{font-size:13px;fill:var(--ink);font-weight:600}
+.lbl2{font-size:11.5px;fill:var(--muted)}
+.lbl3{font-size:10.5px;fill:var(--muted)}
+.node circle{fill:#fff;stroke:var(--brand);stroke-width:2.5;cursor:pointer}
+.node:hover circle{fill:#dbe9f7}
+.node text{font-size:12.5px;font-weight:700;fill:var(--brand);pointer-events:none}
+.clk{cursor:pointer}
+.ctl{margin-bottom:10px}
+.ctl label{display:block;font-size:.86rem;color:var(--muted);margin-bottom:3px}
+.ctl .row{display:flex;gap:8px;align-items:center}
+.ctl input[type=range]{flex:1;min-width:0}
+.ctl input[type=number]{width:80px;padding:4px 6px;border:1px solid var(--line);border-radius:6px}
+.ctl select{padding:5px 6px;border:1px solid var(--line);border-radius:6px;min-width:130px;max-width:100%}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:4px 18px}
+@media(max-width:620px){.grid2{grid-template-columns:1fr}}
+.eq{background:#f7f9fc;border-left:4px solid var(--brand2);padding:10px 14px;border-radius:6px;font-size:.92rem}
+.eq p{margin:5px 0}
+.f{font-family:"Cambria Math","Times New Roman",serif;font-size:1.05rem}
+/* multímetro */
+.meter{background:#39414d;border-radius:14px;padding:14px;color:#fff;box-shadow:inset 0 0 0 3px #e0a100}
+.lcd{background:#b9c9a4;color:#1d2616;border-radius:6px;padding:10px 12px;font-family:"Consolas","Courier New",monospace;display:flex;justify-content:space-between;align-items:flex-end;min-height:66px;box-shadow:inset 0 2px 6px rgba(0,0,0,.35)}
+.lcd .val{font-size:2.2rem;font-weight:700;letter-spacing:1px}
+.lcd .unit{font-size:1.2rem;font-weight:700}
+.lcd .fn{font-size:.8rem;align-self:flex-start;white-space:pre-line}
+.lcd.small{min-height:46px;padding:6px 10px;margin-top:8px}
+.lcd.small .val{font-size:1.5rem}
+.modes{display:flex;gap:6px;margin:12px 0 8px}
+.modes button{flex:1;padding:9px 0;border-radius:8px;border:0;background:#555f6d;color:#fff;font-weight:700;cursor:pointer;font-size:.95rem}
+.modes button.on{background:#e0a100;color:#1c1c1c}
+.modes.pos button{font-size:.8rem;padding:7px 2px;font-weight:600}
+.probes{display:flex;gap:6px;align-items:center;font-size:.85rem;flex-wrap:wrap}
+.probes button{border:0;border-radius:6px;padding:5px 10px;cursor:pointer;font-weight:600}
+.pr{background:#e53935;color:#fff;opacity:.55}.pb{background:#111;color:#fff;opacity:.55;border:1px solid #888!important}
+.probes button.on{opacity:1;outline:2px solid #fff}
+.probes select{padding:4px;border-radius:6px;border:0;max-width:100%}
+.mnote{font-size:.83rem;color:#e7ecf2;margin-top:8px;min-height:2.4em}
+.mstat{font-size:.8rem;color:#c6cfda;margin-top:4px}
+.meter .switch{color:#e7ecf2}
+.clampbody{box-shadow:inset 0 0 0 3px #e07b00}
+table{border-collapse:collapse;width:100%;font-size:.88rem}
+th,td{border-bottom:1px solid var(--line);padding:5px 6px;text-align:right}
+th:first-child,td:first-child{text-align:left}
+th{background:#eef2f7;color:var(--brand);font-weight:600}
+td input{width:74px;padding:3px 5px;border:1px solid var(--line);border-radius:5px;text-align:right}
+td input.ok{background:var(--okbg);border-color:var(--ok)}
+td input.bad{background:var(--badbg);border-color:var(--bad)}
+td.okc{color:var(--ok);font-weight:700}td.badc{color:var(--bad);font-weight:700}td.wc{color:var(--accent);font-weight:700}
+.tw{overflow-x:auto}
+.msgs div{padding:7px 10px;border-radius:6px;margin-bottom:6px;font-size:.87rem}
+.msgs .w{background:var(--warnbg);border-left:4px solid var(--accent)}
+.msgs .e{background:var(--badbg);border-left:4px solid var(--bad)}
+.msgs .i{background:#e8f1fb;border-left:4px solid var(--brand2)}
+.msgs .o{background:var(--okbg);border-left:4px solid var(--ok)}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center}
+.switch{display:flex;align-items:center;gap:8px;font-size:.9rem;margin:6px 0}
+details summary{cursor:pointer;font-weight:600;color:var(--brand)}
+details ol{padding-left:20px;margin:8px 0}
+.score{font-weight:700;margin-left:6px}
+.muted{color:var(--muted);font-size:.85rem}
+.obs{margin-top:8px;padding:8px 10px;border-radius:6px;background:#f7f9fc;border-left:4px solid var(--accent);font-size:.9rem}
+.fb{margin-top:10px;font-size:.88rem}
+.fb p{margin:6px 0}
+.ref p{margin:6px 0;padding-left:2em;text-indent:-2em;font-size:.88rem}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.83rem;color:var(--muted);margin-top:6px}
+.legend span b{display:inline-block;width:18px;height:4px;border-radius:2px;vertical-align:middle;margin-right:5px}
+footer{text-align:center;color:var(--muted);font-size:.8rem;padding:10px 0 24px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Simulador 6 · Sistema de arranque: pruebas eléctricas del motor de arranque</h1>
+  <p>Electricidad Automotriz · Unidad 2: Práctica de sistema de arranque · Tecnología Superior en Mecánica Automotriz · ISTS</p>
+</header>
+
+<main>
+<section>
+  <div class="card">
+    <div class="tabs" id="tabs"></div>
+    <svg id="circ" viewBox="0 72 900 438" aria-label="Esquema del sistema de arranque"></svg>
+    <div class="bar">
+      <button class="btn primary" id="btnCrank">Girar llave a START (3 s)</button>
+      <button class="btn" id="btnRest">Llave en OFF (borrar HOLD)</button>
+      <span class="muted" id="crankNote"></span>
+    </div>
+    <div class="obs" id="obs"></div>
+    <div class="muted" style="margin-top:6px">Los puntos amarillos indican el sentido convencional de la corriente; su velocidad aumenta con la intensidad. La rotación del inducido y del piñón está ralentizada para poder verla. Para la prueba, el motor térmico está inhabilitado para arrancar (bomba de combustible o encendido desconectados), como indica el procedimiento de taller.</div>
+  </div>
+
+  <div class="card">
+    <h2>Oscilograma de arranque (3 s): corriente y tensión</h2>
+    <svg id="graph" viewBox="0 0 720 260" aria-label="Gráfica de corriente y tensión durante el arranque"></svg>
+    <div class="legend" id="legend"></div>
+  </div>
+
+  <div class="card">
+    <h2>Parámetros del sistema</h2>
+    <div class="grid2" id="controls"></div>
+    <div class="bar">
+      <button class="btn" id="btnReset">Restablecer valores</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Ecuaciones de trabajo</h2>
+    <div class="eq">
+      <p class="f">U<sub>bat</sub> = U<sub>0</sub> − I · R<sub>i</sub> &nbsp;·&nbsp; ΔU = I · R &nbsp;(caída de tensión en cada tramo)</p>
+      <p class="f">U<sub>motor</sub> = U<sub>45</sub> − U<sub>carcasa</sub> = E + I · R<sub>m</sub></p>
+      <p class="f">E = k · φ(I) · ω &nbsp;·&nbsp; M = k · φ(I) · I &nbsp;(motor serie: φ crece con I y se satura; imanes permanentes: φ constante)</p>
+      <p class="f">n<sub>motor</sub> = i · n<sub>cigüeñal</sub> &nbsp;·&nbsp; M<sub>cigüeñal</sub> = i · η · M<sub>motor</sub> &nbsp;(i ≈ 11–12 directo; ≈ 45 con reductor)</p>
+      <p class="f">M<sub>resistente</sub> = M<sub>medio</sub>(cilindrada, temperatura) + M<sub>comp</sub> · sen(z/2 · θ)</p>
+      <p class="f">f<sub>compresiones</sub> = z · n / 120 &nbsp;(Hz) &nbsp;→&nbsp; n = 120 · f / z &nbsp;(z = cilindros)</p>
+      <p class="f">I<sub>atracción</sub> ≈ U<sub>50</sub> / (R<sub>at</sub> + R<sub>m</sub>) &nbsp;·&nbsp; I<sub>retención</sub> ≈ U<sub>50</sub> / R<sub>ret</sub> &nbsp;·&nbsp; P = U · I</p>
+      <p class="muted">En el instante de conexión el inducido está detenido (E = 0): la corriente solo la limitan las resistencias y aparece el pico de 300–500 A. Al girar, la fuerza contraelectromotriz E reduce la corriente. Cada compresión frena el cigüeñal y produce una cresta de corriente: contando las crestas en la gráfica se calcula el régimen de arrastre.</p>
+    </div>
+    <h2 style="margin-top:14px">Valores de referencia (orientativos; consulte el manual del fabricante)</h2>
+    <div class="tw"><table>
+      <tr><th>Prueba</th><th>Valor de referencia</th></tr>
+      <tr><td>Tensión en reposo de la batería</td><td>≥ 12,4 V (INATEC: 12,6 V)</td></tr>
+      <tr><td>Tensión en bornes durante el arranque</td><td>≥ 9,6 V (INATEC: ≥ 9,5 V)</td></tr>
+      <tr><td>Corriente de arranque, gasolina 4 cil. 1,3–2,0 L</td><td>≈ 120–200 A (INATEC: 120 A ± 15 %)</td></tr>
+      <tr><td>Corriente de arranque, diésel</td><td>≈ 250–400 A</td></tr>
+      <tr><td>Pico de conexión</td><td>≈ 300–500 A (gasolina)</td></tr>
+      <tr><td>Régimen de arrastre</td><td>≈ 150–250 min⁻¹</td></tr>
+      <tr><td>Caída lado positivo (B+ → 30)</td><td>≤ 0,5 V</td></tr>
+      <tr><td>Caída contactos del solenoide (30 → 45/C)</td><td>≤ 0,2–0,3 V</td></tr>
+      <tr><td>Caída lado de masa (carcasa → B−)</td><td>≤ 0,2–0,3 V</td></tr>
+      <tr><td>Tensión en el borne 50 (llave en START)</td><td>≥ 10,5 V</td></tr>
+      <tr><td>Bobina de atracción (50 → 45/C)</td><td>≈ 0,3–0,5 Ω · 30–50 A</td></tr>
+      <tr><td>Bobina de retención (50 → carcasa)</td><td>≈ 1,0–1,5 Ω · 8–12 A</td></tr>
+      <tr><td>Prueba en vacío (banco), motor serie</td><td>≈ 50–90 A a 11–12 V, alto régimen</td></tr>
+      <tr><td>Tiempo máximo de accionamiento</td><td>10–15 s y 2 min de pausa (INATEC); nunca más de 30 s (MAHLE)</td></tr>
+    </table></div>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>¿Cómo usar el simulador?</summary>
+      <ol>
+        <li>Elija la pestaña: <b>Arranque en el vehículo</b> (pruebas con el motor de arranque montado), <b>Prueba en vacío (banco)</b> o <b>Solenoide (óhmetro)</b> con el motor de arranque desmontado.</li>
+        <li>Ajuste el tipo de motor de arranque y de motor térmico, la cilindrada, la temperatura, la compresión y la batería. Con el select «Avería simulada» puede provocar una falla.</li>
+        <li>Mida primero la <b>tensión en reposo</b> de la batería (puntas en B+ y B−). Con menos de 12,4 V, cargue la batería antes de diagnosticar.</li>
+        <li><b>Voltímetro:</b> elija la punta roja o negra y haga clic en un nodo, o use «Prueba rápida» para colocarlas en los puntos de cada prueba de caída de tensión.</li>
+        <li><b>Pinza amperimétrica:</b> pulse «ZERO» con la pinza abierta y luego elija el cable a abrazar (o haga clic sobre el cable en el esquema).</li>
+        <li>Pulse «Girar llave a START (3 s)» o haga clic en la llave. Los instrumentos muestran la lectura en vivo y, al terminar, quedan en <b>HOLD</b> con el valor medio entre 1 y 3 s (arrastre estable). La pinza indica además el pico de conexión.</li>
+        <li>Cambie las puntas de lugar después del arranque: el HOLD muestra la medida de esos puntos durante el mismo arranque. Observe la gráfica: el pico inicial y las crestas por compresión.</li>
+        <li>Use «Registrar lectura» para anotar cada medición y descargue la tabla en CSV (se abre con Excel).</li>
+        <li><b>Modo evaluación:</b> el simulador oculta una avería. Mida, escriba los valores en la tabla, elija el diagnóstico y pulse «Comprobar». Puede usar también las pestañas de banco y solenoide para confirmar. No accione el arranque más de 10–15 s seguidos.</li>
+      </ol>
+    </details>
+  </div>
+
+  <div class="card ref">
+    <h2>Referencias</h2>
+    <p>Instituto Nacional Tecnológico. (2018). <i>Manual del protagonista: Sistema de carga y arranque del vehículo y circuitos electrónicos básicos</i> (1.ª ed.). Tecnológico Nacional (INATEC).</p>
+    <p>MAHLE Aftermarket. (2016). <i>Manual de fallas prematuras en alternadores y motores de arranque</i>. MAHLE.</p>
+    <p class="muted" style="text-indent:0;padding-left:0">Los valores de este simulador son orientativos y con fines didácticos; para un vehículo concreto consulte siempre el manual del fabricante.</p>
+  </div>
+</section>
+
+<aside>
+  <div class="card">
+    <h2>Multímetro digital (voltímetro)</h2>
+    <div class="meter">
+      <div class="lcd"><span class="fn" id="lcdFn">V⎓</span><span><span class="val" id="lcdVal">- - -</span> <span class="unit" id="lcdUnit">V</span></span></div>
+      <div class="modes" id="modes">
+        <button data-m="V" class="on">V⎓</button><button data-m="R">Ω</button><button data-m="OFF">OFF</button>
+      </div>
+      <div class="probes">Colocar punta:
+        <button class="pr on" id="pRed">● Roja (V/Ω)</button>
+        <button class="pb" id="pBlk">● Negra (COM)</button>
+      </div>
+      <div class="probes" style="margin-top:8px">Prueba rápida:
+        <select id="quick"></select>
+      </div>
+      <label class="switch" id="pushWrap" style="display:none"><input type="checkbox" id="push"> Empujar el núcleo a mano (cerrar contactos 30–45/C)</label>
+      <div class="mstat" id="mstat"></div>
+      <div class="mnote" id="mnote"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Pinza amperimétrica de CC y régimen</h2>
+    <div class="meter clampbody">
+      <div class="lcd"><span class="fn" id="clFn">A⎓</span><span><span class="val" id="clVal">- - -</span> <span class="unit">A</span></span></div>
+      <div class="lcd small"><span class="fn">PICO</span><span><span class="val" id="clPk">- - -</span> <span class="unit">A</span></span></div>
+      <div class="lcd small"><span class="fn" id="rpmFn">min⁻¹</span><span><span class="val" id="rpmVal">0</span> <span class="unit">min⁻¹</span></span></div>
+      <div class="modes pos" id="cpos"></div>
+      <div class="bar"><button class="btn small" id="btnZero">ZERO (pinza abierta)</button></div>
+      <div class="mnote" id="clNote"></div>
+      <div class="bar">
+        <button class="btn small" id="btnLog">Registrar lectura</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Avisos</h2>
+    <div class="msgs" id="msgs"></div>
+  </div>
+
+  <div class="card">
+    <h2 id="resTitle">Resultados de la prueba</h2>
+    <label class="switch"><input type="checkbox" id="evalMode"> Modo evaluación (avería oculta)</label>
+    <div id="results"></div>
+  </div>
+
+  <div class="card">
+    <h2>Registro de mediciones</h2>
+    <div id="logTbl" class="tw"></div>
+    <div class="bar">
+      <button class="btn small" id="btnCsv">Descargar CSV</button>
+      <button class="btn small" id="btnClr">Limpiar registro</button>
+    </div>
+  </div>
+</aside>
+</main>
+<footer>Simulador didáctico · Carrera de Mecánica Automotriz · Instituto Superior Tecnológico Sudamericano</footer>
+
+<script>
+"use strict";
+/* ================= utilidades ================= */
+const $=id=>document.getElementById(id);
+function nf(x,d){return x.toLocaleString('es-EC',{minimumFractionDigits:d,maximumFractionDigits:d,useGrouping:false});}
+function fmtV(v){const a=Math.abs(v);return nf(v,a<1?3:2);}
+function fmtI(i){return nf(i,1);}
+function parseNum(s){if(s==null)return NaN;s=String(s).trim().replace(',','.');return s===''?NaN:Number(s);}
+function rng(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+
+/* ================= averías ================= */
+const FAULTS=[
+ {id:'ok',name:'Sin avería (sistema en buen estado)',sig:'todas las mediciones dentro de los valores de referencia y giro normal',
+  expl:'Tensión de arranque ≥ 9,6 V, corriente dentro del rango, caídas de tensión por debajo de los límites y régimen de arrastre normal. El sistema está en buen estado.'},
+ {id:'bat_desc',name:'Batería descargada',sig:'tensión en reposo < 12,4 V y tensión de arranque < 9,6 V con caídas de tensión normales',
+  expl:'La tensión en reposo es baja (< 12,4 V) y durante el arranque cae por debajo de 9,6 V, mientras las caídas en cables y solenoide son normales: la batería no sostiene la corriente y el motor gira lento. Cargue la batería y compruebe su capacidad antes de culpar al motor de arranque (INATEC, 2018, 6.1 y 6.3).'},
+ {id:'pos_res',name:'Borne o cable positivo con alta resistencia',sig:'caída B+ → 30 mayor de 0,5 V',
+  expl:'La caída de tensión B+ → 30 supera 0,5 V: el borne sulfatado o el cable dañado consume tensión. La batería marca incluso más tensión de lo normal (circula menos corriente), pero al motor le llega menos y gira lento. Limpie y apriete terminales o cambie el cable (INATEC, 2018, 6.4).'},
+ {id:'masa',name:'Masa del motor deficiente',sig:'caída carcasa → B− mayor de 0,3 V',
+  expl:'La caída de tensión entre la carcasa del motor de arranque y el borne negativo supera 0,2–0,3 V: la trenza de masa motor–carrocería o sus conexiones tienen alta resistencia. Apriete el motor de arranque, limpie los puntos de masa o cambie la trenza (INATEC, 2018, 6.5).'},
+ {id:'cont_sol',name:'Contactos principales del solenoide quemados',sig:'clic sin giro, caída 30 → 45/C de varios voltios y corriente baja',
+  expl:'Se oye el clic (el núcleo entra y el piñón engrana), pero la caída 30 → 45/C es de varios voltios y la corriente es baja: los contactos quemados u oxidados no dejan pasar la corriente principal y el motor no gira. MAHLE (2016) describe la oxidación de los contactos internos del solenoide por entrada de agua. Cambie el solenoide o sus contactos.'},
+ {id:'hold_open',name:'Bobina de retención abierta',sig:'traqueteo del solenoide: el núcleo entra y sale',
+  expl:'Traqueteo (clic-clic-clic): la bobina de atracción mete el núcleo, pero al cerrar los contactos queda cortocircuitada (misma tensión en 50 y 45/C) y, sin bobina de retención, nada sostiene el núcleo; el piñón entra y sale y la corriente aparece a pulsos. En banco, el óhmetro 50 → carcasa marca OL.'},
+ {id:'pull_open',name:'Bobina de atracción abierta',sig:'tensión normal en 50, sin clic y solo ≈ 10 A en el cable del borne 50',
+  expl:'Hay tensión correcta en el borne 50, pero el núcleo no se desplaza: la bobina de retención sola no tiene fuerza para atraerlo. Por el cable 50 solo circulan ≈ 8–10 A (bobina de retención), no hay clic ni giro. En banco, el óhmetro 50 → 45/C marca OL. Cambie el solenoide.'},
+ {id:'escobillas',name:'Escobillas desgastadas',sig:'corriente menor de lo normal e irregular, giro lento, tensión de batería alta y caídas externas normales',
+  expl:'La corriente es menor que el límite inferior e irregular (falso contacto), el giro es lento y la tensión de batería queda alta: el problema está dentro del motor. INATEC (2018, 6.2) lo atribuye a escobillas desgastadas o trabadas, terminales flojos o colector sucio; MAHLE (2016) menciona la oxidación del portaescobillas. Longitud mínima orientativa de escobillas: 12–14 mm.'},
+ {id:'bujes',name:'Bujes desgastados o inducido rozando',sig:'corriente alta con giro lento y ruido de roce; caídas externas normales',
+  expl:'Corriente alta con giro lento y ruido de roce: el inducido roza las masas polares porque los bujes (cojinetes) están desgastados, lo que añade par de frenado. En la prueba en vacío la corriente también es alta y el régimen bajo. MAHLE (2016) relaciona el desgaste de rodamientos con la entrada de contaminantes abrasivos.'},
+ {id:'ind_corto',name:'Inducido en cortocircuito',sig:'corriente muy alta con par bajo, giro lento y calentamiento; caídas externas normales',
+  expl:'Corriente muy alta con poco par y giro lento: las espiras en cortocircuito reducen la fuerza contraelectromotriz y el par por amperio; el motor se calienta. En vacío consume mucha corriente con régimen bajo. MAHLE (2016) muestra inducidos quemados por sobrecarga de corriente (accionamiento prolongado).'},
+ {id:'bendix',name:'Rueda libre (bendix) patinando',sig:'motor de arranque girando rápido con corriente baja (casi de vacío) y 0 min⁻¹ en el cigüeñal',
+  expl:'El motor de arranque gira rápido (zumbido) con corriente baja, casi de vacío, pero el cigüeñal no gira: la rueda libre del impulsor patina y no transmite par. Las pruebas eléctricas son normales. Revise el impulsor, el piñón y la corona (MAHLE, 2016: rotura del piñón, bloqueo del impulsor).'},
+ {id:'agarrotado',name:'Motor térmico agarrotado o hidrobloqueo',sig:'corriente cercana a la de bloqueo (muy alta), 0 min⁻¹ y tensión de batería muy baja',
+  expl:'La corriente se mantiene cerca del valor de bloqueo y el cigüeñal no gira (0 min⁻¹); la batería cae mucho. El motor de arranque está bien: el motor térmico está agarrotado o tiene líquido en un cilindro (hidrobloqueo). Intente girar el cigüeñal a mano y no insista con el arranque: MAHLE (2016) advierte que la sobrecarga de corriente quema el inducido y el solenoide.'},
+ {id:'seg_abierto',name:'Interruptor de seguridad (P/N o embrague) abierto',sig:'0 V en el borne 50 con la llave en START y sin clic',
+  expl:'Con la llave en START no llega tensión al borne 50 (≈ 0 V) y no se oye nada; batería y cables principales están bien. La señal se interrumpe antes del solenoide: revise el interruptor de posición P/N o del embrague, el relé, el fusible y la llave (INATEC, 2018, 6.7 y 6.8).'}
+];
+const FN=id=>FAULTS.find(f=>f.id===id);
+
+/* ================= parámetros ================= */
+const DEF_P={starter:'serie',fuel:'gas',disp:1.6,cyl:4,temp:20,comp:100,cca:500,soc:100,relay:true};
+const S={tab:'veh',p:{...DEF_P},fault:'ok',evalOn:false,cs:null,checked:false,trace:null,playing:false,t0:0,idx:0,hold:false,
+  mode:'V',place:'red',red:'Bp',black:'Bn',clamp:'pos',zeroed:false,push:false,log:[],cranks:[],live:null,liveT:0,fb:''};
+const TABS=[['veh','Arranque en el vehículo'],['banco','Prueba en vacío (banco)'],['sol','Solenoide (óhmetro)']];
+const DT=0.00025,TEND=3.0,SMP=0.001,NS=Math.round(TEND/SMP)+1,W0=1000,W1=3000;
+const NODEL={Bp:'B+',Bn:'B−',T30:'30',T45:'45/C',T50:'50',CARC:'Carcasa',CHAS:'Carrocería',KEY:'Llave 50',SEG:'Salida S. seg.'};
+const CLAMPS={pos:'Cable positivo (B+ → 30)',neg:'Cable negativo de batería',s50:'Cable del borne 50',mot:'Puente 45/C → motor'};
+const CLAMPS_B={pos:'Pinza de batería (+)',neg:'Pinza de masa (−)',s50:'Cable del pulsador (50)',mot:'Puente 45/C → motor'};
+
+function model(p,fault,tab){
+  const die=p.fuel==='die',pm=p.starter==='pm',veh=tab==='veh';
+  let soc=p.soc/100; if(!veh)soc=1; else if(fault==='bat_desc')soc=Math.min(soc,0.40);
+  const Tb=veh?Math.min(p.temp,30):25;
+  const m={tab,pm,die,veh};
+  m.E0=11.9+0.7*soc;
+  m.Ri=5/p.cca*(1+1.2*(1-soc))*(1+0.012*Math.max(0,25-Tb));
+  m.Rpos=veh?0.0008+(fault==='pos_res'?0.006:0):0.0012;
+  m.Rcont=fault==='cont_sol'?0.35:0.0004;
+  m.Rgm=veh?0.0003+(fault==='masa'?0.005:0):0.0008;
+  m.Rgb=veh?0.0003:0;
+  m.relay=veh&&p.relay;
+  m.Rctrl=veh?(m.relay?0.012:0.025):0.010;
+  m.ctrlOK=!(veh&&fault==='seg_abierto');
+  m.Rpull=0.38;m.Rhold=1.2;m.pullOpen=fault==='pull_open';m.holdOpen=fault==='hold_open';
+  if(pm)Object.assign(m,die?{Kp:0.013,Rm:0.006,G:42,eta:0.8,Jm:0.00005,c0:0.12,c1:0.0003,red:3.8}:{Kp:0.0085,Rm:0.018,G:45.6,eta:0.8,Jm:0.00003,c0:0.08,c1:0.00022,red:3.8});
+  else Object.assign(m,die?{Km:0.075,Ik:220,Rm:0.010,G:11,eta:0.85,Jm:0.0005,c0:0.5,c1:0.0025,red:1}:{Km:0.0556,Ik:150,Rm:0.020,G:12,eta:0.85,Jm:0.00025,c0:0.35,c1:0.0017,red:1});
+  m.brushInt=false;m.drag=0;
+  if(fault==='escobillas'){m.Rm+=0.008;m.brushInt=true;m.bX=0.1;m.bP=0.3;}
+  if(fault==='bujes')m.drag=m.c0*6.5;
+  if(fault==='ind_corto'){if(pm){m.Kp*=0.8;m.c1+=m.c0*0.009;}else{m.Km*=0.75;m.c1+=m.c0*0.02;}m.Rm*=0.8;}
+  m.bendix=veh&&fault==='bendix';m.Tslip=m.c0*0.9;
+  m.hasRing=veh;
+  const fT=0.55+0.45*Math.exp(0.035*(20-p.temp));
+  m.Ac=p.disp*(die?48:22)*p.comp/100;
+  m.Tm0=p.disp*(die?26:18)*fT+0.25*m.Ac;
+  m.np=p.cyl/2;
+  m.Je=0.08+0.06*p.disp;
+  m.lockAng=(veh&&fault==='agarrotado')?0.35:Infinity;
+  return m;
+}
+function Kphi(m,I){
+  if(m.pm)return m.Kp*(1-Math.min(0.25,Math.max(0,I)/3000));
+  const a=Math.max(0,I);return m.Km*a/(a+m.Ik)+0.0006;
+}
+/* ---- solución eléctrica ---- */
+function solveClosed(m,E,wm,Rm,Ip0,Ih0,coils){
+  let Ip=(coils&&!m.pullOpen)?Ip0:0,Ih=(coils&&!m.holdOpen)?Ih0:0,o=null;
+  for(let it=0;it<8;it++){
+    const Ic=Ip+Ih,Rg=m.Ri+m.Rgb+m.Rgm,Rs=m.Rpos+m.Rcont;
+    let lo=-Ip,hi=6000;
+    for(let b=0;b<48;b++){const Im=(lo+hi)/2,Imot=Im+Ip,f=E-(Im+Ic)*Rg-Im*Rs-Kphi(m,Imot)*wm-Imot*Rm;if(f>0)lo=Im;else hi=Im;}
+    const Im=(lo+hi)/2,Ib=Im+Ic,Bp=E-Ib*m.Ri,V30=Bp-Im*m.Rpos,V45=V30-Im*m.Rcont,Vchas=Ib*m.Rgb,Vcarc=Vchas+Ib*m.Rgm;
+    const V50=coils?Bp-Ic*m.Rctrl:0;
+    o={Im,Ip,Ih,Ic,Imot:Im+Ip,Ib,Bp,V30,V45,V50,Vchas,Vcarc};
+    if(!coils)break;
+    const nIp=m.pullOpen?0:(V50-V45)/m.Rpull,nIh=m.holdOpen?0:(V50-Vcarc)/m.Rhold;
+    Ip=0.5*Ip+0.5*nIp;Ih=0.5*Ih+0.5*nIh;
+  }
+  return o;
+}
+function solveOpen(m,E,wm,Rm){
+  let Ic=10,o=null;
+  for(let it=0;it<8;it++){
+    const Bp=E-Ic*m.Ri,V50=Bp-Ic*m.Rctrl,Vchas=Ic*m.Rgb,Vcarc=Ic*(m.Rgb+m.Rgm),U=V50-Vcarc;
+    let Ip=0;
+    if(!m.pullOpen){
+      const g=I=>U-I*(m.Rpull+Rm)-Kphi(m,I)*wm;
+      if(g(0)>0){let lo=0,hi=Math.max(0,U/(m.Rpull+Rm));for(let b=0;b<40;b++){const mid=(lo+hi)/2;if(g(mid)>0)lo=mid;else hi=mid;}Ip=(lo+hi)/2;}
+    }
+    const Ih=m.holdOpen?0:U/m.Rhold;
+    const V45=Vcarc+Kphi(m,Ip)*wm+Ip*Rm;
+    o={Im:0,Ip,Ih,Ic:Ip+Ih,Imot:Ip,Ib:Ip+Ih,Bp,V30:Bp,V45,V50,Vchas,Vcarc};
+    Ic=0.5*Ic+0.5*(Ip+Ih);
+  }
+  return o;
+}
+function loadT(m,th,we){return m.Tm0*(0.75+0.25*Math.min(we/21,2))+m.Ac*Math.sin(m.np*th);}
+function staticT(m,th){return 1.25*m.Tm0+m.Ac*Math.sin(m.np*th);}
+
+/* ---- simulación temporal de 3 s ---- */
+function simulate(m,seed){
+  const R=rng(seed);
+  const f32=()=>new Float32Array(NS);
+  const tr={V:{Bp:f32(),Bn:f32(),T30:f32(),T45:f32(),T50:f32(),CARC:f32(),CHAS:f32(),KEY:f32(),SEG:f32()},
+    I:{main:f32(),mot:f32(),pull:f32(),hold:f32(),c:f32(),b:f32()},rpmE:f32(),rpmM:f32(),x:f32(),cl:new Uint8Array(NS),m,E0:m.E0};
+  const th0=R()*2*Math.PI;
+  let th=th0,we=0,wm=0,thm=0,x=0,mode='idle',relT=0,Ip=0,Ih=0,coupled=false,bBad=false,bT=0,k=0,closures=0,wasCl=false,anyCtrl=false;
+  const steps=Math.round(TEND/DT);
+  for(let s=0;s<=steps;s++){
+    const t=s*DT;
+    const E=m.E0-0.15*(1-Math.exp(-t/1.2));
+    if(m.brushInt){bT-=DT;if(bT<=0){bT=0.008+0.02*R();bBad=R()<m.bP;}}
+    const Rm=m.Rm+(m.brushInt&&bBad?m.bX:0);
+    const closed=x>=0.97;
+    let r;
+    if(!m.ctrlOK){r=closed?solveClosed(m,E,wm,Rm,0,0,false):{Im:0,Ip:0,Ih:0,Ic:0,Imot:0,Ib:0,Bp:E,V30:E,V45:Kphi(m,0)*wm,V50:0,Vchas:0,Vcarc:0};}
+    else if(closed)r=solveClosed(m,E,wm,Rm,Ip,Ih,true);
+    else r=solveOpen(m,E,wm,Rm);
+    Ip=r.Ip;Ih=r.Ih;
+    if(r.Ic>0.5)anyCtrl=true;
+    if(closed&&!wasCl)closures++;wasCl=closed;
+    /* núcleo del solenoide (fuerza ∝ amperios-vuelta de ambas bobinas) */
+    const F=Ip+Ih;
+    if(mode==='idle'){if(F>=25)mode='pull';}
+    else if(mode==='pull'){if(F<4)mode='ret';else{x+=DT/0.035;if(x>=1){x=1;mode='held';relT=0;}}}
+    else if(mode==='held'){if(F<4){relT+=DT;if(relT>=0.012)mode='ret';}else relT=0;}
+    else{x-=DT/0.03;if(x<=0){x=0;mode='idle';}}
+    /* mecánica */
+    const eng=x>=0.55,Imot=r.Imot,Tm=Kphi(m,Imot)*Imot;
+    const Tf=wm>1e-6?m.c0+m.c1*wm+(m.drag?m.drag*(1+0.6*Math.sin(thm)):0):0;
+    const Tl=m.hasRing?loadT(m,th,we):0;
+    const locked=(th-th0)>=m.lockAng;
+    if(m.hasRing&&eng&&!m.bendix){
+      if(!coupled){coupled=true;we=(m.Je*we+m.Jm*m.G*wm)/(m.Je+m.Jm*m.G*m.G);}
+      const Jeq=m.Je+m.Jm*m.G*m.G,drive=m.G*m.eta*(Tm-Tf);
+      if(locked)we=0;
+      else if(we<=1e-4&&drive<=staticT(m,th))we=0;
+      else{we+=DT*(drive-Tl)/Jeq;if(we<0)we=0;}
+      wm=m.G*we;
+    }else{
+      coupled=false;
+      const slip=(m.hasRing&&eng&&m.bendix)?m.Tslip:0;
+      if(wm<=1e-6&&Tm<=m.c0+slip)wm=0;else{wm+=DT*(Tm-Tf-slip)/m.Jm;if(wm<0)wm=0;}
+      if(m.hasRing){const drv=slip?m.G*m.eta*slip:0;
+        if(locked||(we<=1e-4&&drv<=staticT(m,th)))we=0;else{we+=DT*(drv-Tl)/m.Je;if(we<0)we=0;}}
+    }
+    th+=we*DT;thm+=wm*DT;
+    if(s%4===0&&k<NS){
+      const V=tr.V,Ctl=m.ctrlOK;
+      V.Bp[k]=r.Bp;V.T30[k]=r.V30;V.T45[k]=r.V45;V.T50[k]=r.V50;V.CARC[k]=r.Vcarc;V.CHAS[k]=r.Vchas;
+      if(m.relay){V.KEY[k]=r.Bp-0.004;V.SEG[k]=Ctl?r.Bp-0.006:0;}
+      else{V.KEY[k]=r.Bp-r.Ic*0.017;V.SEG[k]=Ctl?r.Bp-r.Ic*0.025:0;}
+      const I=tr.I;I.main[k]=r.Im;I.mot[k]=r.Imot;I.pull[k]=r.Ip;I.hold[k]=r.Ih;I.c[k]=r.Ic;I.b[k]=r.Ib;
+      tr.rpmE[k]=we*60/(2*Math.PI);tr.rpmM[k]=wm*60/(2*Math.PI);tr.x[k]=x;tr.cl[k]=closed?1:0;k++;
+    }
+  }
+  tr.sum=summarize(tr);tr.sum.closures=closures;tr.sum.anyCtrl=anyCtrl;
+  return tr;
+}
+function mean(a,i0,i1){let s=0;for(let i=i0;i<i1;i++)s+=a[i];return s/(i1-i0);}
+function meanDiff(a,b,i0,i1){let s=0;for(let i=i0;i<i1;i++)s+=a[i]-b[i];return s/(i1-i0);}
+function summarize(tr){
+  const V=tr.V,I=tr.I;let pk=0;for(let i=0;i<NS;i++)if(I.b[i]>pk)pk=I.b[i];
+  let pkM=0;for(let i=0;i<NS;i++)if(I.main[i]>pkM)pkM=I.main[i];
+  return {Vrest:tr.E0,Vb:mean(V.Bp,W0,W1),Imain:mean(I.main,W0,W1),Ib:mean(I.b,W0,W1),Ipk:pk,IpkMain:pkM,rpm:mean(tr.rpmE,W0,W1),rpmM:mean(tr.rpmM,W0,W1),
+    dPos:meanDiff(V.Bp,V.T30,W0,W1),dNeg:mean(V.CARC,W0,W1),dCont:meanDiff(V.T30,V.T45,W0,W1),V50:mean(V.T50,W0,W1),I50:mean(I.c,W0,W1),
+    Vmot:meanDiff(V.T45,V.CARC,W0,W1),clFrac:(()=>{let c=0;for(let i=W0;i<W1;i++)c+=tr.cl[i];return c/(W1-W0);})()};
+}
+
+/* ================= referencias según configuración ================= */
+function refs(p){
+  const die=p.fuel==='die';
+  return {I:die?[250,400]:(p.disp<=2.05?[120,200]:[150,260]),pk:die?[450,900]:[300,500],rpm:die?[130,250]:[150,250],
+    I0:p.starter==='pm'?(die?[35,90]:[30,65]):(die?[60,120]:[50,90]),n0:p.starter==='pm'?(die?1800:2500):(die?3500:4000)};
+}
+
+/* ================= esquema SVG ================= */
+const svg=$('circ');
+let els={},flows=[],angE=0,angM=0,angP=0,flowOff={};
+function nodePos(){
+  const t=S.tab;
+  const P={Bp:[80,292],Bn:[140,292],T30:[630,150],T45:[720,150],T50:[575,150],CARC:[690,405]};
+  if(t==='veh'){P.CHAS=[330,470];P.KEY=[262,190];P.SEG=[347,190];}
+  return P;
+}
+function coilRect(x,y,w,h,lab,val,bad){
+  let s=`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3" fill="#f6e3cf" stroke="${bad?'#c62828':'#a0602a'}" stroke-width="${bad?2.5:1.5}" ${bad?'stroke-dasharray="5 3"':''}/>`;
+  for(let i=x+5;i<x+w-2;i+=6)s+=`<line x1="${i}" y1="${y+1}" x2="${i+3}" y2="${y+h-1}" stroke="#b86b2c" stroke-width="1.4"/>`;
+  s+=`<text class="lbl3" x="${x+w/2}" y="${y+h+11}" text-anchor="middle">${lab}</text>`;
+  return s;
+}
+function gearTeeth(r,n,len){let s='';for(let i=0;i<n;i++){const a=i*2*Math.PI/n,c=Math.cos(a),sn=Math.sin(a);s+=`<line x1="${(r*c).toFixed(1)}" y1="${(r*sn).toFixed(1)}" x2="${((r+len)*c).toFixed(1)}" y2="${((r+len)*sn).toFixed(1)}" stroke="#4a5563" stroke-width="3"/>`;}return s;}
+function warnMark(x,y){return `<g pointer-events="none"><circle cx="${x}" cy="${y}" r="10" fill="#c62828"/><text x="${x}" y="${y+5}" text-anchor="middle" fill="#fff" font-weight="700" font-size="14">!</text></g>`;}
+function drawScene(){
+  const t=S.tab,veh=t==='veh',ban=t==='banco',sol=t==='sol',rel=veh&&S.p.relay,pm=S.p.starter==='pm';
+  const showF=!S.evalOn||S.checked,f=S.evalOn?(S.checked?S.cs.fault:'ok'):S.fault;
+  let s='';
+  const W=[];
+  if(veh){
+    W.push({id:'pos',d:'M80 292V100H630V150',cls:'main pos',cur:'main',big:1});
+    W.push({id:'tap',d:'M80 190H100',cls:'ctrl',cur:'fuse'});
+    W.push({id:'fk',d:'M135 190H185',cls:'ctrl',cur:'key'});
+    W.push({id:'ko',d:'M235 190H285',cls:'ctrl',cur:'key'});
+    if(rel){
+      W.push({id:'rf',d:'M150 190V262H455V232',cls:'ctrl',cur:'c'});
+      W.push({id:'so',d:'M325 190H360V138H405V152',cls:'ctrl',cur:'key'});
+      W.push({id:'ro',d:'M455 150V130H575V150',cls:'ctrl',cur:'c'});
+    }else{
+      W.push({id:'so',d:'M325 190H360V130H575V150',cls:'ctrl',cur:'c'});
+    }
+    W.push({id:'strap',d:'M720 150V115H810V335H790',cls:'main',cur:'mot',big:1});
+    W.push({id:'gm',d:'M690 405V470H330',cls:'gnd',cur:'b',big:1});
+    W.push({id:'gb',d:'M330 470H215V270H140V292',cls:'gnd',cur:'b',big:1});
+  }else if(ban){
+    W.push({id:'pos',d:'M80 292V100H630V150',cls:'main pos jump',cur:'main',big:1});
+    W.push({id:'pb1',d:'M80 190H270',cls:'ctrl',cur:'c'});
+    W.push({id:'pb2',d:'M320 190H360V130H575V150',cls:'ctrl',cur:'c'});
+    W.push({id:'strap',d:'M720 150V115H810V335H790',cls:'main',cur:'mot',big:1});
+    W.push({id:'gb',d:'M690 405V470H215V270H140V292',cls:'gnd jump',cur:'b',big:1});
+  }else{
+    W.push({id:'pos',d:'M630 150V112',cls:'main off',cur:null});
+    W.push({id:'strap',d:'M720 150V115H810V230',cls:'main',cur:null});
+    W.push({id:'strap2',d:'M810 262V335H790',cls:'main',cur:null});
+  }
+  /* batería */
+  const bOp=sol?0.35:1;
+  s+=`<g opacity="${bOp}"><rect x="40" y="300" width="140" height="100" rx="6" fill="#e9edf2" stroke="#2b3440" stroke-width="2"/>
+    <rect x="70" y="290" width="20" height="10" fill="#c62828"/><rect x="130" y="290" width="20" height="10" fill="#222"/>
+    <text x="80" y="325" text-anchor="middle" font-weight="700" fill="#c62828" font-size="18">+</text><text x="140" y="325" text-anchor="middle" font-weight="700" font-size="20">−</text>
+    <text class="lbl" x="110" y="352" text-anchor="middle">Batería 12 V</text><text class="lbl2" x="110" y="370" text-anchor="middle" id="batTxt"></text></g>`;
+  if(sol)s+=`<text class="lbl2" x="110" y="420" text-anchor="middle">Batería desconectada</text>`;
+  /* cables */
+  const labs={pos:'Cable positivo',gm:'Trenza de masa motor–carrocería',gb:'Cable negativo'};
+  for(const w of W){
+    s+=`<path class="wire ${w.cls}" d="${w.d}"/>`;
+    if(w.cur)s+=`<path class="flow${w.big?' big':''}" data-cur="${w.cur}" data-id="${w.id}" d="${w.d}"/>`;
+  }
+  if(veh){
+    s+=`<text class="lbl2" x="300" y="93">Cable positivo de batería (B+ → 30)</text>`;
+    s+=`<text class="lbl2" x="505" y="490" text-anchor="middle">Trenza de masa motor–carrocería</text>`;
+    s+=`<text class="lbl2" x="222" y="455">Cable negativo</text>`;
+    s+=`<circle cx="80" cy="190" r="3.5" fill="#2b3440"/>`;
+    if(rel)s+=`<circle cx="150" cy="190" r="3.5" fill="#2b3440"/>`;
+    /* fusible */
+    s+=`<rect x="100" y="183" width="35" height="14" rx="3" class="sym"/><line x1="100" y1="190" x2="135" y2="190" class="sym"/><text class="lbl3" x="117" y="178" text-anchor="middle">Fusible</text>`;
+    /* llave */
+    s+=`<g id="key" class="clk"><rect x="170" y="150" width="75" height="62" fill="transparent"/><circle cx="185" cy="190" r="4" fill="#2b3440"/><circle cx="235" cy="190" r="4" fill="#2b3440"/><circle cx="228" cy="165" r="3.5" fill="#9aa4b1"/>
+      <line id="keyArm" x1="185" y1="190" x2="226" y2="168" stroke="#2b3440" stroke-width="3" stroke-linecap="round"/>
+      <text class="lbl3" x="224" y="158">15</text><text class="lbl3" x="238" y="205">50</text></g>
+      <text class="lbl" x="208" y="140" text-anchor="middle">Llave</text>`;
+    /* interruptor de seguridad */
+    const segOpen=showF&&f==='seg_abierto';
+    s+=`<rect x="280" y="170" width="50" height="40" rx="5" fill="none" stroke="#7b8796" stroke-dasharray="4 3"/>
+      <circle cx="289" cy="190" r="3.5" fill="#2b3440"/><circle cx="321" cy="190" r="3.5" fill="#2b3440"/>
+      <line x1="289" y1="190" x2="${segOpen?316:321}" y2="${segOpen?176:190}" stroke="#2b3440" stroke-width="3" stroke-linecap="round"/>
+      <text class="lbl3" x="305" y="224" text-anchor="middle">Interruptor de</text><text class="lbl3" x="305" y="236" text-anchor="middle">seguridad P/N–embrague</text>`;
+    if(rel){
+      s+=`<rect x="380" y="152" width="95" height="80" rx="6" fill="#f7f9fc" stroke="#2b3440" stroke-width="1.5"/>
+        ${coilRectV(398,165,16,50)}
+        <line x1="405" y1="232" x2="405" y2="244" class="wire ctrl"/><line x1="395" y1="244" x2="415" y2="244" stroke="#2b3440" stroke-width="2"/><line x1="399" y1="248" x2="411" y2="248" stroke="#2b3440" stroke-width="2"/>
+        <circle cx="455" cy="222" r="3" fill="#2b3440"/><circle cx="455" cy="162" r="3" fill="#2b3440"/>
+        <line id="relArm" x1="455" y1="222" x2="445" y2="170" stroke="#2b3440" stroke-width="2.5"/>
+        <line x1="455" y1="222" x2="455" y2="232" class="wire ctrl"/><line x1="455" y1="152" x2="455" y2="162" class="wire ctrl"/>
+        <text class="lbl" x="428" y="146" text-anchor="middle">Relé</text>`;
+    }
+  }
+  if(ban){
+    s+=`<circle cx="80" cy="190" r="3.5" fill="#2b3440"/>
+      <g id="key" class="clk"><rect x="262" y="165" width="66" height="45" fill="transparent"/><circle cx="273" cy="190" r="4" fill="#2b3440"/><circle cx="317" cy="190" r="4" fill="#2b3440"/>
+      <line id="keyArm" x1="273" y1="178" x2="317" y2="178" stroke="#2b3440" stroke-width="3"/><line id="keyStem" x1="295" y1="178" x2="295" y2="166" stroke="#2b3440" stroke-width="3"/></g>
+      <text class="lbl" x="295" y="158" text-anchor="middle">Pulsador</text>
+      <text class="lbl2" x="300" y="93">Cable de pinzas (puente) al borne 30</text>
+      <text class="lbl2" x="440" y="488" text-anchor="middle">Cable de pinzas a la carcasa (masa)</text>
+      <text class="lbl" x="360" y="320" text-anchor="middle">Banco de pruebas</text><text class="lbl2" x="360" y="338" text-anchor="middle">motor sujeto, piñón libre</text>`;
+  }
+  if(sol){
+    s+=`<text class="lbl2" x="640" y="104" text-anchor="middle">Cable de batería retirado</text>
+      <line x1="800" y1="238" x2="820" y2="254" stroke="#c62828" stroke-width="3"/><line x1="820" y1="238" x2="800" y2="254" stroke="#c62828" stroke-width="3"/>
+      <text class="lbl3" x="794" y="262" text-anchor="end">Puente C → motor desconectado</text>`;
+  }
+  /* solenoide */
+  s+=`<rect x="560" y="150" width="230" height="84" rx="8" fill="#eef2f7" stroke="#2b3440" stroke-width="2"/>
+    <text class="lbl" x="675" y="248" text-anchor="middle" style="font-size:12px">Solenoide (automático)</text>
+    <rect id="plg" x="528" y="199" width="70" height="14" rx="3" fill="#8d97a5" stroke="#4a5563"/>
+    ${coilRect(606,194,74,24,'Atracción 0,38 Ω',0,showF&&f==='pull_open')}
+    ${coilRect(694,194,80,24,'Retención 1,2 Ω',0,showF&&f==='hold_open')}
+    <line x1="630" y1="150" x2="630" y2="166" stroke="#2b3440" stroke-width="4"/><line x1="720" y1="150" x2="720" y2="166" stroke="#2b3440" stroke-width="4"/>
+    <rect id="cbar" x="615" y="178" width="120" height="6" rx="2" fill="${showF&&f==='cont_sol'?'#6d4c41':'#b87333'}"/>
+    <line x1="575" y1="150" x2="575" y2="192" stroke="#7b8796" stroke-width="1.2" stroke-dasharray="3 2"/>`;
+  /* motor */
+  const mOp=sol?0.4:1;
+  s+=`<g opacity="${mOp}"><rect x="590" y="285" width="200" height="100" rx="10" fill="#e9edf2" stroke="#2b3440" stroke-width="2"/>`;
+  if(pm){
+    s+=`<path d="M650 303 A36 36 0 0 0 650 367" fill="none" stroke="#c62828" stroke-width="9"/><path d="M710 303 A36 36 0 0 1 710 367" fill="none" stroke="#1f5a94" stroke-width="9"/>
+      <text class="lbl3" x="632" y="300">N</text><text class="lbl3" x="722" y="300">S</text>
+      <line x1="790" y1="335" x2="775" y2="335" class="wire"/><line x1="775" y1="335" x2="775" y2="292" class="wire"/><line x1="775" y1="292" x2="686" y2="292" class="wire"/>
+      <text class="lbl3" x="790" y="278" text-anchor="end">Motor de imanes permanentes con reductor</text>`;
+    s+=`<rect x="540" y="318" width="46" height="34" rx="4" fill="#dfe4ea" stroke="#4a5563"/><text class="lbl3" x="563" y="364" text-anchor="middle">Reductor</text>`;
+  }else{
+    s+=coilRectV(760,300,16,70)+`<line x1="790" y1="335" x2="776" y2="335" class="wire"/><line x1="768" y1="300" x2="768" y2="292" class="wire"/><line x1="768" y1="292" x2="686" y2="292" class="wire"/>
+      <text class="lbl3" x="790" y="278" text-anchor="end">Motor de CC de excitación serie</text>`;
+  }
+  const brushBad=showF&&f==='escobillas',armBad=showF&&(f==='ind_corto'||f==='bujes');
+  s+=`<rect x="674" y="292" width="12" height="9" fill="${brushBad?'#c62828':'#333'}"/><rect x="674" y="369" width="12" height="9" fill="${brushBad?'#c62828':'#333'}"/>
+    <line x1="680" y1="378" x2="680" y2="385" class="wire"/>
+    <g id="arm" transform="translate(680 335)"><circle r="32" fill="#cfd6df" stroke="${armBad?'#c62828':'#4a5563'}" stroke-width="${armBad?3:2}"/>`;
+  for(let i=0;i<10;i++){const a=i*Math.PI/5;s+=`<line x1="${(10*Math.cos(a)).toFixed(1)}" y1="${(10*Math.sin(a)).toFixed(1)}" x2="${(30*Math.cos(a)).toFixed(1)}" y2="${(30*Math.sin(a)).toFixed(1)}" stroke="#b87333" stroke-width="3"/>`;}
+  s+=`<circle r="9" fill="#8d97a5"/></g>`;
+  s+=`<line x1="646" y1="335" x2="${pm?586:560}" y2="335" stroke="#4a5563" stroke-width="7"/>`;
+  s+=`</g>`;
+  s+=`<line id="shaft" x1="${pm?540:560}" y1="335" x2="480" y2="335" stroke="#4a5563" stroke-width="7"/>`;
+  /* palanca (horquilla) */
+  s+=`<polyline id="lever" points="" fill="none" stroke="#5d6b7a" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="522" cy="262" r="4.5" fill="#2b3440"/>`;
+  /* corona */
+  if(veh){
+    s+=`<g id="ring" transform="translate(380 335)"><circle r="80" fill="#dfe4ea" stroke="#4a5563" stroke-width="2"/>${gearTeeth(80,44,6)}
+      <circle r="18" fill="#8d97a5"/><line x1="0" y1="0" x2="0" y2="-70" stroke="#c62828" stroke-width="4"/></g>
+      <text class="lbl2" x="380" y="440" text-anchor="middle">Corona del volante (motor térmico)</text>`;
+    if(showF&&f==='agarrotado')s+=warnMark(380,245);
+  }
+  s+=`<g id="pin" transform="translate(505 335)"><g id="pinR"><circle r="15" fill="#b0b8c3" stroke="#2b3440" stroke-width="2"/>${gearTeeth(15,10,5)}<circle r="4" fill="#2b3440"/></g></g>
+    <text class="lbl3" x="505" y="378" text-anchor="middle" id="pinTxt">Piñón</text>`;
+  /* marcas de avería (modo libre) */
+  if(showF&&f!=='ok'){
+    const mk={bat_desc:[165,312],pos_res:[98,278],masa:[560,470],cont_sol:[675,168],hold_open:[734,184],pull_open:[643,184],escobillas:[700,297],bujes:[716,318],ind_corto:[716,318],bendix:[505,300],seg_abierto:[305,160]}[f];
+    if(mk&&(veh||['cont_sol','hold_open','pull_open','escobillas','bujes','ind_corto'].includes(f)))s+=warnMark(mk[0],mk[1]);
+  }
+  /* pinza */
+  s+=`<g id="clampG"></g>`;
+  /* nodos */
+  const P=nodePos();
+  const LO={Bp:[-28,-10],Bn:[8,-10],T50:[-30,-8],T30:[9,-8],T45:[9,-8],CARC:[12,5],CHAS:[-30,24],KEY:[-18,-10],SEG:[-10,-10]};
+  for(const k in P){const [x,y]=P[k];const [dx,dy]=LO[k];
+    s+=`<g class="node" data-n="${k}"><circle cx="${x}" cy="${y}" r="7"/><text x="${x+dx}" y="${y+dy}">${NODEL[k].replace('Salida S. seg.','S')}</text></g>`;}
+  s+=`<g id="probesG"></g>`;
+  /* hit de cables para la pinza */
+  const CH=veh?{pos:'M80 250V100H630V150',neg:'M215 290V460',s50:'M470 130H570',mot:'M810 130V330'}:ban?{pos:'M80 250V100H630V150',neg:'M215 290V460H690V405',s50:'M340 130H570',mot:'M810 130V330'}:{};
+  for(const k in CH)s+=`<path class="chit" data-c="${k}" d="${CH[k]}"/>`;
+  svg.innerHTML=s;
+  els={plg:$('plg'),cbar:$('cbar'),lever:$('lever'),pin:$('pin'),pinR:$('pinR'),arm:$('arm'),ring:$('ring'),keyArm:$('keyArm'),keyStem:$('keyStem'),relArm:$('relArm'),batTxt:$('batTxt')};
+  flows=[...svg.querySelectorAll('path.flow')].map(p=>({p,cur:p.dataset.cur,id:p.dataset.id}));
+  drawProbes();drawClamp();
+  if(els.batTxt)els.batTxt.textContent=sol?'':`${S.p.cca} A (CCA)`;
+  animFrame(currentSample(),0);
+}
+function coilRectV(x,y,w,h){let s=`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3" fill="#f6e3cf" stroke="#a0602a" stroke-width="1.5"/>`;for(let i=y+5;i<y+h-2;i+=6)s+=`<line x1="${x+1}" y1="${i}" x2="${x+w-1}" y2="${i+3}" stroke="#b86b2c" stroke-width="1.4"/>`;return s;}
+function drawProbes(){
+  const g=$('probesG');if(!g)return;const P=nodePos();let s='';
+  if(S.mode!=='OFF'){
+    const pr=(n,col,txt,dy)=>{if(!n||!P[n])return '';const [x,y]=P[n];return `<g pointer-events="none"><circle cx="${x}" cy="${y}" r="12" fill="none" stroke="${col}" stroke-width="3.5"/><rect x="${x+8}" y="${y+dy-9}" width="${txt.length*8+8}" height="17" rx="4" fill="${col}"/><text x="${x+12}" y="${y+dy+4}" fill="#fff" font-size="11" font-weight="700">${txt}</text></g>`;};
+    s+=pr(S.black,'#111','COM',S.red===S.black?22:16);s+=pr(S.red,'#e53935',S.mode==='R'?'Ω':'V',-16);
+  }
+  g.innerHTML=s;
+}
+function drawClamp(){
+  const g=$('clampG');if(!g)return;
+  const pos=S.tab==='veh'?{pos:[80,150,'v'],neg:[215,380,'v'],s50:[520,130,'h'],mot:[810,250,'v']}:S.tab==='banco'?{pos:[80,150,'v'],neg:[400,470,'h'],s50:[470,130,'h'],mot:[810,250,'v']}:{};
+  const c=pos[S.clamp];
+  g.innerHTML=c?`<g pointer-events="none"><ellipse cx="${c[0]}" cy="${c[1]}" rx="${c[2]==='v'?17:11}" ry="${c[2]==='v'?11:17}" fill="none" stroke="#e07b00" stroke-width="5"/><rect x="${c[0]+14}" y="${c[1]-26}" width="24" height="17" rx="4" fill="#e07b00"/><text x="${c[0]+20}" y="${c[1]-13}" fill="#fff" font-size="12" font-weight="700">A</text></g>`:'';
+}
+
+/* ================= animación ================= */
+function currentSample(){
+  if(S.playing&&S.trace)return S.idx;
+  return null;
+}
+function valAt(i){
+  const tr=S.trace;
+  if(i==null||!tr)return {x:0,rpmE:0,rpmM:0,I:{main:0,mot:0,c:0,b:0,key:0,fuse:0},on:false};
+  const I=tr.I,rel=tr.m.relay;
+  return {x:tr.x[i],rpmE:tr.rpmE[i],rpmM:tr.rpmM[i],I:{main:I.main[i],mot:I.mot[i],c:I.c[i],b:I.b[i],key:rel?(tr.m.ctrlOK?0.15:0.15):I.c[i],fuse:I.c[i]+(rel?0.15:0)},on:true};
+}
+function animFrame(i,dt){
+  const v=valAt(i),x=v.x,pm=S.p.starter==='pm';
+  if(els.plg){els.plg.setAttribute('x',(528+28*x).toFixed(1));els.cbar.setAttribute('y',(180-12*x).toFixed(1));}
+  const xp=505-33*Math.min(1,x/0.9);
+  if(els.pin)els.pin.setAttribute('transform',`translate(${xp.toFixed(1)} 335)`);
+  if(els.lever)els.lever.setAttribute('points',`${(528+28*x).toFixed(1)},206 522,262 ${xp.toFixed(1)},318`);
+  angE+=v.rpmE*6*dt*0.5;
+  const coupled=S.tab==='veh'&&x>=0.55&&!(S.trace&&S.trace.m.bendix);
+  angM+=v.rpmM*6*dt*0.04;
+  if(coupled)angP=-angE*80/15;else angP+=v.rpmM/(pm?3.8:1)*6*dt*0.04;
+  if(!isFinite(angE))angE=0;if(!isFinite(angM))angM=0;if(!isFinite(angP))angP=0;
+  if(els.ring)els.ring.setAttribute('transform',`translate(380 335) rotate(${(angE%360).toFixed(1)})`);
+  if(els.arm)els.arm.setAttribute('transform',`translate(680 335) rotate(${(angM%360).toFixed(1)})`);
+  if(els.pinR)els.pinR.setAttribute('transform',`rotate(${(angP%360).toFixed(1)})`);
+  const start=v.on;
+  if(els.keyArm&&S.tab==='veh'){els.keyArm.setAttribute('x2',start?231:208);els.keyArm.setAttribute('y2',start?190:172);}
+  if(els.keyArm&&S.tab==='banco'){const y=start?186:178;els.keyArm.setAttribute('y1',y);els.keyArm.setAttribute('y2',y);els.keyStem.setAttribute('y1',y);els.keyStem.setAttribute('y2',y-12);}
+  if(els.relArm){const on=start&&S.trace.m.ctrlOK;els.relArm.setAttribute('x2',on?455:445);els.relArm.setAttribute('y2',on?162:170);}
+  for(const f of flows){
+    const I=v.I[f.cur]||0;
+    if(Math.abs(I)<0.05){f.p.style.opacity=0;continue;}
+    f.p.style.opacity=1;
+    const sp=10+26*Math.log10(1+Math.abs(I));
+    let o=(flowOff[f.id]||0)-sp*dt*Math.sign(I);o%=1800;flowOff[f.id]=o;f.p.style.strokeDashoffset=o;
+  }
+}
+let last=performance.now();
+function tick(now){
+  const dt=Math.min(0.05,(now-last)/1000);last=now;
+  if(S.playing){
+    const t=Math.max(0,(now-S.t0)/1000);
+    if(t>=TEND){S.playing=false;S.hold=true;S.idx=NS-1;onCrankEnd();}
+    else{S.idx=Math.max(0,Math.min(NS-1,Math.floor(t/SMP)));
+      if(now-S.liveT>250){S.liveT=now;updateInstruments();}
+      setGraphProgress(t/TEND);}
+  }
+  animFrame(currentSample(),dt);
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+
+/* ================= arranque ================= */
+function curFault(){return S.evalOn?S.cs.fault:S.fault;}
+function seed(){return S.evalOn?S.cs.seed:4242;}
+function crank(){
+  if(S.playing||S.tab==='sol')return;
+  const m=model(S.p,curFault(),S.tab);
+  S.trace=simulate(m,seed());
+  S.playing=true;S.hold=false;S.t0=performance.now();S.idx=0;S.liveT=0;
+  S.cranks.push(Date.now());
+  drawGraph();setGraphProgress(0);updateInstruments();updateMsgs();updateObs();
+  $('btnCrank').disabled=true;
+}
+function onCrankEnd(){
+  $('btnCrank').disabled=S.tab==='sol';
+  setGraphProgress(1);updateInstruments();updateMsgs();updateResults();updateObs();
+}
+
+/* ================= instrumentos ================= */
+function restV(n){
+  if(S.tab==='sol')return 0;
+  const m=model(S.p,curFault(),S.tab);
+  return (n==='Bp'||n==='T30')?m.E0:0;
+}
+function pairVal(a,b){
+  const tr=S.trace;
+  if(S.playing&&tr){const i1=Math.max(1,S.idx),i0=Math.max(0,i1-250);return meanDiff(tr.V[a],tr.V[b],i0,i1);}
+  if(S.hold&&tr)return meanDiff(tr.V[a],tr.V[b],W0,W1);
+  return restV(a)-restV(b);
+}
+function ohm(a,b){
+  const f=curFault(),m=model(S.p,f,'sol');
+  const key=[a,b].sort().join('-');
+  const Rp=m.pullOpen?Infinity:m.Rpull,Rh=m.holdOpen?Infinity:m.Rhold,Rc=S.push?m.Rcont:Infinity;
+  if(a===b)return 0;
+  const T={'T45-T50':Rp,'CARC-T50':Rh,'CARC-T45':Rp+Rh,'T30-T45':Rc,'T30-T50':Rc+Rp,'CARC-T30':Rc+Rp+Rh};
+  return key in T?T[key]:Infinity;
+}
+function voltReading(){
+  if(S.mode==='OFF')return {v:'',u:'',fn:'',note:'Instrumento apagado.'};
+  if(!S.red||!S.black)return {v:'- - -',u:S.mode==='R'?'Ω':'V',fn:S.mode==='R'?'Ω':'V⎓',note:'Coloque la punta roja y la negra sobre dos nodos.'};
+  if(S.mode==='R'){
+    if(S.tab!=='sol')return {v:'Err',u:'Ω',fn:'Ω',note:'No mida resistencia con el circuito conectado a la batería. Use la pestaña «Solenoide (óhmetro)» con el motor de arranque desmontado.'};
+    const R=ohm(S.red,S.black);
+    if(!isFinite(R))return {v:'OL',u:'Ω',fn:'Ω',raw:Infinity,note:'Circuito abierto entre las puntas.'};
+    return {v:nf(R,2),u:'Ω',fn:'Ω',raw:R,note:'Lectura con las puntas en cero (REL). Valores bajos: use siempre el menor rango.'};
+  }
+  const v=pairVal(S.red,S.black);
+  let fn='V⎓',note='';
+  if(S.playing)fn='V⎓ · EN VIVO';else if(S.hold)fn='V⎓ · HOLD\nmedia 1–3 s';else fn='V⎓ · llave OFF';
+  if(S.tab==='sol')note='El solenoide está desmontado y sin alimentación: use el óhmetro.';
+  else if(!S.hold&&!S.playing)note='Circuito en reposo (llave en OFF). Pulse «Girar llave a START» para medir durante el arranque.';
+  if(v<-0.0005)note='Lectura negativa: las puntas están invertidas respecto a la polaridad.';
+  return {v:fmtV(v),u:'V',fn,raw:v,note};
+}
+function clampI(i0,i1){
+  const tr=S.trace,k={pos:'main',neg:'b',s50:'c',mot:'mot'}[S.clamp];
+  return mean(tr.I[k],i0,i1);
+}
+function clampReading(){
+  if(!S.clamp||S.tab==='sol')return {v:'- - -',pk:'- - -',note:S.tab==='sol'?'Sin corriente: el componente está desmontado.':'Elija el cable que abraza la pinza.'};
+  const off=S.zeroed?0:2.4;
+  let I=0,pk=null;
+  const tr=S.trace;
+  if(S.playing&&tr){const i1=Math.max(1,S.idx),i0=Math.max(0,i1-250);I=clampI(i0,i1);}
+  else if(S.hold&&tr){I=clampI(W0,W1);}
+  if(tr&&(S.playing||S.hold)){const k={pos:'main',neg:'b',s50:'c',mot:'mot'}[S.clamp],a=tr.I[k],n=S.playing?S.idx+1:NS;let p=0;for(let i=0;i<n;i++)if(a[i]>p)p=a[i];pk=p+off;}
+  const note=(S.zeroed?'':'Pinza sin poner a cero: la lectura incluye un desvío. Pulse ZERO con la pinza abierta. ')+`Abraza: ${(S.tab==='banco'?CLAMPS_B:CLAMPS)[S.clamp]}.`;
+  return {v:fmtI(I+off),raw:I+off,pk:pk==null?'- - -':nf(pk,0),pkRaw:pk,note};
+}
+function rpmReading(){
+  const tr=S.trace;let r=0;
+  if(tr&&(S.playing||S.hold)){const a=S.tab==='banco'?tr.rpmM:tr.rpmE;
+    if(S.playing){const i1=Math.max(1,S.idx),i0=Math.max(0,i1-250);r=mean(a,i0,i1);}else r=mean(a,W0,W1);
+    if(S.tab==='banco')r/=(S.p.starter==='pm'?3.8:1);}
+  return r;
+}
+function updateInstruments(){
+  const m=voltReading();
+  $('lcdVal').textContent=m.v;$('lcdUnit').textContent=m.u;$('lcdFn').textContent=m.fn;$('mnote').textContent=m.note||'';
+  document.querySelectorAll('#modes button').forEach(b=>b.classList.toggle('on',b.dataset.m===S.mode));
+  $('pRed').classList.toggle('on',S.place==='red');$('pBlk').classList.toggle('on',S.place==='black');
+  $('mstat').textContent=S.mode==='OFF'?'':`Punta roja: ${NODEL[S.red]||'—'} · Punta negra (COM): ${NODEL[S.black]||'—'}`;
+  const c=clampReading();
+  $('clVal').textContent=c.v;$('clPk').textContent=c.pk;$('clNote').textContent=c.note;
+  $('clFn').textContent=S.playing?'A⎓ · EN VIVO':S.hold?'A⎓ · HOLD\nmedia 1–3 s':'A⎓';
+  $('rpmVal').textContent=nf(rpmReading(),0);
+  $('rpmFn').textContent=S.tab==='banco'?'Tacómetro óptico\n(piñón)':'Régimen del\ncigüeñal (escáner)';
+  document.querySelectorAll('#cpos button').forEach(b=>b.classList.toggle('on',b.dataset.c===S.clamp));
+  return {m,c};
+}
+
+/* ================= gráfica ================= */
+const gsvg=$('graph');
+const GX0=52,GX1=660,GY0=16,GY1=222;
+function niceMax(v){const steps=[1,2,2.5,5,10];const p=Math.pow(10,Math.floor(Math.log10(Math.max(v,1e-6))));for(const s of steps)if(s*p>=v)return s*p;return 10*p;}
+function drawGraph(){
+  const tr=S.trace;
+  let s=`<defs><clipPath id="gclip"><rect id="gclipR" x="${GX0}" y="0" width="0" height="260"/></clipPath></defs>`;
+  s+=`<rect x="${GX0}" y="${GY0}" width="${GX1-GX0}" height="${GY1-GY0}" fill="#fff" stroke="#d9dfe7"/>`;
+  const xs=t=>GX0+(GX1-GX0)*t/TEND;
+  s+=`<rect x="${xs(1)}" y="${GY0}" width="${xs(3)-xs(1)}" height="${GY1-GY0}" fill="#eef4fb"/><text class="lbl3" x="${xs(2)}" y="${GY0+12}" text-anchor="middle">ventana de medida (HOLD): 1–3 s</text>`;
+  for(let t=0;t<=3;t+=0.5){s+=`<line x1="${xs(t)}" y1="${GY1}" x2="${xs(t)}" y2="${GY1+4}" stroke="#5b6778"/><text class="lbl3" x="${xs(t)}" y="${GY1+16}" text-anchor="middle">${nf(t,1)}</text>`;}
+  s+=`<text class="lbl3" x="${(GX0+GX1)/2}" y="${GY1+32}" text-anchor="middle">tiempo (s)</text>`;
+  if(!tr){s+=`<text class="lbl2" x="${(GX0+GX1)/2}" y="120" text-anchor="middle">Pulse «Girar llave a START (3 s)» para registrar el arranque.</text>`;gsvg.innerHTML=s;$('legend').innerHTML='';return;}
+  const ck={pos:'main',neg:'b',s50:'c',mot:'mot'}[S.clamp]||'b';
+  const Ia=tr.I[ck];let imax=0;for(let i=0;i<NS;i++)imax=Math.max(imax,Ia[i]);
+  const Imx=niceMax(Math.max(imax*1.1,20));
+  const a=(S.red&&S.black)?S.red:'Bp',b=(S.red&&S.black)?S.black:'Bn';
+  const Va=tr.V[a],Vb=tr.V[b];let vmin=0,vmax=0;for(let i=0;i<NS;i++){const d=Va[i]-Vb[i];if(d>vmax)vmax=d;if(d<vmin)vmin=d;}
+  let Vtop=vmax>2.5?15:niceMax(Math.max(vmax*1.2,0.2)),Vbot=vmin<-0.01?-niceMax(-vmin*1.2):0;
+  const yI=I=>GY1-(GY1-GY0)*Math.max(0,Math.min(1,I/Imx));
+  const yV=v=>GY1-(GY1-GY0)*Math.max(0,Math.min(1,(v-Vbot)/(Vtop-Vbot)));
+  for(let k=0;k<=5;k++){const I=Imx*k/5,y=yI(I);s+=`<line x1="${GX0}" y1="${y}" x2="${GX1}" y2="${y}" stroke="#eef1f5"/><text class="lbl3" x="${GX0-5}" y="${y+4}" text-anchor="end" style="fill:#b35f00">${nf(I,0)}</text>`;
+    const v=Vbot+(Vtop-Vbot)*k/5;s+=`<text class="lbl3" x="${GX1+5}" y="${yV(v)+4}" style="fill:#1f5a94">${nf(v,Vtop<3?2:1)}</text>`;}
+  s+=`<text class="lbl3" x="12" y="${(GY0+GY1)/2}" transform="rotate(-90 12 ${(GY0+GY1)/2})" text-anchor="middle" style="fill:#b35f00">corriente (A)</text>`;
+  s+=`<text class="lbl3" x="708" y="${(GY0+GY1)/2}" transform="rotate(90 708 ${(GY0+GY1)/2})" text-anchor="middle" style="fill:#1f5a94">tensión (V)</text>`;
+  let pI='',pV='';
+  for(let i=0;i<NS;i++){const x=xs(i*SMP).toFixed(1);pI+=(i?'L':'M')+x+' '+yI(Ia[i]).toFixed(1);pV+=(i?'L':'M')+x+' '+yV(Va[i]-Vb[i]).toFixed(1);}
+  s+=`<g clip-path="url(#gclip)"><path d="${pV}" fill="none" stroke="#1f5a94" stroke-width="1.6"/><path d="${pI}" fill="none" stroke="#e07b00" stroke-width="1.6"/>`;
+  const mI=mean(Ia,W0,W1);s+=`<line x1="${xs(1)}" y1="${yI(mI)}" x2="${xs(3)}" y2="${yI(mI)}" stroke="#b35f00" stroke-dasharray="5 4"/>`;
+  let ip=0;for(let i=0;i<NS;i++)if(Ia[i]>Ia[ip])ip=i;
+  if(Ia[ip]>1){const px=xs(ip*SMP),py=yI(Ia[ip]);s+=`<circle cx="${px}" cy="${py}" r="4" fill="#e07b00"/><text class="lbl3" x="${Math.min(px+8,GX1-110)}" y="${Math.max(py+4,GY0+26)}" style="fill:#b35f00;font-weight:700">pico ${nf(Ia[ip],0)} A</text>`;}
+  s+=`</g><line id="gcur" x1="${GX0}" y1="${GY0}" x2="${GX0}" y2="${GY1}" stroke="#c62828" stroke-width="1.5"/>`;
+  gsvg.innerHTML=s;
+  $('legend').innerHTML=`<span><b style="background:#e07b00"></b>Corriente: pinza en ${((S.tab==='banco'?CLAMPS_B:CLAMPS)[S.clamp]||CLAMPS.neg).toLowerCase()}</span><span><b style="background:#1f5a94"></b>Tensión: ${NODEL[a]} → ${NODEL[b]}</span><span><b style="background:#b35f00;height:2px"></b>Media 1–3 s: ${nf(mI,1)} A</span>`;
+}
+function setGraphProgress(fr){
+  const r=$('gclipR'),c=$('gcur');if(!r)return;
+  const w=(GX1-GX0)*Math.max(0,Math.min(1,fr));r.setAttribute('width',w+1);
+  if(c){c.setAttribute('x1',GX0+w);c.setAttribute('x2',GX0+w);c.style.display=fr>=1?'none':'';}
+}
+
+/* ================= observación, avisos y resultados ================= */
+function observation(){
+  const tr=S.trace;if(!tr||S.playing)return S.playing?'Accionando el arranque…':'Aún no se ha accionado el arranque en esta pestaña.';
+  const u=tr.sum,f=curFault(),o=[];
+  if(S.tab==='banco'){
+    if(!u.anyCtrl||u.closures===0)o.push('Al accionar el pulsador el solenoide no actúa y el motor no gira.');
+    else if(u.closures>3)o.push('El solenoide traquetea y el piñón entra y sale; el motor da tirones.');
+    else if(u.rpmM<50)o.push('Se oye el clic, el piñón sale, pero el motor no gira.');
+    else o.push(`El piñón sale y el motor gira libre a ≈ ${nf(u.rpmM/(S.p.starter==='pm'?3.8:1),0)} min⁻¹ en el piñón.`);
+  }else{
+    if(!u.anyCtrl)o.push('Al girar la llave a START no se oye nada: el solenoide no recibe señal.');
+    else if(u.closures===0)o.push('No se oye el clic del solenoide: el núcleo no se desplaza y el motor no gira.');
+    else if(u.closures>3)o.push('Traqueteo rápido del solenoide (clic-clic-clic): el piñón entra y sale y las luces parpadean.');
+    else if(u.rpm<3&&u.rpmM>800)o.push('El motor de arranque zumba a alta velocidad, pero el cigüeñal no gira.');
+    else if(u.rpm<3)o.push('Se oye un clic fuerte del solenoide, pero el cigüeñal no gira'+(u.Ib>250?'; las luces del tablero se atenúan mucho.':'.'));
+    else if(u.rpm<refs(S.p).rpm[0])o.push(`El motor gira lento (≈ ${nf(u.rpm,0)} min⁻¹).`);
+    else o.push(`Giro normal y regular (≈ ${nf(u.rpm,0)} min⁻¹); se escucha el ritmo de las compresiones.`);
+  }
+  if(u.closures>0){
+    if(f==='bujes')o.push('Se percibe un ruido de roce metálico en el motor de arranque.');
+    if(f==='ind_corto')o.push('Tras el intento, la carcasa del motor de arranque se calienta rápido y huele a barniz.');
+    if(f==='escobillas')o.push('El giro es irregular, con tirones.');
+  }
+  return o.join(' ');
+}
+function updateObs(){$('obs').innerHTML='<b>Observación:</b> '+observation();}
+function updateMsgs(){
+  const w=[],tr=S.trace,rf=refs(S.p);
+  const recent=S.cranks.filter(t=>Date.now()-t<60000).length*3;
+  const full=!S.evalOn||S.checked;
+  if(recent>=15)w.push(['w',`Accionamiento acumulado ≈ ${recent} s en el último minuto. No accione el arranque más de 10–15 s seguidos: deje enfriar 2 min (INATEC, 2018; MAHLE, 2016, sobrecarga de corriente).`]);
+  if(S.evalOn&&!S.checked){w.push(['i','Modo evaluación: realice las pruebas, escriba los valores medidos y elija el diagnóstico. Los avisos de diagnóstico se muestran después de «Comprobar».']);}
+  if(S.tab==='sol'){
+    w.push(['i','Motor de arranque desmontado. Con el óhmetro mida la bobina de atracción (50 → 45/C, ≈ 0,3–0,5 Ω) y la de retención (50 → carcasa, ≈ 1,0–1,5 Ω). Empuje el núcleo para comprobar la continuidad de los contactos 30 → 45/C.']);
+  }else if(full){
+    const m=model(S.p,curFault(),S.tab);
+    if(S.tab==='veh'&&m.E0<12.4)w.push(['w',`Tensión en reposo baja: ${fmtV(m.E0)} V. Cargue la batería antes de diagnosticar el sistema de arranque (INATEC recomienda ≥ 12,6 V).`]);
+    if(S.tab==='veh'&&S.p.temp<5)w.push(['i','Motor frío: el aceite es más viscoso (mayor par resistente) y la batería entrega menos corriente; es normal un arrastre algo más lento.']);
+    if(tr&&S.hold){
+      const u=tr.sum;
+      if(S.tab==='veh'){
+        if(!u.anyCtrl)w.push(['e','Sin tensión en el borne 50 con la llave en START: la señal se interrumpe en la llave, el fusible, el relé o el interruptor de seguridad (P/N o embrague).']);
+        else if(u.closures===0)w.push(['e',`Hay ${fmtV(u.V50)} V en el borne 50, pero el núcleo no se desplaza: por el cable 50 solo circulan ${nf(u.I50,1)} A (la bobina de retención sola no atrae el núcleo). Revise la bobina de atracción.`]);
+        else if(u.closures>3)w.push(['e',`El solenoide cierra y abre ${u.closures} veces en 3 s (traqueteo): la bobina de retención no sostiene el núcleo${u.Vb<8?' o la tensión cae demasiado (batería muy descargada)':''}.`]);
+        if(u.anyCtrl){
+          if(u.V50<10.5&&u.V50>0.5)w.push(['w',`Tensión en el borne 50: ${fmtV(u.V50)} V (< 10,5 V)`+((u.Vb-u.V50)<0.5?'. La diferencia con la batería es pequeña: la causa es la baja tensión de la batería, no el circuito de mando.':'. Hay caída en el circuito de mando: revise llave, relé y conexiones.')]);
+          if(u.closures>0&&u.Vb<9.6)w.push(['e',`Tensión en bornes durante el arranque: ${fmtV(u.Vb)} V (< 9,6 V). `+(u.Ib>rf.I[1]*1.2?'La corriente es muy alta: el motor de arranque o el motor térmico ofrecen demasiada resistencia.':'Con caídas normales, la batería tiene poca carga o capacidad insuficiente.')]);
+          if(u.closures>0&&u.dPos>0.5)w.push(['w',`Caída de tensión excesiva en el lado positivo (B+ → 30): ${fmtV(u.dPos)} V (orientativo ≤ 0,5 V). Revise bornes, terminales y el cable positivo.`]);
+          if(u.closures>0&&u.dNeg>0.3)w.push(['w',`Caída de tensión excesiva en el lado de masa (carcasa → B−): ${fmtV(u.dNeg)} V (orientativo ≤ 0,2–0,3 V). Revise la trenza de masa motor–carrocería y la fijación del motor de arranque.`]);
+          if(u.closures>0&&u.closures<=3&&u.dCont>0.3)w.push(['e',`Caída de tensión en los contactos del solenoide (30 → 45/C): ${fmtV(u.dCont)} V (orientativo ≤ 0,2–0,3 V). Contactos quemados u oxidados.`]);
+          if(u.closures>0&&u.closures<=3){
+            if(u.rpm<3&&u.rpmM>800)w.push(['e',`El inducido gira a ≈ ${nf(u.rpmM,0)} min⁻¹ con solo ${nf(u.Ib,0)} A, pero el cigüeñal no gira: el piñón no transmite el par (rueda libre patinando o dientes dañados).`]);
+            else if(u.rpm<3&&u.Ib>rf.I[1])w.push(['e',`Corriente de ${nf(u.Ib,0)} A con 0 min⁻¹: motor bloqueado. Compruebe si el motor térmico gira a mano (agarrotado o hidrobloqueo) antes de insistir.`]);
+            else if(u.rpm>=3){
+              if(u.Ib>rf.I[1])w.push(['w',`Corriente de arranque alta: ${nf(u.Ib,0)} A (referencia ≈ ${rf.I[0]}–${rf.I[1]} A). Posible roce del inducido, bujes desgastados, cortocircuito en el inducido o motor térmico duro.`]);
+              if(u.Ib<rf.I[0]*0.85)w.push(['w',`Corriente de arranque baja: ${nf(u.Ib,0)} A (referencia ≈ ${rf.I[0]}–${rf.I[1]} A). Posible falso contacto: escobillas desgastadas, terminales flojos o alta resistencia en el circuito (INATEC, 2018, 6.2).`]);
+              if(u.rpm<rf.rpm[0])w.push(['w',`Régimen de arrastre bajo: ${nf(u.rpm,0)} min⁻¹ (referencia ≈ ${rf.rpm[0]}–${rf.rpm[1]} min⁻¹).`]);
+              if(u.rpm<rf.rpm[0]&&u.Ib<=rf.I[1]&&u.Vb>=10.3&&u.dPos<=0.5&&u.dNeg<=0.3&&u.dCont<=0.3)w.push(['w','Giro lento sin consumo alto, con buena tensión de batería y caídas externas normales: la resistencia está dentro del motor de arranque (escobillas desgastadas o trabadas, colector sucio). Confirme con la prueba en vacío.']);
+            }
+            w.push(['i',`Pico de conexión: ${nf(u.Ipk,0)} A. Es normal: al cerrar los contactos el inducido está detenido y no hay fuerza contraelectromotriz.`]);
+          }
+        }
+        if(!w.some(x=>x[0]==='e'||x[0]==='w'))w.push(['o','Sistema de arranque en buen estado: tensión, corriente, caídas de tensión y régimen dentro de los valores de referencia.']);
+      }else{
+        const n0=u.rpmM/(S.p.starter==='pm'?3.8:1);
+        if(u.closures===0)w.push(['e','El solenoide no cierra sus contactos en el banco: revise las bobinas con el óhmetro (pestaña Solenoide).']);
+        else if(u.closures>3)w.push(['e','El solenoide traquetea también en el banco: bobina de retención abierta.']);
+        else{
+          if(u.Ib>rf.I0[1])w.push(['w',`Corriente en vacío alta: ${nf(u.Ib,0)} A (orientativo ${rf.I0[0]}–${rf.I0[1]} A) con ${nf(n0,0)} min⁻¹: roce del inducido, bujes desgastados o espiras en cortocircuito.`]);
+          else if(u.Ib<rf.I0[0])w.push(['w',`Corriente en vacío baja: ${nf(u.Ib,0)} A (orientativo ${rf.I0[0]}–${rf.I0[1]} A): falso contacto en escobillas o colector, o contactos del solenoide con alta resistencia.`]);
+          if(n0<rf.n0)w.push(['w',`Régimen en vacío bajo: ${nf(n0,0)} min⁻¹ en el piñón (orientativo ≥ ${rf.n0} min⁻¹).`]);
+          if(!w.some(x=>x[0]==='e'||x[0]==='w'))w.push(['o',`Prueba en vacío correcta: ${nf(u.Ib,0)} A a ${fmtV(u.Vb)} V y ${nf(n0,0)} min⁻¹. Si en el vehículo falla, busque la causa en la batería, los cables, el circuito de mando, el piñón o el motor térmico.`]);
+        }
+      }
+    }else if(!tr||!S.hold){w.push(['i',S.tab==='banco'?'Motor de arranque en el banco con una batería cargada. Pulse «Accionar pulsador (3 s)» y mida corriente, tensión y régimen en vacío.':'Llave en OFF. Mida la tensión en reposo de la batería y después accione el arranque.']);}
+  }
+  $('msgs').innerHTML=w.map(([c,t])=>`<div class="${c}">${t}</div>`).join('');
+}
+function stat(ok,warn){return ok?'<td class="okc">✓</td>':warn?'<td class="wc">≈</td>':'<td class="badc">✗</td>';}
+function updateResults(){
+  if(S.evalOn){buildEval();return;}
+  const tr=S.trace,rf=refs(S.p);
+  $('resTitle').textContent='Resultados de la prueba';
+  let h='';
+  if(S.tab==='sol'){
+    const r=(a,b)=>{const R=ohm(a,b);return isFinite(R)?nf(R,2)+' Ω':'OL';};
+    const Rp=ohm('T50','T45'),Rh=ohm('T50','CARC');
+    h=`<div class="tw"><table><tr><th>Medición (óhmetro)</th><th>Valor</th><th>Referencia</th><th></th></tr>
+      <tr><td>Bobina de atracción 50 → 45/C</td><td>${r('T50','T45')}</td><td>0,3–0,5 Ω</td>${stat(Rp>=0.3&&Rp<=0.5)}</tr>
+      <tr><td>Bobina de retención 50 → carcasa</td><td>${r('T50','CARC')}</td><td>1,0–1,5 Ω</td>${stat(Rh>=1&&Rh<=1.5)}</tr>
+      <tr><td>Contactos 30 → 45/C (núcleo empujado)</td><td>${S.push?r('T30','T45'):'—'}</td><td>≈ 0,00 Ω</td>${S.push?stat(ohm('T30','T45')<0.05):'<td></td>'}</tr></table></div>
+      <p class="muted">Corriente esperada con 12 V: atracción ≈ ${nf(12/0.38,0)} A · retención ≈ ${nf(12/1.2,0)} A.</p>`;
+  }else if(!tr||!S.hold){h='<p class="muted">Accione el arranque para obtener los resultados de la prueba.</p>';}
+  else if(S.tab==='banco'){
+    const u=tr.sum,n0=u.rpmM/(S.p.starter==='pm'?3.8:1);
+    h=`<div class="tw"><table><tr><th>Magnitud (media 1–3 s)</th><th>Medido</th><th>Referencia</th><th></th></tr>
+      <tr><td>Tensión en bornes de batería</td><td>${fmtV(u.Vb)} V</td><td>≈ 11–12 V</td>${stat(u.Vb>=10.8)}</tr>
+      <tr><td>Corriente en vacío</td><td>${nf(u.Ib,0)} A</td><td>${rf.I0[0]}–${rf.I0[1]} A</td>${stat(u.Ib>=rf.I0[0]&&u.Ib<=rf.I0[1])}</tr>
+      <tr><td>Régimen del piñón en vacío</td><td>${nf(n0,0)} min⁻¹</td><td>≥ ${rf.n0} min⁻¹</td>${stat(n0>=rf.n0)}</tr>
+      <tr><td>Pico de conexión</td><td>${nf(u.Ipk,0)} A</td><td>—</td><td></td></tr></table></div>
+      <p class="muted">Valores orientativos; consulte el manual del fabricante del motor de arranque.</p>`;
+  }else{
+    const u=tr.sum,ok=u.closures>0&&u.closures<=3;
+    h=`<div class="tw"><table><tr><th>Magnitud (media 1–3 s)</th><th>Medido</th><th>Referencia</th><th></th></tr>
+      <tr><td>Tensión en reposo</td><td>${fmtV(u.Vrest)} V</td><td>≥ 12,4 V</td>${stat(u.Vrest>=12.4)}</tr>
+      <tr><td>Tensión en bornes durante el arranque</td><td>${fmtV(u.Vb)} V</td><td>≥ 9,6 V</td>${stat(u.Vb>=9.6)}</tr>
+      <tr><td>Corriente de arranque (cable −)</td><td>${nf(u.Ib,0)} A</td><td>${rf.I[0]}–${rf.I[1]} A</td>${stat(u.Ib>=rf.I[0]&&u.Ib<=rf.I[1])}</tr>
+      <tr><td>Pico de conexión</td><td>${nf(u.Ipk,0)} A</td><td>${rf.pk[0]}–${rf.pk[1]} A</td>${stat(u.Ipk>=rf.pk[0]&&u.Ipk<=rf.pk[1],true)}</tr>
+      <tr><td>Régimen de arrastre</td><td>${nf(u.rpm,0)} min⁻¹</td><td>${rf.rpm[0]}–${rf.rpm[1]} min⁻¹</td>${stat(u.rpm>=rf.rpm[0]&&u.rpm<=rf.rpm[1])}</tr>
+      <tr><td>Caída lado positivo B+ → 30</td><td>${fmtV(u.dPos)} V</td><td>≤ 0,5 V</td>${stat(u.dPos<=0.5)}</tr>
+      <tr><td>Caída contactos 30 → 45/C</td><td>${fmtV(u.dCont)} V</td><td>≤ 0,2–0,3 V</td>${stat(u.dCont<=0.2,u.dCont<=0.3)}</tr>
+      <tr><td>Caída lado de masa carcasa → B−</td><td>${fmtV(u.dNeg)} V</td><td>≤ 0,2–0,3 V</td>${stat(u.dNeg<=0.2,u.dNeg<=0.3)}</tr>
+      <tr><td>Tensión en el borne 50</td><td>${fmtV(u.V50)} V</td><td>≥ 10,5 V o ≤ 0,5 V bajo U<sub>bat</sub></td>${stat(u.V50>=10.5||(u.anyCtrl&&u.Vb-u.V50<=0.5))}</tr>
+      <tr><td>Tensión en el motor 45/C → carcasa</td><td>${fmtV(u.Vmot)} V</td><td>—</td><td></td></tr>
+      <tr><td>Potencia eléctrica en el motor</td><td>${nf(u.Vmot*u.Imain/1000,2)} kW</td><td>—</td><td></td></tr></table></div>
+      <p class="muted">${ok?'':'El solenoide no mantuvo cerrados sus contactos: las caídas de tensión medidas no corresponden a un arranque normal. '}Valores orientativos; consulte el manual del fabricante.</p>`;
+  }
+  $('results').innerHTML=h;
+}
+
+/* ================= modo evaluación ================= */
+const EVF=[['Vb','Tensión en bornes durante el arranque','V'],['I','Corriente de arranque (pinza)','A'],['dPos','Caída lado positivo B+ → 30','V'],['dCont','Caída contactos 30 → 45/C','V'],['dNeg','Caída lado de masa carcasa → B−','V'],['V50','Tensión en el borne 50 (START)','V']];
+function newCase(){
+  const r=Math.random,pick=a=>a[Math.floor(r()*a.length)];
+  const die=r()<0.25;
+  const p={starter:pick(['serie','pm']),fuel:die?'die':'gas',disp:die?pick([2.2,2.5]):pick([1.3,1.4,1.6,1.8,2.0]),cyl:4,temp:pick([10,15,20,25,30]),comp:pick([95,100,100,105]),cca:die?pick([700,750]):pick([450,500,550]),soc:pick([90,95,100]),relay:r()<0.6};
+  S.cs={p,fault:pick(FAULTS).id,seed:Math.floor(r()*1e9)};
+  S.p={...p};S.checked=false;S.trace=null;S.hold=false;S.playing=false;S.fb='';
+  buildControls();drawScene();drawGraph();updateAll();
+}
+function expected(){const m=model(S.cs.p,S.cs.fault,'veh');return simulate(m,S.cs.seed);}
+function buildEval(){
+  $('resTitle').textContent='Evaluación: diagnóstico del sistema de arranque';
+  let h=`<p class="muted" style="margin-top:0">Accione el arranque en la pestaña «Arranque en el vehículo», mida con el voltímetro y la pinza, y escriba los valores medios (HOLD). Puede confirmar en el banco o con el óhmetro.</p>
+    <div class="tw"><table><tr><th>Magnitud</th><th>Su valor</th><th>Unidad</th></tr>`;
+  for(const [k,l,u] of EVF)h+=`<tr><td>${l}</td><td><input data-k="${k}" inputmode="decimal"></td><td>${u}</td></tr>`;
+  h+=`</table></div><div class="ctl" style="margin-top:10px"><label>Diagnóstico</label><select id="diag"><option value="">— Elija el diagnóstico —</option>${FAULTS.map(f=>`<option value="${f.id}">${f.name}</option>`).join('')}</select></div>
+    <div class="bar"><button class="btn primary" id="btnCheck">Comprobar</button><button class="btn" id="btnNew">Nuevo caso</button><span class="score" id="score"></span></div><div class="fb" id="fb"></div>`;
+  $('results').innerHTML=h;
+  $('btnCheck').onclick=checkEval;$('btnNew').onclick=newCase;
+}
+function checkEval(){
+  const tr=expected(),u=tr.sum;
+  const want={Vb:u.Vb,I:u.Ib,dPos:u.dPos,dCont:u.dCont,dNeg:u.dNeg,V50:u.V50};
+  let pts=0,fb='';const off=S.zeroed?0:2.4;
+  document.querySelectorAll('#results input[data-k]').forEach(inp=>{
+    const k=inp.dataset.k,got=parseNum(inp.value);let good=false;
+    if(k==='I'){const c=[u.Ib,u.Imain,u.Ib+off,u.Imain+off];good=isFinite(got)&&c.some(w=>Math.abs(got-w)<=Math.max(5,0.07*w));}
+    else if(k==='Vb'||k==='V50')good=isFinite(got)&&Math.abs(got-want[k])<=Math.max(0.1,0.02*Math.abs(want[k]));
+    else good=isFinite(got)&&Math.abs(got-want[k])<=Math.max(0.03,0.1*Math.abs(want[k]));
+    inp.classList.toggle('ok',good);inp.classList.toggle('bad',!good);
+    const wv=k==='I'?nf(u.Ib,0)+' A (cable −) o '+nf(u.Imain,0)+' A (cable +)':fmtV(want[k])+' V';
+    inp.title=good?'Correcto':'Valor esperado ≈ '+wv;
+    if(good)pts++;
+  });
+  const d=$('diag').value,real=S.cs.fault,rf=FN(real);
+  let dp=0;
+  if(d===real)dp=4;else if((d==='bujes'&&real==='ind_corto')||(d==='ind_corto'&&real==='bujes'))dp=2;
+  pts+=dp;
+  fb+=`<p><b>Avería real: ${rf.name}.</b> ${rf.expl}</p>`;
+  fb+=`<p><b>Valores del caso (media 1–3 s):</b> U<sub>bat</sub> = ${fmtV(u.Vb)} V · I = ${nf(u.Ib,0)} A (pico ${nf(u.Ipk,0)} A) · ΔU<sub>+</sub> = ${fmtV(u.dPos)} V · ΔU<sub>contactos</sub> = ${fmtV(u.dCont)} V · ΔU<sub>masa</sub> = ${fmtV(u.dNeg)} V · U<sub>50</sub> = ${fmtV(u.V50)} V · n = ${nf(u.rpm,0)} min⁻¹ · U<sub>reposo</sub> = ${fmtV(u.Vrest)} V.</p>`;
+  if(!d)fb+='<p>No eligió un diagnóstico.</p>';
+  else if(d===real)fb+='<p style="color:var(--ok)"><b>Diagnóstico correcto (4 puntos).</b></p>';
+  else if(dp===2)fb+=`<p style="color:var(--accent)"><b>Diagnóstico cercano (2 puntos).</b> «${FN(d).name}» y «${rf.name}» dan corriente alta con giro lento; se distinguen en la prueba en vacío (el inducido en corto consume mucho más y gira más lento) y por el ruido de roce o el calentamiento.</p>`;
+  else fb+=`<p style="color:var(--bad)"><b>Diagnóstico incorrecto.</b> «${FN(d).name}» se reconoce por: ${FN(d).sig}. En este caso se observó: ${rf.sig}.</p>`;
+  fb+='<p class="muted">Tolerancias: tensiones ± 2 % (mín. 0,1 V); caídas ± 10 % (mín. 0,03 V); corriente ± 7 % (mín. 5 A). Pase el cursor sobre una casilla roja para ver el valor esperado.</p>';
+  $('score').textContent=`Puntaje: ${pts} / 10`;
+  $('fb').innerHTML=fb;
+  S.checked=true;drawScene();updateMsgs();
+}
+
+/* ================= controles ================= */
+function ctlRange(k,label,val,min,max,step){return `<div class="ctl"><label>${label}</label><div class="row"><input type="range" data-k="${k}" min="${min}" max="${max}" step="${step}" value="${val}"><input type="number" data-k="${k}" min="${min}" max="${max}" step="${step}" value="${val}"></div></div>`;}
+function ctlSelect(k,label,opts,val){return `<div class="ctl"><label>${label}</label><select data-k="${k}">${opts.map(o=>`<option value="${o[0]}" ${String(o[0])===String(val)?'selected':''}>${o[1]}</option>`).join('')}</select></div>`;}
+function buildControls(){
+  const p=S.p;let h='';
+  h+=ctlSelect('starter','Motor de arranque',[['serie','CC de excitación serie (directo)'],['pm','Imanes permanentes con reductor']],p.starter);
+  h+=ctlSelect('fuel','Motor térmico',[['gas','Gasolina'],['die','Diésel']],p.fuel);
+  h+=ctlRange('disp','Cilindrada (L)',p.disp,1.0,3.0,0.1);
+  h+=ctlSelect('cyl','Número de cilindros',[[3,'3'],[4,'4'],[6,'6']],p.cyl);
+  h+=ctlRange('temp','Temperatura del motor y del aceite (°C)',p.temp,-10,90,1);
+  h+=ctlRange('comp','Compresión (% de la nominal)',p.comp,50,110,1);
+  h+=ctlSelect('cca','Batería · corriente de arranque en frío',[[400,'400 A (CCA)'],[450,'450 A (CCA)'],[500,'500 A (CCA)'],[550,'550 A (CCA)'],[600,'600 A (CCA)'],[700,'700 A (CCA)'],[750,'750 A (CCA)'],[850,'850 A (CCA)']],p.cca);
+  h+=ctlRange('soc','Estado de carga de la batería (%)',p.soc,0,100,5);
+  h+=`<div class="ctl"><label>Circuito de mando</label><label class="switch" style="color:var(--ink)"><input type="checkbox" data-k="relay" ${p.relay?'checked':''}> Con relé de arranque</label></div>`;
+  h+=S.evalOn?`<div class="ctl"><label>Avería simulada</label><select disabled><option>Oculta (modo evaluación)</option></select></div>`:ctlSelect('fault','Avería simulada',FAULTS.map(f=>[f.id,f.name]),S.fault);
+  $('controls').innerHTML=h;
+  $('controls').querySelectorAll('[data-k]').forEach(inp=>{
+    if(S.evalOn){inp.disabled=true;return;}
+    inp.addEventListener(inp.type==='checkbox'||inp.tagName==='SELECT'?'change':'input',()=>{
+      const k=inp.dataset.k;let v=inp.type==='checkbox'?inp.checked:inp.tagName==='SELECT'?inp.value:parseNum(inp.value);
+      if(inp.type==='number'||inp.type==='range'){if(!isFinite(v))return;v=Math.min(+inp.max,Math.max(+inp.min,v));}
+      if(k==='fault')S.fault=v;
+      else if(k==='cyl'||k==='cca')S.p[k]=+v;
+      else S.p[k]=v;
+      if(k==='fuel'){S.p.disp=v==='die'?2.5:1.6;S.p.cca=v==='die'?750:500;buildControls();}
+      $('controls').querySelectorAll(`[data-k="${k}"]`).forEach(o=>{if(o!==inp&&o.type!=='checkbox')o.value=v;});
+      changed();
+    });
+  });
+}
+function changed(){S.trace=null;S.hold=false;S.playing=false;$('btnCrank').disabled=S.tab==='sol';drawScene();drawGraph();updateAll();}
+function updateAll(){updateInstruments();updateMsgs();updateResults();updateObs();}
+
+/* ================= registro ================= */
+function addLog(){
+  const {m,c}=updateInstruments();
+  const cond=S.tab==='veh'?`${S.p.fuel==='die'?'Diésel':'Gasolina'} ${nf(S.p.disp,1)} L · ${S.p.temp} °C`:S.tab==='banco'?'Banco (vacío)':'Solenoide desmontado';
+  const st=S.playing?'en vivo':S.hold?'HOLD 1–3 s':'reposo';
+  const tn=TABS.find(t=>t[0]===S.tab)[1];
+  if(m.v&&m.v!=='- - -'&&m.v!=='Err')S.log.push({n:S.log.length+1,t:tn,c:cond,g:S.mode==='R'?'Resistencia':'Tensión ('+st+')',p:`${NODEL[S.red]} → ${NODEL[S.black]}`,l:m.v+' '+m.u});
+  if(S.tab!=='sol'&&c.v!=='- - -')S.log.push({n:S.log.length+1,t:tn,c:cond,g:'Corriente ('+st+')',p:(S.tab==='banco'?CLAMPS_B:CLAMPS)[S.clamp],l:c.v+' A'+(c.pkRaw!=null?' (pico '+c.pk+' A)':'')});
+  if(S.tab!=='sol'&&(S.hold||S.playing))S.log.push({n:S.log.length+1,t:tn,c:cond,g:'Régimen ('+st+')',p:S.tab==='banco'?'piñón':'cigüeñal',l:nf(rpmReading(),0)+' min⁻¹'});
+  drawLog();
+}
+function drawLog(){
+  $('logTbl').innerHTML=S.log.length?`<table><tr><th>N.º</th><th>Prueba</th><th>Magnitud</th><th>Puntos</th><th>Lectura</th></tr>${S.log.map(r=>`<tr><td>${r.n}</td><td>${r.t}<br><span class="muted">${r.c}</span></td><td>${r.g}</td><td>${r.p}</td><td>${r.l}</td></tr>`).join('')}</table>`:'<p class="muted">Aún no hay lecturas registradas.</p>';
+}
+function csv(){
+  const lines=['N;Prueba;Condiciones;Magnitud;Puntos;Lectura',...S.log.map(r=>[r.n,r.t,r.c,r.g,r.p,r.l].join(';'))];
+  const blob=new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='registro_sistema_arranque.csv';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+
+/* ================= eventos ================= */
+const QUICK=[['','— Elegir prueba —'],['Bp|Bn','Tensión en bornes de batería (B+ / B−)'],['Bp|T30','Caída lado positivo (B+ → 30)'],['T30|T45','Caída en contactos del solenoide (30 → 45/C)'],['CARC|Bn','Caída lado de masa (carcasa → B−)'],['T50|Bn','Tensión en el borne 50 (50 / B−)'],['T45|CARC','Tensión en el motor (45/C → carcasa)'],['CARC|CHAS','Caída trenza de masa (carcasa → carrocería)']];
+const QUICK_S=[['','— Elegir prueba —'],['T50|T45','Bobina de atracción (50 → 45/C)'],['T50|CARC','Bobina de retención (50 → carcasa)'],['T30|T45','Contactos (30 → 45/C)']];
+function buildQuick(){
+  const q=S.tab==='sol'?QUICK_S:QUICK.filter(o=>S.tab==='veh'||!o[0].includes('CHAS'));
+  $('quick').innerHTML=q.map(o=>`<option value="${o[0]}">${o[1]}</option>`).join('');
+}
+$('quick').onchange=e=>{const v=e.target.value;if(!v)return;const [a,b]=v.split('|');S.red=a;S.black=b;if(S.tab==='sol'&&S.mode==='V')S.mode='R';if(S.tab!=='sol'&&S.mode==='R')S.mode='V';if(S.mode==='OFF')S.mode=S.tab==='sol'?'R':'V';drawProbes();drawGraph();setGraphProgress(S.playing?(performance.now()-S.t0)/1000/TEND:1);updateInstruments();};
+svg.addEventListener('click',ev=>{
+  const nd=ev.target.closest('.node');
+  if(nd){if(S.mode==='OFF')return;const n=nd.dataset.n;if(S.place==='red')S.red=n;else S.black=n;$('quick').value='';drawProbes();drawGraph();setGraphProgress(S.playing?(performance.now()-S.t0)/1000/TEND:1);updateInstruments();return;}
+  const ch=ev.target.closest('.chit');
+  if(ch){S.clamp=ch.dataset.c;drawClamp();drawGraph();setGraphProgress(S.playing?(performance.now()-S.t0)/1000/TEND:1);updateInstruments();return;}
+  if(ev.target.closest('#key'))crank();
+});
+document.querySelectorAll('#modes button').forEach(b=>b.addEventListener('click',()=>{S.mode=b.dataset.m;drawProbes();updateInstruments();}));
+$('pRed').onclick=()=>{S.place='red';updateInstruments();};
+$('pBlk').onclick=()=>{S.place='black';updateInstruments();};
+$('push').onchange=e=>{S.push=e.target.checked;updateInstruments();updateResults();};
+$('btnZero').onclick=()=>{S.zeroed=true;updateInstruments();};
+$('btnCrank').onclick=crank;
+$('btnRest').onclick=()=>{if(S.playing)return;S.hold=false;updateAll();setGraphProgress(1);};
+$('btnLog').onclick=addLog;$('btnCsv').onclick=csv;$('btnClr').onclick=()=>{S.log=[];drawLog();};
+$('btnReset').onclick=()=>{if(S.evalOn)return;S.p={...DEF_P};S.fault='ok';buildControls();changed();};
+$('evalMode').onchange=e=>{S.evalOn=e.target.checked;S.checked=false;
+  if(S.evalOn){S.tab='veh';buildTabs();newCase();}else{S.p={...DEF_P};S.fault='ok';buildControls();changed();}};
+function buildCpos(){
+  const L=S.tab==='banco'?{pos:'Pinza +',neg:'Pinza −',s50:'Cable 50',mot:'45/C → M'}:{pos:'Cable +',neg:'Cable −',s50:'Cable 50',mot:'45/C → M'};
+  $('cpos').innerHTML=Object.keys(L).map(k=>`<button data-c="${k}">${L[k]}</button>`).join('');
+  $('cpos').querySelectorAll('button').forEach(b=>b.onclick=()=>{S.clamp=b.dataset.c;drawClamp();drawGraph();setGraphProgress(S.playing?(performance.now()-S.t0)/1000/TEND:1);updateInstruments();});
+}
+function buildTabs(){
+  $('tabs').innerHTML=TABS.map(([k,n])=>`<button data-k="${k}" class="${k===S.tab?'on':''}">${n}</button>`).join('');
+  $('tabs').querySelectorAll('button').forEach(b=>b.onclick=()=>{
+    if(S.playing)return;S.tab=b.dataset.k;
+    if(S.tab==='sol'){S.mode='R';S.red='T50';S.black='T45';}else{S.mode='V';S.red='Bp';S.black='Bn';S.push=false;$('push').checked=false;}
+    buildTabs();buildQuick();buildCpos();changed();});
+  $('btnCrank').textContent=S.tab==='banco'?'Accionar pulsador (3 s)':'Girar llave a START (3 s)';
+  $('btnCrank').disabled=S.tab==='sol';
+  $('crankNote').textContent=S.tab==='sol'?'Motor de arranque desmontado: use el óhmetro.':'';
+  $('pushWrap').style.display=S.tab==='sol'?'':'none';
+}
+buildTabs();buildQuick();buildCpos();buildControls();drawScene();drawGraph();updateAll();drawLog();
+</script>
+</body>
+</html>

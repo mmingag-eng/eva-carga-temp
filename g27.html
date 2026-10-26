@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulador – Caja de cambios manual de 5 velocidades y reversa</title>
+</head>
+<body style="margin:0;padding:12px;background:#e9ebe8;">
+
+<!-- ===== INICIO DEL SIMULADOR (todo el bloque es autocontenido) ===== -->
+<div id="cxs" tabindex="0">
+<style>
+#cxs{font-family:"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;color:#1c2420;max-width:1000px;margin:0 auto;background:#f6f7f5;border:1px solid #cfd4cd;border-radius:10px;padding:16px;box-sizing:border-box;outline:none}
+#cxs *{box-sizing:border-box}
+#cxs:focus-visible{box-shadow:0 0 0 3px #1f9d4c55}
+#cxs h2{margin:0 0 2px;font-size:1.25rem;font-weight:700;letter-spacing:-.01em}
+#cxs h3{margin:0 0 8px;font-size:1rem;font-weight:700}
+#cxs .cxs-sub{margin:0 0 12px;color:#56615a;font-size:.9rem;line-height:1.4}
+#cxs .cxs-stage{background:#fff;border:1px solid #dde1db;border-radius:8px;overflow:hidden}
+#cxs #cxs-box{display:block;width:100%;height:auto}
+#cxs .cxs-panel{display:grid;grid-template-columns:180px 1fr;gap:18px;margin-top:14px;align-items:start}
+@media (max-width:680px){#cxs .cxs-panel{grid-template-columns:1fr}#cxs .cxs-left{max-width:220px;margin:0 auto}}
+#cxs .cxs-left svg{width:100%;height:auto;display:block;cursor:pointer}
+#cxs .cxs-gears{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;justify-content:center}
+#cxs .cxs-gears button{min-width:36px;height:36px;border:1px solid #b9c0b8;background:#fff;border-radius:6px;font-weight:700;font-size:.95rem;color:#28312b;cursor:pointer}
+#cxs .cxs-gears button:hover{border-color:#1f9d4c}
+#cxs .cxs-gears button.on{background:#1f9d4c;border-color:#1f9d4c;color:#fff}
+#cxs button:focus-visible,#cxs input:focus-visible{outline:2px solid #1f9d4c;outline-offset:2px}
+#cxs .cxs-read{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+#cxs .cxs-read div{background:#fff;border:1px solid #dde1db;border-radius:6px;padding:8px 10px}
+#cxs .cxs-read span{display:block;font-size:.75rem;color:#5d6862}
+#cxs .cxs-read b{display:block;font-size:1.1rem;margin-top:2px;font-variant-numeric:tabular-nums}
+#cxs .cxs-formula{margin:10px 0 4px;padding:8px 10px;background:#eaf5ee;border-left:4px solid #1f9d4c;border-radius:4px;font-size:.95rem;font-variant-numeric:tabular-nums}
+#cxs .cxs-desc{margin:6px 0 10px;font-size:.9rem;line-height:1.5;color:#2d3731;max-width:75ch}
+#cxs .cxs-ctrl{display:flex;flex-wrap:wrap;gap:14px 22px;align-items:center;font-size:.85rem;color:#3a443e}
+#cxs .cxs-ctrl label{display:flex;align-items:center;gap:8px}
+#cxs .cxs-ctrl input[type=range]{width:150px;accent-color:#1f9d4c}
+#cxs .cxs-ctrl input[type=checkbox]{accent-color:#1f9d4c;width:16px;height:16px}
+#cxs .cxs-ctrl output{font-weight:700;min-width:70px;font-variant-numeric:tabular-nums}
+#cxs .cxs-btn{border:1px solid #b9c0b8;background:#fff;border-radius:6px;padding:6px 12px;font-size:.85rem;cursor:pointer;color:#28312b}
+#cxs .cxs-btn:hover{border-color:#1f9d4c}
+#cxs .cxs-teeth{margin-top:16px;background:#fff;border:1px solid #dde1db;border-radius:8px;padding:12px 14px}
+#cxs .cxs-teeth p{margin:0 0 10px;font-size:.85rem;color:#4d5852;line-height:1.45;max-width:80ch}
+#cxs .cxs-tt{width:100%;border-collapse:collapse;font-size:.88rem;font-variant-numeric:tabular-nums}
+#cxs .cxs-tt th{text-align:left;font-weight:600;font-size:.78rem;color:#5d6862;padding:4px 6px;border-bottom:1px solid #dde1db}
+#cxs .cxs-tt td{padding:5px 6px;border-bottom:1px solid #eef0ec}
+#cxs .cxs-tt tr.cur td{background:#eaf5ee}
+#cxs .cxs-tt input{width:64px;padding:4px 6px;border:1px solid #b9c0b8;border-radius:5px;font:inherit;text-align:center}
+#cxs .cxs-tt input.chg{border-color:#1f9d4c;background:#f1faf4}
+#cxs .cxs-tt .cxs-sum.bad{color:#b0510b;font-weight:700}
+#cxs .cxs-warn{margin:10px 0 0;font-size:.82rem;color:#8a430a;background:#fdf3e8;border-left:4px solid #d9791c;padding:6px 10px;border-radius:4px}
+#cxs .cxs-warn[hidden]{display:none}
+#cxs .cxs-trow{display:flex;justify-content:flex-end;margin-top:10px}
+#cxs .cxs-note{margin:12px 0 0;font-size:.75rem;color:#6b756f}
+#cxs .cxs-tl{opacity:0;transition:opacity .3s}
+#cxs .cxs-tl.on{opacity:1}
+#cxs .cxs-tl.dim{opacity:.6}
+#cxs .cxs-tl.dim circle{stroke:#8d948f}
+#cxs .cxs-sl{transition:transform .26s ease-in-out}
+#cxs #cxs-kn{transition:transform .2s ease-in-out}
+#cxs #cxs-flow{transition:opacity .2s}
+#cxs #cxs-idler{transition:opacity .3s}
+@media (prefers-reduced-motion:reduce){#cxs .cxs-sl,#cxs #cxs-kn{transition:none}}
+</style>
+
+<h2>Caja de cambios manual de 5 velocidades y reversa</h2>
+<p class="cxs-sub">Selecciona una marcha con la palanca o con los botones y observa qué piñones transmiten el par (flecha verde), cómo se desplaza cada sincronizador y a qué velocidad gira cada árbol. Teclado: 1–5, R y N.</p>
+
+<div class="cxs-stage">
+  <svg id="cxs-box" viewBox="0 0 780 470" role="img" aria-label="Vista lateral de la caja de cambios con árbol primario, intermedio y secundario"></svg>
+</div>
+
+<div class="cxs-panel">
+  <div class="cxs-left">
+    <svg id="cxs-knob" viewBox="0 0 160 170" aria-label="Palanca de cambios en H">
+      <defs>
+        <linearGradient id="cxs-kp" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#fbfbfb"/><stop offset="1" stop-color="#d5d8d6"/>
+        </linearGradient>
+        <radialGradient id="cxs-kb" cx=".35" cy=".3" r=".75">
+          <stop offset="0" stop-color="#ffffff"/><stop offset=".35" stop-color="#b8bcbf"/><stop offset="1" stop-color="#3c4144"/>
+        </radialGradient>
+      </defs>
+      <rect x="5" y="5" width="150" height="160" rx="14" fill="url(#cxs-kp)" stroke="#b3b8b4"/>
+      <path d="M40 38V132M80 38V132M120 38V132M40 85H120" stroke="#737a76" stroke-width="3" stroke-linecap="round" fill="none"/>
+      <g font-size="13" font-weight="700" fill="#3a423d" text-anchor="middle">
+        <text x="40" y="25">1</text><text x="80" y="25">3</text><text x="120" y="25">5</text>
+        <text x="40" y="155">2</text><text x="80" y="155">4</text><text x="120" y="155">R</text>
+      </g>
+      <g id="cxs-kn" style="transform:translate(80px,85px)">
+        <circle r="15" fill="url(#cxs-kb)" stroke="#2e3336" stroke-width=".8"/>
+      </g>
+      <g fill="transparent">
+        <circle data-g="1" cx="40" cy="38" r="17"/><circle data-g="3" cx="80" cy="38" r="17"/><circle data-g="5" cx="120" cy="38" r="17"/>
+        <circle data-g="2" cx="40" cy="132" r="17"/><circle data-g="4" cx="80" cy="132" r="17"/><circle data-g="R" cx="120" cy="132" r="17"/>
+        <circle data-g="N" cx="80" cy="85" r="14"/>
+      </g>
+    </svg>
+    <div class="cxs-gears">
+      <button data-g="N">N</button><button data-g="1">1</button><button data-g="2">2</button><button data-g="3">3</button>
+      <button data-g="4">4</button><button data-g="5">5</button><button data-g="R">R</button>
+    </div>
+  </div>
+
+  <div>
+    <div class="cxs-read">
+      <div><span>Marcha</span><b id="cxs-rg">Punto muerto</b></div>
+      <div><span>Relación de transmisión</span><b id="cxs-ri">—</b></div>
+      <div><span>Régimen de salida</span><b id="cxs-rn">0 rpm</b></div>
+      <div><span>Par de salida (ideal)</span><b id="cxs-rt">0 N·m</b></div>
+      <div><span>Giro del árbol de salida</span><b id="cxs-rs">—</b></div>
+    </div>
+    <p class="cxs-formula" id="cxs-rf"></p>
+    <p class="cxs-desc" id="cxs-rd"></p>
+    <div class="cxs-ctrl">
+      <label>Régimen del motor <input type="range" id="cxs-rpm" min="600" max="3000" step="50" value="1000"><output id="cxs-rpmo">1000 rpm</output></label>
+      <label>Par del motor <input type="range" id="cxs-tq" min="50" max="300" step="10" value="120"><output id="cxs-tqo">120 N·m</output></label>
+      <label><input type="checkbox" id="cxs-all"> Mostrar dientes de todos los piñones</label>
+      <button class="cxs-btn" id="cxs-play">Pausar</button>
+    </div>
+  </div>
+</div>
+
+<div class="cxs-teeth">
+  <h3>Número de dientes</h3>
+  <p>Cambia el número de dientes de cualquier piñón (entre 10 y 60) y la relación, el régimen y el par se recalculan al instante. Los valores iniciales son los del esquema de referencia.</p>
+  <div style="overflow-x:auto">
+  <table class="cxs-tt">
+    <thead><tr><th>Par de piñones</th><th>Árbol primario / secundario</th><th>Árbol intermedio</th><th>Suma</th><th>Relación resultante</th></tr></thead>
+    <tbody id="cxs-tbody"></tbody>
+  </table>
+  </div>
+  <p class="cxs-warn" id="cxs-warn" hidden></p>
+  <div class="cxs-trow"><button class="cxs-btn" id="cxs-reset">Restablecer valores del ejemplo</button></div>
+</div>
+<p class="cxs-note">Valores ideales, sin pérdidas por rozamiento. El embrague se considera acoplado. El dibujo mantiene fija la distancia entre ejes, así que el tamaño de cada piñón se reparte según su número de dientes.</p>
+
+<script>
+(function(){
+  var root=document.getElementById('cxs');
+  var svg=root.querySelector('#cxs-box');
+  var NS='http://www.w3.org/2000/svg';
+  function el(tag,attrs,parent){var e=document.createElementNS(NS,tag);for(var k in attrs){e.setAttribute(k,attrs[k]);}if(parent)parent.appendChild(e);return e;}
+  function assign(a,b){var o={};for(var k in a)o[k]=a[k];for(var j in b)o[j]=b[j];return o;}
+  function fmt(v,d){return v.toFixed(d).replace('.',',');}
+
+  /* ---------- Número de dientes (editable) ---------- */
+  var DEFAULT={C:[23,30],'1':[38,15],'2':[32,21],'3':[29,24],'5':[20,33],R:[38,16]};
+  var PAIRS={};
+  function resetPairs(){for(var k in DEFAULT)PAIRS[k]={zm:DEFAULT[k][0],zc:DEFAULT[k][1]};}
+  resetPairs();
+  var PAIR_NAME={C:'Toma constante',"1":'1.ª marcha',"2":'2.ª marcha',"3":'3.ª marcha',"5":'5.ª marcha',R:'Reversa (con piñón loco)'};
+  var ORDER=['C','1','2','3','5','R'];
+  var Z_IDLER=12;
+
+  /* ---------- Geometría ---------- */
+  var D=148, MY=200, CY=348;         // distancia entre ejes, eje secundario, eje intermedio
+  var S=9, W=S*1.6;                  // paso visual de los dientes
+  function WC(){return -PAIRS.C.zm/PAIRS.C.zc;}           // velocidad relativa del intermedio
+  function wGear(key){                                        // velocidad relativa de cada piñón del secundario
+    var pk=key.slice(1), P=PAIRS[pk];
+    if(pk==='C')return 1;
+    if(pk==='R')return WC()*P.zc/P.zm;
+    return -WC()*P.zc/P.zm;
+  }
+
+  var GEARS={
+    N:{name:'Punto muerto'},
+    '1':{name:'1.ª marcha',pair:'1',sync:'B',side:1,x:432},
+    '2':{name:'2.ª marcha',pair:'2',sync:'B',side:-1,x:322},
+    '3':{name:'3.ª marcha',pair:'3',sync:'A',side:1,x:262},
+    '4':{name:'4.ª marcha (directa)',direct:true,sync:'A',side:-1},
+    '5':{name:'5.ª marcha',pair:'5',sync:'C',side:1,x:596},
+    R:{name:'Reversa',pair:'R',sync:'C',side:-1,x:492,rev:true}
+  };
+  var cur='N';
+  function wOut(g){var G=GEARS[g];if(g==='N')return 0;if(G.direct)return 1;return wGear('m'+G.pair);}
+  function pairRatio(pk){var P=PAIRS[pk],C=PAIRS.C;return (C.zc/C.zm)*(P.zm/P.zc)*(pk==='R'?-1:1);}
+  function ratio(g){var G=GEARS[g];if(g==='N')return null;if(G.direct)return 1;return pairRatio(G.pair);}
+
+  /* ---------- Degradados y marcadores ---------- */
+  var defs=el('defs',{},svg);
+  function lin(id,stops,horiz){var g=el('linearGradient',{id:id,x1:0,y1:0,x2:horiz?1:0,y2:horiz?0:1},defs);
+    stops.forEach(function(s){el('stop',{offset:s[0],'stop-color':s[1],'stop-opacity':s[2]===undefined?1:s[2]},g);});}
+  lin('cxs-gm',[[0,'#5d646b'],[.12,'#aab1b7'],[.3,'#eef1f3'],[.46,'#c8cdd2'],[.72,'#8d949b'],[1,'#4c5258']]);
+  lin('cxs-gs',[[0,'#000',.28],[.3,'#fff',.2],[.52,'#fff',0],[1,'#000',.32]]);
+  lin('cxs-gh',[[0,'#4b5157'],[.3,'#e0e4e7'],[.55,'#b3b9be'],[1,'#41474d']]);
+  lin('cxs-gd',[[0,'#2a2e32'],[.4,'#747b82'],[1,'#23272b']]);
+  lin('cxs-gb',[[0,'#7a3c0a'],[.25,'#e88a2a'],[.45,'#ffc574'],[.7,'#d9791c'],[1,'#6e360a']]);
+  lin('cxs-gy',[[0,'#6f5310'],[.35,'#e7c35a'],[.5,'#fbe7a1'],[1,'#6f5310']]);
+  lin('cxs-gk',[[0,'#474d54'],[.35,'#c9cfd5'],[.5,'#eef1f3'],[1,'#3d434a']]);
+  lin('cxs-gg',[[0,'#202428'],[.5,'#5a6168'],[1,'#1d2125']]);
+  lin('cxs-gf',[[0,'#7f868d'],[.5,'#e6e9ec'],[1,'#737a82']],true);
+  var mk=el('marker',{id:'cxs-arr',viewBox:'0 0 10 10',refX:3,refY:5,markerWidth:2.3,markerHeight:2.3,orient:'auto',markerUnits:'strokeWidth'},defs);
+  el('path',{d:'M0 0L10 5L0 10z',fill:'#1f9d4c','fill-opacity':.85},mk);
+
+  /* ---------- Piezas giratorias (dientes animados) ---------- */
+  var rotors=[], pid=0;
+  function patternPath(kind){
+    if(kind==='hR')return 'M0 '+S+'L'+W+' 0M'+(-W)+' '+(2*S)+'L0 '+S+'M'+W+' 0L'+(2*W)+' '+(-S)+'M'+(-W)+' '+S+'L0 0M'+W+' '+S+'L'+(2*W)+' 0';
+    if(kind==='hL')return 'M0 0L'+W+' '+S+'M'+(-W)+' '+(-S)+'L0 0M'+W+' '+S+'L'+(2*W)+' '+(2*S)+'M'+(-W)+' 0L0 '+S+'M'+W+' 0L'+(2*W)+' '+S;
+    return 'M0 '+(S/2)+'H'+S;
+  }
+  function rotor(parent,x,cy,w,r,kind,wf,base,alpha,rx){
+    base=base||'cxs-gm';alpha=alpha===undefined?.55:alpha;rx=rx===undefined?3:rx;
+    var id='cxs-p'+(pid++);
+    var p=el('pattern',{id:id,patternUnits:'userSpaceOnUse',width:kind==='st'?S:W,height:S},defs);
+    var d=patternPath(kind);
+    el('path',{d:d,fill:'none',stroke:'#262b31','stroke-opacity':alpha,'stroke-width':2.6},p);
+    el('path',{d:d,fill:'none',stroke:'#fff','stroke-opacity':alpha*.9,'stroke-width':.9,transform:'translate(0 -1.2)'},p);
+    var g=el('g',{},parent);
+    var a={x:x-w/2,y:cy-r,width:w,height:2*r,rx:rx};
+    var rects=[
+      el('rect',assign(a,{fill:'url(#'+base+')'}),g),
+      el('rect',assign(a,{fill:'url(#'+id+')'}),g),
+      el('rect',assign(a,{fill:'url(#cxs-gs)',stroke:'#353a40','stroke-opacity':.55,'stroke-width':1}),g)
+    ];
+    var rec={p:p,r:r,wf:wf,off:0,rects:rects,cy:cy};
+    rotors.push(rec);
+    return rec;
+  }
+  function setRadius(rec,r){rec.r=r;rec.rects.forEach(function(e){e.setAttribute('y',rec.cy-r);e.setAttribute('height',2*r);});}
+  function bearing(parent,x,cy,r){
+    var g=el('g',{},parent);
+    el('rect',{x:x-12,y:cy-r,width:24,height:2*r,rx:6,fill:'url(#cxs-gb)',stroke:'#5a2d08','stroke-opacity':.6},g);
+    el('rect',{x:x-6,y:cy-r+7,width:12,height:2*r-14,rx:3,fill:'url(#cxs-gm)',stroke:'#444','stroke-opacity':.4},g);
+  }
+
+  /* ---------- Árboles ---------- */
+  var gShaft=el('g',{},svg);
+  rotor(gShaft,368,CY,600,20,'st',function(){return WC();},'cxs-gh',.22,4);               // intermedio
+  rotor(gShaft,96,MY,152,14,'st',function(){return 1;},'cxs-gh',.22,3);                    // primario
+  rotor(gShaft,38,MY,40,15,'st',function(){return 1;},'cxs-gd',.8,2);                      // estriado de entrada
+  rotor(gShaft,416,MY,488,17,'st',function(){return wOut(cur);},'cxs-gh',.22,3);           // secundario
+  rotor(gShaft,704,MY,104,15,'st',function(){return wOut(cur);},'cxs-gd',.8,2);            // estriado de salida
+  bearing(gShaft,95,MY,38);bearing(gShaft,640,MY,38);bearing(gShaft,95,CY,34);bearing(gShaft,640,CY,34);
+
+  var tx=el('g',{'font-size':11,fill:'#5b665f','font-weight':600},svg);
+  el('text',{x:14,y:150},tx).textContent='Árbol primario';
+  el('text',{x:10,y:305},tx).textContent='Árbol';
+  el('text',{x:10,y:318},tx).textContent='intermedio';
+  el('text',{x:670,y:178},tx).textContent='Salida';
+
+  /* ---------- Piñones ---------- */
+  var GEO={};
+  var CNT=[['cC',150,40,'hL'],['c3',262,40,'hL'],['c2',322,40,'hL'],['c1',432,40,'hL'],['cR',492,28,'st'],['c5',596,40,'hL']];
+  var MAIN=[['mC',150,40,'hR'],['m3',262,40,'hR'],['m2',322,40,'hR'],['m1',432,40,'hR'],['mR',492,28,'st'],['m5',596,40,'hR']];
+  function zOf(key){var P=PAIRS[key.slice(1)];return key[0]==='m'?P.zm:P.zc;}
+  function rOf(key){var P=PAIRS[key.slice(1)];return D*zOf(key)/(P.zm+P.zc)+3;}
+  var gC=el('g',{},svg), gM=el('g',{},svg);
+  CNT.forEach(function(d){GEO[d[0]]={x:d[1],w:d[2],cy:CY};GEO[d[0]].rot=rotor(gC,d[1],CY,d[2],rOf(d[0]),d[3],function(){return WC();});});
+  MAIN.forEach(function(d){var id=d[0];GEO[id]={x:d[1],w:d[2],cy:MY};GEO[id].rot=rotor(gM,d[1],MY,d[2],rOf(id),d[3],function(){return wGear(id);});});
+
+  /* Piñón loco de reversa */
+  var idler=el('g',{id:'cxs-idler',opacity:.45},svg);
+  rotor(idler,492,274,18,30,'st',function(){return -WC()*PAIRS.R.zc/Z_IDLER;},'cxs-gm',.55,3);
+  el('rect',{x:483,y:244,width:18,height:60,rx:3,fill:'none',stroke:'#d9791c','stroke-width':1.6,'stroke-dasharray':'4 3'},idler);
+  el('rect',{x:512,y:264,width:44,height:20,rx:10,fill:'#fff',stroke:'#d9791c','stroke-width':1.5},idler);
+  var lt=el('text',{x:534,y:278,'text-anchor':'middle','font-size':11,'font-weight':700,fill:'#9a4f0d'},idler);lt.textContent='loco';
+
+  /* ---------- Sincronizadores, horquillas y varilla ---------- */
+  var SY={A:{x:206,L:170,R:242,lg:'mC',rg:'m3',tag:'3.ª–4.ª'},B:{x:377,L:342,R:412,lg:'m2',rg:'m1',tag:'1.ª–2.ª'},C:{x:541,L:506,R:576,lg:'mR',rg:'m5',tag:'5.ª–R'}};
+  var gSy=el('g',{},svg);
+  for(var k in SY){(function(s){
+    rotor(gSy,s.L+4,MY,8,40,'st',function(){return wGear(s.lg);},'cxs-gk',.6,1);     // dientes de acople
+    rotor(gSy,s.R-4,MY,8,40,'st',function(){return wGear(s.rg);},'cxs-gk',.6,1);
+    var bl=(s.L+8+s.x-17)/2, br=(s.x+17+s.R-8)/2;
+    el('rect',{x:bl-2.5,y:MY-45,width:5,height:90,rx:1.5,fill:'url(#cxs-gy)'},gSy);  // anillos sincronizadores
+    el('rect',{x:br-2.5,y:MY-45,width:5,height:90,rx:1.5,fill:'url(#cxs-gy)'},gSy);
+    s.dL=(s.x-17)-(s.L+4); s.dR=(s.R-4)-(s.x+17);
+  })(SY[k]);}
+
+  var rail=el('g',{},svg);
+  el('rect',{x:60,y:36,width:680,height:10,rx:5,fill:'url(#cxs-gh)',stroke:'#3b4046','stroke-opacity':.5},rail);
+  [76,86,96].forEach(function(x){el('circle',{cx:x,cy:41,r:2.4,fill:'#3a3f44'},rail);});
+  el('rect',{x:718,y:32,width:16,height:18,rx:3,fill:'url(#cxs-gd)'},rail);
+
+  for(var k2 in SY){(function(s){
+    var g=el('g',{'class':'cxs-sl'},svg); s.g=g;
+    rotor(g,s.x-10.5,MY,13,50,'st',function(){return wOut(cur);},'cxs-gk',.5,2);
+    rotor(g,s.x+10.5,MY,13,50,'st',function(){return wOut(cur);},'cxs-gk',.5,2);
+    el('rect',{x:s.x-4,y:MY-42,width:8,height:84,fill:'url(#cxs-gg)'},g);
+    var x=s.x;
+    el('path',{d:'M'+(x-5)+' 52H'+(x+5)+'V108L'+(x+13)+' 124V134L'+(x+4)+' 142V162H'+(x-4)+'V142L'+(x-13)+' 134V124L'+(x-5)+' 108Z',fill:'url(#cxs-gf)',stroke:'#3b4046','stroke-width':1},g);
+    el('rect',{x:x-12,y:30,width:24,height:22,rx:4,fill:'url(#cxs-gk)',stroke:'#3b4046','stroke-opacity':.7},g);
+    var t=el('text',{x:x,y:22,'text-anchor':'middle','font-size':10.5,'font-weight':700,fill:'#4a544e'},g); t.textContent=s.tag;
+  })(SY[k2]);}
+
+  /* ---------- Flujo de potencia ---------- */
+  var flowG=el('g',{id:'cxs-flow'},svg);
+  var flow=el('path',{fill:'none',stroke:'#1f9d4c','stroke-opacity':.6,'stroke-width':15,'stroke-linejoin':'round','stroke-linecap':'butt'},flowG);
+  var flowDash=el('path',{fill:'none',stroke:'#fff','stroke-opacity':.55,'stroke-width':3,'stroke-dasharray':'6 16','stroke-linecap':'round','stroke-linejoin':'round'},flowG);
+  function flowD(g){
+    var G=GEARS[g];
+    if(g==='N')return 'M20 '+MY+'H150V'+CY+'H630';
+    if(G.direct)return 'M20 '+MY+'H752';
+    return 'M20 '+MY+'H150V'+CY+'H'+G.x+'V'+MY+'H752';
+  }
+
+  /* ---------- Etiquetas de número de dientes ---------- */
+  var labels={};
+  ['mC','cC','m3','c3','m2','c2','m1','c1','mR','cR','m5','c5'].forEach(function(key){
+    var g=el('g',{'class':'cxs-tl'},svg);
+    var c=el('circle',{r:13,fill:'#fff',stroke:'#1f9d4c','stroke-width':2.6},g);
+    var t=el('text',{'text-anchor':'middle','font-size':12.5,'font-weight':800,fill:'#1f2a24'},g);
+    labels[key]={g:g,c:c,t:t};
+  });
+
+  function applyGeometry(){
+    for(var key in GEO){
+      var o=GEO[key], r=rOf(key);
+      setRadius(o.rot,r);
+      var cx=o.x-o.w/2-6, cy=key[0]==='m'?MY-r-8:CY+r+8;
+      var L=labels[key];
+      L.c.setAttribute('cx',cx);L.c.setAttribute('cy',cy);
+      L.t.setAttribute('x',cx);L.t.setAttribute('y',cy+4.5);L.t.textContent=zOf(key);
+    }
+  }
+  applyGeometry();
+
+  /* ---------- Panel ---------- */
+  var $=function(id){return root.querySelector('#'+id);};
+  var rpmIn=$('cxs-rpm'), tqIn=$('cxs-tq'), allCk=$('cxs-all'), knobG=$('cxs-kn');
+  function desc(g){
+    var C=PAIRS.C, head='El par entra por el primario (piñón de toma constante, '+C.zm+' dientes) y pasa al intermedio ('+C.zc+' dientes). ';
+    var G=GEARS[g], P=G.pair?PAIRS[G.pair]:null;
+    if(g==='N')return 'Ningún sincronizador está acoplado. El primario arrastra al árbol intermedio y este a los piñones del secundario, que giran libres sobre sus cojinetes; el árbol secundario no recibe par.';
+    if(g==='4')return 'Toma directa: el sincronizador de 3.ª–4.ª se desplaza hacia el piñón de toma constante y une el primario con el secundario. El intermedio sigue girando, pero no transmite par.';
+    if(g==='R')return head+'El piñón de '+P.zc+' dientes del intermedio mueve al piñón loco, y este al piñón de reversa ('+P.zm+' dientes). El piñón loco invierte el sentido de giro y no altera la relación. El sincronizador de 5.ª–R se desplaza hacia la reversa.';
+    var sy=G.sync==='A'?'3.ª–4.ª':G.sync==='B'?'1.ª–2.ª':'5.ª–R', dir=g==='1'?'la 1.ª':g==='2'?'la 2.ª':g==='3'?'la 3.ª':'la 5.ª';
+    var i=Math.abs(ratio(g)), extra=i<1?' Como la relación es menor que 1, la salida gira más rápido que el motor (sobremarcha).':'';
+    return head+'El piñón de '+P.zc+' dientes del intermedio mueve al de '+G.name+' ('+P.zm+' dientes). El sincronizador de '+sy+' se desplaza hacia '+dir+' y la solidariza con el secundario.'+extra;
+  }
+  var lastD='', fadeT=null;
+  function update(){
+    var G=GEARS[cur], rpm=+rpmIn.value, T=+tqIn.value, i=ratio(cur);
+    $('cxs-rpmo').textContent=rpm+' rpm'; $('cxs-tqo').textContent=T+' N·m';
+    $('cxs-rg').textContent=G.name;
+    $('cxs-ri').textContent=i===null?'—':fmt(Math.abs(i),2)+' : 1';
+    $('cxs-rn').textContent=i===null?'0 rpm':Math.round(rpm/Math.abs(i))+' rpm';
+    $('cxs-rt').textContent=i===null?'0 N·m':Math.round(T*Math.abs(i))+' N·m';
+    $('cxs-rs').textContent=i===null?'—':(i<0?'Inverso al motor':'Igual que el motor');
+    var f, C=PAIRS.C;
+    if(cur==='N')f='Sin relación: no hay transmisión de par al árbol de salida.';
+    else if(G.direct)f='i = 1,00 : 1 (entrada y salida giran a la misma velocidad)';
+    else{var P=PAIRS[G.pair];
+      f='i = ('+C.zc+' / '+C.zm+') × ('+P.zm+' / '+P.zc+') = '+fmt(C.zc/C.zm,3)+' × '+fmt(P.zm/P.zc,3)+' = '+fmt(Math.abs(i),2)+(i<0?'  (giro invertido)':(Math.abs(i)<1?'  (i < 1: sobremarcha)':''));}
+    $('cxs-rf').textContent=f;
+    $('cxs-rd').textContent=desc(cur);
+    var d=flowD(cur);
+    if(d!==lastD){
+      lastD=d; flowG.style.opacity=0; clearTimeout(fadeT);
+      fadeT=setTimeout(function(){flow.setAttribute('d',d);flowDash.setAttribute('d',d);
+        if(cur==='N')flow.removeAttribute('marker-end');else flow.setAttribute('marker-end','url(#cxs-arr)');
+        flowG.style.opacity=1;},170);
+    }
+    var act=[]; if(cur!=='N'&&!G.direct)act=['mC','cC','m'+G.pair,'c'+G.pair];
+    for(var key in labels){var on=act.indexOf(key)>=0;labels[key].g.setAttribute('class','cxs-tl'+(on?' on':(allCk.checked?' dim':'')));}
+    $('cxs-idler').setAttribute('opacity',cur==='R'?1:.45);
+    root.querySelectorAll('.cxs-gears button').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-g')===cur);});
+    updateTable();
+  }
+
+  /* ---------- Tabla de número de dientes ---------- */
+  var tbody=$('cxs-tbody'), rows={};
+  ORDER.forEach(function(pk){
+    var tr=document.createElement('tr');
+    var mkIn=function(which){var inp=document.createElement('input');inp.type='number';inp.min=10;inp.max=60;inp.step=1;
+      inp.setAttribute('aria-label',PAIR_NAME[pk]+(which==='zm'?' – piñón del primario/secundario':' – piñón del intermedio'));
+      inp.addEventListener('input',function(){onTeeth(pk,which,inp,false);});
+      inp.addEventListener('change',function(){onTeeth(pk,which,inp,true);});
+      return inp;};
+    var tdN=document.createElement('td');tdN.textContent=PAIR_NAME[pk];
+    var tdM=document.createElement('td'), tdC=document.createElement('td'), tdS=document.createElement('td'), tdR=document.createElement('td');
+    var iM=mkIn('zm'), iC=mkIn('zc'); tdM.appendChild(iM); tdC.appendChild(iC);
+    tdS.className='cxs-sum';
+    [tdN,tdM,tdC,tdS,tdR].forEach(function(t){tr.appendChild(t);});
+    tbody.appendChild(tr);
+    rows[pk]={tr:tr,iM:iM,iC:iC,sum:tdS,res:tdR};
+  });
+  function fillInputs(){ORDER.forEach(function(pk){rows[pk].iM.value=PAIRS[pk].zm;rows[pk].iC.value=PAIRS[pk].zc;});}
+  function onTeeth(pk,which,inp,commit){
+    var v=parseInt(inp.value,10);
+    if(isNaN(v)){if(commit)inp.value=PAIRS[pk][which];return;}
+    var c=Math.max(10,Math.min(60,v));
+    if(commit||c===v){PAIRS[pk][which]=c;if(commit)inp.value=c;applyGeometry();update();}
+  }
+  function updateTable(){
+    var base=PAIRS.C.zm+PAIRS.C.zc, bad=[];
+    ORDER.forEach(function(pk){
+      var P=PAIRS[pk], R=rows[pk], s=P.zm+P.zc;
+      R.sum.textContent=s;
+      var off=pk!=='R'&&pk!=='C'&&s!==base; R.sum.classList.toggle('bad',off); if(off)bad.push(PAIR_NAME[pk]);
+      R.res.textContent=pk==='C'?'factor '+fmt(P.zc/P.zm,3):fmt(Math.abs(pairRatio(pk)),2)+' : 1'+(pk==='R'?' (inversa)':'');
+      R.tr.classList.toggle('cur',GEARS[cur].pair===pk||(pk==='C'&&cur!=='N'&&cur!=='4'));
+      R.iM.classList.toggle('chg',P.zm!==DEFAULT[pk][0]); R.iC.classList.toggle('chg',P.zc!==DEFAULT[pk][1]);
+    });
+    var w=$('cxs-warn');
+    if(bad.length){w.hidden=false;w.textContent='La suma de dientes de '+bad.join(', ')+' no coincide con la de la toma constante ('+base+'). Como todos los pares comparten la misma distancia entre ejes, en una caja real esa diferencia se compensa con otro módulo, otro ángulo de hélice o corrección de dentado. La relación calculada sigue siendo válida.';}
+    else w.hidden=true;
+  }
+  $('cxs-reset').addEventListener('click',function(){resetPairs();fillInputs();applyGeometry();update();});
+  fillInputs();
+
+  /* ---------- Cambio de marcha ---------- */
+  var colOf={N:80,'1':40,'2':40,'3':80,'4':80,'5':120,R:120}, rowOf={'1':38,'3':38,'5':38,'2':132,'4':132,R:132};
+  var knobX=80, busy=false, pending=null;
+  function knob(x,y){knobG.style.transform='translate('+x+'px,'+y+'px)';knobX=x;}
+  function sleeve(k,side){var s=SY[k];var dx=side<0?-s.dL:side>0?s.dR:0;s.g.style.transform='translateX('+dx+'px)';}
+  function wait(ms){return new Promise(function(r){setTimeout(r,ms);});}
+  function shift(t){
+    if(busy){pending=t;return;}
+    if(t===cur)return;
+    busy=true;
+    var p=Promise.resolve();
+    if(cur!=='N'){p=p.then(function(){knob(colOf[cur],85);for(var k in SY)sleeve(k,0);return wait(270);}).then(function(){cur='N';update();});}
+    if(t!=='N'){
+      p=p.then(function(){if(knobX!==colOf[t]){knob(colOf[t],85);return wait(210);}})
+       .then(function(){knob(colOf[t],rowOf[t]);sleeve(GEARS[t].sync,GEARS[t].side);return wait(270);})
+       .then(function(){cur=t;update();});
+    }
+    p.then(function(){busy=false;if(pending!==null){var n=pending;pending=null;shift(n);}});
+  }
+  root.querySelectorAll('[data-g]').forEach(function(b){b.addEventListener('click',function(){shift(b.getAttribute('data-g'));});});
+  root.addEventListener('keydown',function(e){
+    if(e.target&&e.target.tagName==='INPUT'&&e.target.type==='number')return;   // no cambiar de marcha al escribir dientes
+    var k=e.key.toUpperCase();
+    if(['1','2','3','4','5','R','N'].indexOf(k)>=0){shift(k);e.preventDefault();}
+    else if(k==='0'){shift('N');e.preventDefault();}
+  });
+  rpmIn.addEventListener('input',update); tqIn.addEventListener('input',update); allCk.addEventListener('change',update);
+
+  /* ---------- Animación ---------- */
+  var running=!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  var playBtn=$('cxs-play'); playBtn.textContent=running?'Pausar':'Animar';
+  playBtn.addEventListener('click',function(){running=!running;playBtn.textContent=running?'Pausar':'Animar';});
+  var last=performance.now(), dash=0;
+  function tick(t){
+    var dt=Math.min(.05,(t-last)/1000); last=t;
+    if(running){
+      var rpm=+rpmIn.value;
+      for(var i=0;i<rotors.length;i++){var r=rotors[i];
+        var v=r.wf()*rpm*r.r*0.0011; v=Math.max(-240,Math.min(240,v));       // límite para evitar efecto estroboscópico
+        r.off=(r.off+v*dt)%S; if(r.off<0)r.off+=S;
+        r.p.setAttribute('patternTransform','translate(0 '+r.off.toFixed(2)+')');}
+      dash-=dt*55*(rpm/1000); flowDash.setAttribute('stroke-dashoffset',dash.toFixed(1));
+    }
+    requestAnimationFrame(tick);
+  }
+  update(); requestAnimationFrame(tick);
+})();
+</script>
+</div>
+<!-- ===== FIN DEL SIMULADOR ===== -->
+
+</body>
+</html>

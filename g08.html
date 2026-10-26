@@ -1,0 +1,1086 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Simulador Sistema de Carga</title>
+<style>
+:root{--bg:#f3f5f8;--card:#fff;--ink:#1c2533;--muted:#5b6778;--line:#d9dfe7;--brand:#12355b;--brand2:#1f5a94;--accent:#e07b00;--ok:#1d8a4e;--okbg:#e6f4ec;--bad:#c62828;--badbg:#fdecea;--warnbg:#fff4e0;--wire:#2b3440;--flow:#ffb300}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.45}
+header{background:linear-gradient(90deg,var(--brand),var(--brand2));color:#fff;padding:14px 22px}
+header h1{margin:0;font-size:1.35rem;font-weight:600}
+header p{margin:3px 0 0;opacity:.85;font-size:.9rem}
+main{max-width:1320px;margin:0 auto;padding:16px;display:grid;grid-template-columns:minmax(0,1.75fr) minmax(320px,1fr);gap:16px}
+@media(max-width:980px){main{grid-template-columns:1fr}}
+@media(max-width:620px){main{padding:10px}}
+section,aside{min-width:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:16px}
+.card h2{font-size:1.02rem;margin:0 0 10px;color:var(--brand)}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.tabs button,.btn{border:1px solid var(--line);background:#fff;color:var(--ink);padding:7px 13px;border-radius:7px;cursor:pointer;font-size:.9rem}
+.tabs button.on,.btn.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+.btn:hover,.tabs button:hover{border-color:var(--brand2)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.small{padding:4px 9px;font-size:.82rem}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.svgwrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:8px}
+svg.main{width:100%;height:auto;background:#fbfcfe;border:1px solid var(--line);border-radius:8px;user-select:none;display:block}
+@media(max-width:620px){svg.main{min-width:700px}}
+svg.plot{width:100%;height:auto;background:#fbfcfe;border:1px solid var(--line);border-radius:8px;display:block}
+.wire{stroke:var(--wire);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;fill:none}
+.wthin{stroke:var(--wire);stroke-width:1.6;fill:none}
+.flow{fill:none;stroke:var(--flow);stroke-width:3.5;stroke-dasharray:3 14;stroke-linecap:round;pointer-events:none}
+.flow.neg{stroke:#e53935}
+.flow.fld{stroke:#7cb342;stroke-width:3}
+.lbl{font-size:12.5px;fill:var(--ink);font-weight:600}
+.lbl2{font-size:10.5px;fill:var(--muted)}
+.lblr{font-size:11px;fill:var(--bad);font-weight:700}
+.node circle{fill:#fff;stroke:var(--brand);stroke-width:2.5;cursor:pointer}
+.node:hover circle{fill:#dbe9f7}
+.node text{font-size:12px;font-weight:700;fill:var(--brand);pointer-events:none}
+.clk{cursor:pointer}
+.ctl{margin-bottom:10px}
+.ctl label{display:block;font-size:.86rem;color:var(--muted);margin-bottom:3px}
+.ctl .row{display:flex;gap:8px;align-items:center}
+.ctl input[type=range]{flex:1;min-width:0}
+.ctl input[type=number]{width:84px;padding:4px 6px;border:1px solid var(--line);border-radius:6px}
+.ctl select{padding:5px 6px;border:1px solid var(--line);border-radius:6px;width:100%;min-width:0}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:4px 18px}
+.grid2>*{min-width:0}
+@media(max-width:620px){.grid2{grid-template-columns:1fr}}
+.consg{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:4px 12px;margin:4px 0 8px}
+.consg label{font-size:.86rem;display:flex;gap:6px;align-items:center}
+.grp h3{font-size:.86rem;color:var(--brand2);margin:10px 0 5px;font-weight:700}
+.eq{background:#f7f9fc;border-left:4px solid var(--brand2);padding:10px 14px;border-radius:6px;font-size:.92rem}
+.eq p{margin:5px 0}
+.f{font-family:"Cambria Math","Times New Roman",serif;font-size:1.05rem}
+.proc{background:#f7f9fc;border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin-top:10px;font-size:.9rem}
+.proc h3{margin:0 0 6px;font-size:.95rem;color:var(--brand)}
+.proc ol{margin:4px 0 6px;padding-left:20px}
+/* instrumentos */
+.meter{background:#39414d;border-radius:14px;padding:14px;color:#fff;box-shadow:inset 0 0 0 3px #e0a100}
+.clampm{background:#3b3329;border-radius:14px;padding:12px 14px;color:#fff;box-shadow:inset 0 0 0 3px #c0392b}
+.lcd{background:#b9c9a4;color:#1d2616;border-radius:6px;padding:10px 12px;font-family:"Consolas","Courier New",monospace;display:flex;justify-content:space-between;align-items:flex-end;min-height:66px;box-shadow:inset 0 2px 6px rgba(0,0,0,.35)}
+.lcd .val{font-size:2.2rem;font-weight:700;letter-spacing:1px}
+.lcd .unit{font-size:1.2rem;font-weight:700}
+.lcd .fn{font-size:.8rem;align-self:flex-start}
+.modes{display:flex;gap:6px;margin:12px 0 8px}
+.modes button{flex:1;padding:9px 0;border-radius:8px;border:0;background:#555f6d;color:#fff;font-weight:700;cursor:pointer;font-size:.95rem}
+.modes button.on{background:#e0a100;color:#1c1c1c}
+.probes{display:flex;gap:6px;align-items:center;font-size:.85rem;flex-wrap:wrap}
+.probes button{border:0;border-radius:6px;padding:5px 10px;cursor:pointer;font-weight:600}
+.pr{background:#e53935;color:#fff;opacity:.55}.pb{background:#111;color:#fff;opacity:.55;border:1px solid #888!important}
+.probes button.on{opacity:1;outline:2px solid #fff}
+.quick{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.quick button{border:1px solid #6b7684;background:#4a5360;color:#fff;border-radius:6px;padding:3px 8px;font-size:.78rem;cursor:pointer}
+.quick button:hover{background:#5d6878}
+.mnote{font-size:.83rem;color:#e7ecf2;margin-top:8px;min-height:2.4em}
+.mstat{font-size:.8rem;color:#c6cfda;margin-top:4px}
+.clampm select{width:100%;padding:5px;border-radius:6px;border:0;margin-top:8px}
+.scope{background:#26303b;border-radius:12px;padding:10px;color:#dfe6ee}
+.scope canvas{width:100%;height:auto;display:block;border-radius:6px;background:#0b1a12}
+.scope .srow{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;font-size:.8rem;align-items:center}
+.scope select{padding:3px 4px;border-radius:5px;border:0;font-size:.8rem}
+.sread{font-family:"Consolas","Courier New",monospace;font-size:.85rem;margin-top:6px;color:#b9f6ca}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.86rem}
+th,td{border-bottom:1px solid var(--line);padding:5px 6px;text-align:right}
+th:first-child,td:first-child{text-align:left}
+th{background:#eef2f7;color:var(--brand);font-weight:600}
+td.okc{color:var(--ok);font-weight:700}
+td.badc{color:var(--bad);font-weight:700}
+td input,td select{width:84px;padding:3px 5px;border:1px solid var(--line);border-radius:5px;text-align:right}
+td select{width:120px;text-align:left}
+input.ok,select.ok{background:var(--okbg);border-color:var(--ok)!important}
+input.bad,select.bad{background:var(--badbg);border-color:var(--bad)!important}
+.msgs div{padding:7px 10px;border-radius:6px;margin-bottom:6px;font-size:.87rem}
+.msgs .w{background:var(--warnbg);border-left:4px solid var(--accent)}
+.msgs .e{background:var(--badbg);border-left:4px solid var(--bad)}
+.msgs .i{background:#e8f1fb;border-left:4px solid var(--brand2)}
+.msgs .o{background:var(--okbg);border-left:4px solid var(--ok)}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center}
+.switch{display:flex;align-items:center;gap:8px;font-size:.9rem;margin:6px 0}
+details summary{cursor:pointer;font-weight:600;color:var(--brand)}
+details ol{padding-left:20px;margin:8px 0}
+.score{font-weight:700;margin-left:6px}
+.muted{color:var(--muted);font-size:.85rem}
+.fb{margin-top:10px;font-size:.88rem}
+.fb p{margin:6px 0}
+.refs p{margin:0 0 8px;padding-left:2em;text-indent:-2em;font-size:.88rem}
+footer{text-align:center;color:var(--muted);font-size:.8rem;padding:10px 0 24px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Simulador 7 · Sistema de carga: alternador y regulador de tensión</h1>
+  <p>Electricidad Automotriz · Unidad 2: Práctica del sistema de carga · Tecnología Superior en Mecánica Automotriz · ISTS</p>
+</header>
+
+<main>
+<section>
+  <div class="card">
+    <div class="tabs" id="tabs"></div>
+    <div class="svgwrap"><svg id="circ" class="main" viewBox="0 0 1000 470" aria-label="Esquema del sistema de carga"></svg></div>
+    <div class="muted" style="margin-top:6px">Puntos amarillos: sentido convencional de la corriente (rojos: la batería se descarga); verdes: corriente de excitación. Haga clic en los nodos (B+, D+, Carcasa, +Bat, −Bat) para colocar las puntas del multímetro, en los círculos naranjas punteados para mover la pinza, en la <b>llave</b> para dar o quitar contacto y en los consumidores para encenderlos o apagarlos.</div>
+    <div class="proc" id="proc"></div>
+  </div>
+
+  <div class="card">
+    <h2>Curva característica del alternador</h2>
+    <svg id="curve" class="plot" viewBox="0 0 640 280" aria-label="Curva característica corriente-régimen"></svg>
+    <div class="muted" style="margin-top:6px" id="curveNote"></div>
+  </div>
+
+  <div class="card">
+    <h2>Parámetros</h2>
+    <div class="grid2" id="controls"></div>
+    <div class="grp"><h3>Consumidores eléctricos</h3>
+      <div class="consg" id="consBox"></div>
+      <div class="bar" style="margin-top:0">
+        <button class="btn small" id="btnAll">Todos encendidos</button>
+        <button class="btn small" id="btnNone">Solo encendido/ECU</button>
+      </div>
+    </div>
+    <div class="grp"><h3>Condiciones rápidas de prueba</h3>
+      <div class="bar" style="margin-top:0" id="quickCond">
+        <button class="btn small" data-q="off">Llave apagada</button>
+        <button class="btn small" data-q="key">Contacto puesto</button>
+        <button class="btn small" data-q="idle">Ralentí sin carga</button>
+        <button class="btn small" data-q="r2000">2000 rpm sin carga</button>
+        <button class="btn small" data-q="r2000c">2000 rpm con carga</button>
+        <button class="btn small" data-q="r2000all">2000 rpm todos</button>
+        <button class="btn small" data-q="maxout">Salida máxima</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Ecuaciones de trabajo</h2>
+    <div class="eq">
+      <p class="f">n<sub>alt</sub> = n<sub>motor</sub> · i &nbsp;&nbsp;·&nbsp;&nbsp; i = D<sub>cigüeñal</sub> / D<sub>alternador</sub> &nbsp;(turismos: i ≈ 2,2 … 3)</p>
+      <p class="f">f = p · n<sub>alt</sub> / 60 &nbsp;(p = 6 pares de polos) &nbsp;&nbsp;·&nbsp;&nbsp; f<sub>rizado</sub> = 6 · f</p>
+      <p class="f">I<sub>máx</sub>(n) = 0 si n ≤ n<sub>0</sub> ; &nbsp; I<sub>máx</sub>(n) = 1,091 · I<sub>N</sub> · (n − n<sub>0</sub>) / (n − n<sub>0</sub> + 445 rpm)</p>
+      <p class="muted">Ajuste del simulador con n<sub>0</sub> = 1100 rpm: I = 0 en n<sub>0</sub>, I ≈ 2/3 · I<sub>N</sub> a 1800 rpm e I = I<sub>N</sub> a 6000 rpm del alternador.</p>
+      <p class="f">I<sub>alt</sub> = I<sub>consumidores</sub> + I<sub>bat</sub> &nbsp;(I<sub>bat</sub> &gt; 0 carga; I<sub>bat</sub> &lt; 0 descarga)</p>
+      <p class="f">U<sub>bat</sub> = U<sub>reg</sub> − I<sub>alt</sub> · (R<sub>B+</sub> + R<sub>masa</sub>) &nbsp;&nbsp;·&nbsp;&nbsp; ΔU<sub>B+</sub> = I<sub>alt</sub> · R<sub>B+</sub> &nbsp;&nbsp;·&nbsp;&nbsp; ΔU<sub>masa</sub> = I<sub>alt</sub> · R<sub>masa</sub></p>
+      <p class="f">U<sub>reg</sub>(T) = 14,3 V − 0,01 V/°C · (T − 25 °C) &nbsp;(limitada a 13,8 … 14,6 V)</p>
+      <p class="f">I<sub>exc</sub> = D · U<sub>D+</sub> / R<sub>rotor</sub> &nbsp;(D = ciclo de trabajo PWM del regulador; R<sub>rotor</sub> = 3,4 Ω)</p>
+      <p class="f">I<sub>carga bat</sub> = (U<sub>bat</sub> − U<sub>0</sub>) / R<sub>carga</sub> &nbsp;&nbsp;·&nbsp;&nbsp; U<sub>0</sub> = 11,9 V + 0,8 V · SOC &nbsp;&nbsp;·&nbsp;&nbsp; P = U · I</p>
+      <p class="muted">R<sub>carga</sub> crece a medida que la batería se carga (aceptación de carga decreciente): tras el arranque la corriente de carga es alta y luego disminuye.</p>
+    </div>
+    <h2 style="margin-top:14px">Valores de referencia</h2>
+    <div class="tw"><table>
+      <tr><th>Magnitud</th><th>Valor</th><th>Fuente / criterio</th></tr>
+      <tr><td>Batería en reposo (cargada)</td><td>≈ 12,6 V</td><td>INATEC (2018)</td></tr>
+      <tr><td>Tensión de carga con motor en marcha</td><td>13,8 – 14,6 V</td><td>Orientativo; INATEC: 13,5 – 15,0 V en vehículo, 14 – 15 V a 2000 rpm</td></tr>
+      <tr><td>Tensión de regulación en banco</td><td>14,3 – 14,8 V</td><td>INATEC (2018)</td></tr>
+      <tr><td>Régimen de inicio n<sub>0</sub> (0 A)</td><td>≈ 1000 – 1200 rpm alt.</td><td>Reif (2014): ≈ 1000 rpm</td></tr>
+      <tr><td>Corriente nominal I<sub>N</sub></td><td>a 6000 rpm alt.</td><td>Reif (2014): 13,5 V y 23 °C</td></tr>
+      <tr><td>Relación de poleas</td><td>1 : 2,2 – 1 : 3</td><td>Reif (2014), turismos</td></tr>
+      <tr><td>Caída B+ alternador → + batería</td><td>≤ 0,5 V</td><td>Orientativo</td></tr>
+      <tr><td>Caída carcasa → − batería</td><td>≤ 0,2 V</td><td>Orientativo</td></tr>
+      <tr><td>Tensión de rizado en B+</td><td>≤ 0,5 V AC (≈ ≤ 0,5 V p-p sano)</td><td>Orientativo</td></tr>
+      <tr><td>Corriente de excitación (campo pleno)</td><td>≈ 2 – 5 A</td><td>Orientativo; rotor 3 – 6 Ω (INATEC)</td></tr>
+      <tr><td>Diodo en sentido directo</td><td>0,6 – 0,7 V</td><td>INATEC (2018)</td></tr>
+    </table></div>
+    <p class="muted">Los límites marcados como orientativos son valores de taller habituales: consulte siempre el manual del fabricante del vehículo o del alternador.</p>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>¿Cómo usar el simulador?</summary>
+      <ol>
+        <li>Con la <b>llave apagada</b>, mida la tensión en reposo de la batería (+Bat → −Bat). Una batería cargada marca ≈ 12,6 V.</li>
+        <li>Ponga el <b>contacto</b> (clic en la llave o «Contacto puesto»): la lámpara testigo debe encenderse, porque por ella circula la corriente de preexcitación hacia D+ y el rotor.</li>
+        <li>Seleccione «Motor en marcha»: la lámpara debe apagarse. Observe en la pinza (cable de batería) la corriente de carga alta tras el arranque y cómo disminuye con el tiempo (use «Velocidad de la simulación» ×10 o ×60).</li>
+        <li><b>Prueba 1 – Tensión de carga:</b> mida +Bat → −Bat en ralentí y a 2000 rpm, sin y con consumidores. Compare con 13,8 – 14,6 V (orientativo).</li>
+        <li><b>Prueba 2 – Salida máxima:</b> a 2000 rpm encienda todos los consumidores y suba el banco de carga hasta que la tensión baje de la regulada (≈ 12,5 – 13 V). Lea la corriente de B+ con la pinza y compárela con la curva característica.</li>
+        <li><b>Prueba 3 – Caídas de tensión:</b> con carga alta mida B+ → +Bat (≤ 0,5 V) y −Bat → Carcasa (≤ 0,2 V). Use los accesos rápidos del multímetro.</li>
+        <li><b>Prueba 4 – Rizado y excitación:</b> mida V~ en B+ → −Bat (≤ 0,5 V AC) y observe la forma de onda en el osciloscopio. Mida con la pinza la corriente de excitación (DF) y pruebe el «campo pleno» para separar una avería del regulador de una del rotor/escobillas.</li>
+        <li>Elija una <b>avería</b> y repita las pruebas: los avisos explican los síntomas. En el <b>modo evaluación</b> la avería queda oculta: mida, registre los valores en la tabla, elija el diagnóstico y pulse «Comprobar».</li>
+        <li>Use «Registrar» en cada instrumento para llenar el registro de mediciones y descárguelo en CSV (se abre con Excel).</li>
+      </ol>
+    </details>
+  </div>
+
+  <div class="card refs">
+    <h2>Referencias</h2>
+    <p>Instituto Nacional Tecnológico. (2018). <i>Manual del protagonista: Sistema de carga y arranque del vehículo y circuitos electrónicos básicos</i> (1.ª ed.). INATEC.</p>
+    <p>MAHLE Aftermarket. (2016). <i>Manual de fallas prematuras en alternadores y motores de arranque aftermarket</i>. MAHLE.</p>
+    <p>Reif, K. (Ed.). (2014). <i>Bosch automotive electrics and automotive electronics: Systems and components, networking and hybrid drive</i> (5.ª ed.). Springer Vieweg.</p>
+  </div>
+</section>
+
+<aside>
+  <div class="card">
+    <h2>Multímetro digital</h2>
+    <div class="meter">
+      <div class="lcd"><span class="fn" id="lcdFn">V⎓</span><span><span class="val" id="lcdVal">- - -</span> <span class="unit" id="lcdUnit">V</span></span></div>
+      <div class="modes" id="modes">
+        <button data-m="V" class="on">V⎓</button><button data-m="AC">V~</button><button data-m="OFF">OFF</button>
+      </div>
+      <div class="probes">Colocar punta:
+        <button class="pr on" id="pRed">● Roja (V)</button>
+        <button class="pb" id="pBlk">● Negra (COM)</button>
+      </div>
+      <div class="quick" id="quickM">
+        <button data-p="Bt,Bm">+Bat → −Bat</button>
+        <button data-p="Bp,Bm">B+ → −Bat</button>
+        <button data-p="Bp,Bt">B+ → +Bat</button>
+        <button data-p="Bm,Cs">−Bat → Carcasa</button>
+        <button data-p="Dp,Bm">D+ → −Bat</button>
+      </div>
+      <div class="mstat" id="mstat"></div>
+      <div class="mnote" id="mnote"></div>
+      <div class="bar"><button class="btn small" id="logM">Registrar lectura</button></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Pinza amperimétrica (DC)</h2>
+    <div class="clampm">
+      <div class="lcd"><span class="fn">A⎓</span><span><span class="val" id="clVal">0,0</span> <span class="unit">A</span></span></div>
+      <select id="clPos">
+        <option value="bp">Cable de salida B+ del alternador</option>
+        <option value="bat">Cable positivo de la batería</option>
+        <option value="cons">Alimentación de consumidores</option>
+        <option value="df">Cable de excitación (DF, rotor)</option>
+      </select>
+      <div class="mnote" id="clNote"></div>
+      <div class="bar"><button class="btn small" id="logC">Registrar lectura</button></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Osciloscopio</h2>
+    <div class="scope">
+      <canvas id="scope" width="600" height="360"></canvas>
+      <div class="srow">
+        <label>Canal <select id="scCh"><option value="B">B+ → −Bat (acople AC)</option><option value="DF">DF → Carcasa (PWM)</option></select></label>
+        <label>V/div <select id="scV"><option>0.1</option><option selected>0.2</option><option>0.5</option><option>1</option><option>2</option><option>5</option></select></label>
+        <label>t/div <select id="scT"><option value="0.1">0,1 ms</option><option value="0.2">0,2 ms</option><option value="0.5" selected>0,5 ms</option><option value="1">1 ms</option><option value="2">2 ms</option></select></label>
+      </div>
+      <div class="sread" id="scRead"></div>
+      <div class="bar"><button class="btn small" id="logS">Registrar lectura</button></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Avisos</h2>
+    <div class="msgs" id="msgs"></div>
+  </div>
+
+  <div class="card">
+    <h2>Resultados del sistema</h2>
+    <label class="switch"><input type="checkbox" id="evalMode"> Modo evaluación (avería oculta)</label>
+    <div id="results"></div>
+    <div id="evalBox" style="display:none"></div>
+  </div>
+
+  <div class="card">
+    <h2>Registro de mediciones</h2>
+    <div id="logTbl" class="tw"></div>
+    <div class="bar">
+      <button class="btn small" id="btnCsv">Descargar CSV</button>
+      <button class="btn small" id="btnClr">Limpiar registro</button>
+    </div>
+  </div>
+</aside>
+</main>
+<footer>Simulador didáctico · Carrera de Mecánica Automotriz · Instituto Superior Tecnológico Sudamericano</footer>
+
+<script>
+"use strict";
+/* ================= constantes del modelo ================= */
+const N0 = 1100;            // régimen de inicio de carga (rpm alternador)
+const POLES = 6;            // pares de polos del rotor (12 polos)
+const RF = 3.4;             // resistencia del rotor (Ω)
+const RLAMP = 72;           // lámpara testigo 12 V / 2 W caliente (Ω)
+const RBR_WORN = 50;        // resistencia de contacto de escobillas desgastadas (Ω)
+const FPWM = 200;           // frecuencia del PWM del regulador (Hz, orientativo)
+const FAULTS = [
+  ['none','Sin avería'],
+  ['belt','Correa floja / patinando'],
+  ['reg_over','Regulador averiado: sobrecarga (sin limitación)'],
+  ['reg_under','Regulador averiado: sin regulación, tensión baja'],
+  ['brushes','Escobillas desgastadas'],
+  ['d_open','Diodo positivo abierto'],
+  ['d_short','Diodo positivo en cortocircuito'],
+  ['phase','Fase del estator abierta'],
+  ['cable','Cable B+ con resistencia alta'],
+  ['masa','Masa del alternador deficiente'],
+  ['lamp','Lámpara testigo fundida']
+];
+const FNAME = Object.fromEntries(FAULTS);
+const CONS = [
+  {id:'base',  name:'Encendido, inyección y ECU', sh:'Encendido / ECU', P:230, t:'e'},
+  {id:'cruce', name:'Luces de cruce 2 × 55 W',     sh:'Luces de cruce',  P:110, t:'l'},
+  {id:'pos',   name:'Luces de posición y tablero', sh:'Posición/tablero',P:35,  t:'l'},
+  {id:'desemp',name:'Desempañador trasero',        sh:'Desempañador',    P:150, t:'r'},
+  {id:'vent',  name:'Electroventilador',           sh:'Electroventilador',P:180,t:'m'},
+  {id:'sopl',  name:'Soplador del A/C',            sh:'Soplador A/C',    P:200, t:'m'},
+  {id:'limp',  name:'Limpiaparabrisas',            sh:'Limpiaparabrisas',P:60,  t:'m'},
+  {id:'radio', name:'Radio',                       sh:'Radio',           P:20,  t:'r'}
+];
+const ALLC = Object.fromEntries(CONS.map(c=>[c.id,true]));
+const BASEC = Object.fromEntries(CONS.map(c=>[c.id,c.id==='base']));
+const NODES = {Dp:[640,115,'D+'],Bp:[640,150,'B+'],Cs:[640,365,'Carcasa'],Bt:[800,196,'+Bat'],Bm:[800,284,'−Bat']};
+const NNAME = {Dp:'D+',Bp:'B+ (alternador)',Cs:'carcasa del alternador',Bt:'+ batería',Bm:'− batería'};
+const CLAMPS = {bp:[700,150],bat:[800,173],cons:[830,150],df:[323,147]};
+const CLNAME = {bp:'cable B+',bat:'cable + batería',cons:'alimentación de consumidores',df:'cable de excitación DF'};
+
+/* ================= estado ================= */
+const S = {state:'off', rpm:800, ratio:2.7, IN:90, T:25, C:60, SOC:0.80, kpol:1, speed:1, fault:'none', fullField:false, pile:0,
+  cons:{...BASEC}, tab:'libre', mode:'V', place:'red', red:'Bt', black:'Bm', clamp:'bat',
+  evalOn:false, evalChecked:false, hidden:null, log:[], events:[],
+  angE:0, angA:0, beltOff:0, flowOff:{}};
+let SOL = null;
+const $ = id => document.getElementById(id);
+
+/* ================= formato ================= */
+function nf(x,d){return x.toLocaleString('es-EC',{minimumFractionDigits:d,maximumFractionDigits:d,useGrouping:false});}
+function parseNum(s){if(s==null)return NaN;s=String(s).trim().replace(',','.');return s===''?NaN:Number(s);}
+const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
+function fV(v,d=2){return nf(v,d)+' V';}
+function fA(i,d=1){if(Math.abs(i)<0.5*Math.pow(10,-d))i=0;return nf(i,d)+' A';}
+
+/* ================= modelo físico ================= */
+function curveI(n,IN){if(n<=N0)return 0;const x=n-N0;return 1.0908*IN*x/(x+444.8);}
+function usetT(T){return clamp(14.3-0.01*(T-25),13.8,14.6);}
+function bisect(fn,lo,hi){ // raíz de fn creciente
+  if(fn(lo)>=0)return lo; if(fn(hi)<=0)return hi;
+  for(let i=0;i<64;i++){const m=(lo+hi)/2;if(fn(m)>0)hi=m;else lo=m;}
+  return (lo+hi)/2;
+}
+function cond(){return {state:S.state,rpm:S.rpm,ratio:S.ratio,IN:S.IN,T:S.T,C:S.C,SOC:S.SOC,kpol:S.kpol,fault:activeFault(),fullField:S.fullField,pile:S.pile,cons:{...S.cons}};}
+function activeFault(){return S.evalOn&&S.hidden?S.hidden.fault:S.fault;}
+
+function solve(c){
+  const f=c.fault, run=c.state==='run', key=c.state!=='off';
+  const E0=11.9+0.8*c.SOC, sc=60/c.C;
+  const Rd=(0.010+0.012*(1-c.SOC))*sc;
+  const Rc=(0.012+0.9*Math.pow(c.SOC,10))*sc*c.kpol;
+  const Igas=U=>0.02*c.C*Math.exp((U-15.2)/0.3);
+  const Ibat=U=>U>=E0?(U-E0)/Rc+Igas(U):(U-E0)/Rd;
+  let Pl=0;
+  if(key)for(const k of CONS)if(c.cons[k.id])Pl+=k.id==='base'?(run?k.P:70):k.P;
+  const G=Pl/(13.5*13.5);
+  const pileI=U=>c.pile*clamp(U-6,0,1);
+  // resistencia equivalente del circuito de campo para la preexcitación
+  const Rfe=f==='brushes'?RF+RBR_WORN:(f==='reg_under'&&!c.fullField?RF/0.10:RF);
+  const Ipre=U=>(key&&!run&&f!=='lamp')?Math.max(0,(U-0.8)/(RLAMP+Rfe)):0;
+  const drain=run?0:(0.03+(f==='d_short'?0.45:0));
+  const ILc=U=>G*U;
+  const IL=U=>ILc(U)+pileI(U)+Ipre(U)+drain;
+  const Fl=U=>IL(U)+Ibat(U);
+  const o={run,key,E0,f,Pl,Ia:0,U:0,nAlt:0,cap:0,capNom:0,reg:false,slip:0,Ureg:0,d:0,Iexc:0,Rcab:0.003,Rg:0.0015,over:false};
+  const Rcab=f==='cable'?0.028:0.003, Rg=f==='masa'?0.020:0.0015, Rs=Rcab+Rg;
+  o.Rcab=Rcab;o.Rg=Rg;
+  if(!run){
+    const U=bisect(Fl,4,16);
+    o.U=U;o.Ia=0;o.Ibat=Ibat(U);o.IL=ILc(U);o.Ipile=pileI(U);o.Igas=0;
+    o.Vcase=0;o.VBp=U;o.UBrel=U;
+    o.Ip=Ipre(U);
+    o.VD= key&&f!=='lamp' ? U-o.Ip*RLAMP : 0;
+    o.Iexc=o.Ip;
+    o.d= key&&f!=='lamp' ? (f==='reg_under'&&!c.fullField?0.10:1) : 0;
+    o.Ulamp= key ? U-o.VD : 0;
+    o.ripple=0;
+  }else{
+    const fieldOK=!(f==='brushes'||f==='lamp');
+    const over=f==='reg_over'||(c.fullField&&fieldOK);
+    const dAv=f==='brushes'?RF/(RF+RBR_WORN):(f==='reg_under'&&!c.fullField?0.10:1);
+    const fac={d_open:0.67,d_short:0.40,phase:0.50}[f]||1;
+    // patinamiento de la correa: crece cuando la corriente (par resistente) supera ≈ 35 % de I_N
+    const slipOf=I=>f==='belt'?clamp(0.03+0.9*Math.max(0,I-0.35*c.IN)/(0.3*c.IN),0.03,0.8):0;
+    const n0m=c.rpm*c.ratio;
+    let cap,Ia,U,reg,slip,nAlt;
+    if(f==='lamp')cap=0;
+    else if(f==='belt'){ // punto de equilibrio: I = curva(n·(1 − s(I)))
+      const hB=I=>I-curveI(n0m*(1-slipOf(I))*dAv,c.IN)*fac;
+      cap=bisect(hB,0,1.3*c.IN);
+    }else cap=curveI(n0m*(1-slipOf(0))*dAv,c.IN)*fac;
+    const Ureg=over?clamp(15.6+0.00012*(n0m-2000),15.4,16.4):usetT(c.T);
+    if(cap<=0.01){cap=0;Ia=0;U=bisect(Fl,4,17);reg=false;}
+    else{
+      U=bisect(x=>x+Fl(x)*Rs-Ureg,4,17);Ia=Fl(U);reg=true;
+      if(Ia>cap){Ia=cap;U=bisect(x=>Fl(x)-cap,4,17);reg=false;}
+    }
+    slip=slipOf(Ia);nAlt=n0m*(1-slip);
+    o.over=over;o.slip=slip;o.nAlt=nAlt;o.cap=cap;o.capNom=curveI(nAlt,c.IN);o.Ureg=Ureg;o.reg=reg;
+    o.Ia=Ia;o.U=U;o.Ibat=Ibat(U);o.IL=ILc(U);o.Ipile=pileI(U);o.Igas=U>=E0?Igas(U):0;
+    o.Vcase=-Ia*Rg;o.VBp=U+Ia*Rcab;o.UBrel=o.VBp-o.Vcase;
+    // ciclo de trabajo del regulador
+    let d;
+    if(over)d=1;
+    else if(f==='reg_under'&&!c.fullField)d=0.10;
+    else if(!reg)d=1;
+    else{const r=N0/nAlt;d=clamp(r+(1-r)*(Ia/Math.max(cap,1)),0.05,1);}
+    o.d=d;
+    if(cap>0){
+      o.VD=o.UBrel+(f==='d_short'?-1.6:f==='phase'?-0.9:0);
+      o.Iexc=d*o.VD/RF;
+    }else if(f==='lamp'){
+      o.VD=0.4*Math.min(1,nAlt/3000);o.Iexc=o.VD/RF;
+    }else{
+      const Ip=Math.max(0,(U-0.8)/(RLAMP+Rfe));
+      o.VD=U-Ip*RLAMP;o.Iexc=Ip;
+    }
+    o.Ulamp=U-(o.Vcase+o.VD);
+    o.ripple=ripplePP(f,Ia);
+  }
+  o.lampB=(key&&f!=='lamp')?Math.pow(clamp((Math.abs(o.Ulamp)-0.8)/11.2,0,1),0.8):0;
+  o.lampState=o.lampB>0.3?'encendida':o.lampB>0.02?'tenue':'apagada';
+  o.Pgen=o.Ia*o.UBrel;
+  return o;
+}
+function ripplePP(f,I){
+  if(I<0.5)return 0.03;
+  switch(f){case 'd_open':return 0.4+0.03*I;case 'd_short':return 0.9+0.04*I;case 'phase':return 0.5+0.03*I;default:return 0.05+0.0035*I;}
+}
+function shapeKind(f){return (f==='d_open'||f==='d_short'||f==='phase')?f:'n';}
+function shapeRaw(th,k){
+  const a=Math.sin(th),b=Math.sin(th-2.0944),c=Math.sin(th+2.0944);
+  switch(k){
+    case 'd_open':return Math.max(b,c)-Math.min(a,b,c);
+    case 'd_short':return Math.max(a,b,c)-Math.min(a,b,c)-1.3*Math.max(0,-a);
+    case 'phase':return Math.abs(b-c)*(1+0.12*Math.sin(2*th+0.6));
+    default:return Math.max(a,b,c)-Math.min(a,b,c);
+  }
+}
+const SH={};
+for(const k of ['n','d_open','d_short','phase']){
+  let mn=1e9,mx=-1e9,sum=0;const N=1440,v=[];
+  for(let i=0;i<N;i++){const s=shapeRaw(2*Math.PI*i/N,k);v.push(s);mn=Math.min(mn,s);mx=Math.max(mx,s);sum+=s;}
+  const mean=sum/N,pp=mx-mn;let q=0;for(const s of v)q+=((s-mean)/pp)**2;
+  SH[k]={mean,pp,rms:Math.sqrt(q/N)};
+}
+function acAt(th,k){const h=SH[k];return (shapeRaw(th,k)-h.mean)/h.pp;} // p-p normalizado = 1
+function acRms(sol){return sol.run?sol.ripple*SH[shapeKind(sol.f)].rms:0;}
+const ACK={Bp:1,Dp:1.05,Bt:0.85,Bm:0,Cs:0};
+
+function potentials(s){
+  return {Bp:s.VBp,Dp:(s.Vcase||0)+(s.VD||0),Cs:s.Vcase||0,Bt:s.U,Bm:0};
+}
+
+/* ================= dibujo del esquema ================= */
+function hLine(x1,x2,y,hops){ // línea horizontal (x1<x2) con saltos
+  let d=`M${x1} ${y}`;for(const x of hops.sort((a,b)=>a-b))d+=` H${x-5} A5 5 0 0 1 ${x+5} ${y}`;return d+` H${x2}`;}
+function vLineUp(x,y1,y2,hops){ // vertical de y1 (abajo) a y2 (arriba) con saltos
+  let d=`M${x} ${y1}`;for(const y of hops.sort((a,b)=>b-a))d+=` V${y+5} A5 5 0 0 1 ${x} ${y-5}`;return d+` V${y2}`;}
+function diode(x,y,s=8,cls=''){ // diodo vertical, conduce hacia arriba
+  return `<g class="${cls}"><polygon points="${x-s},${y+s*0.75} ${x+s},${y+s*0.75} ${x},${y-s*0.75}" fill="#2b3440"/><line x1="${x-s}" y1="${y-s*0.75}" x2="${x+s}" y2="${y-s*0.75}" stroke="#2b3440" stroke-width="2.2"/></g>`;}
+function coilH(x1,x2,y,n=4){const w=(x2-x1)/n;let d=`M${x1} ${y}`;for(let i=0;i<n;i++)d+=` a${w/2} ${w/2} 0 0 1 ${w} 0`;return d;}
+function flowPath(id,d,I,cls=''){
+  if(Math.abs(I)<0.005)return '';
+  const sp=10+30*Math.log10(1+Math.abs(I)*5);
+  return `<path class="flow ${cls}" data-id="${id}" data-dir="${I>0?1:-1}" data-speed="${sp.toFixed(1)}" d="${d}"/>`;}
+function glow(b){return `rgba(255,${Math.round(200+40*b)},0,${(0.15+0.85*b).toFixed(2)})`;}
+
+function drawSVG(){
+  const s=SOL, vf=S.evalOn?'none':S.fault, run=s.run, key=s.key;
+  let h='';
+  // ---- poleas y correa ----
+  const CE=[80,100],rE=46,CA=[185,100],rA=46/S.ratio;
+  const dd=CA[0]-CE[0],cph=(rE-rA)/dd,sph=Math.sqrt(1-cph*cph);
+  const pt=(c,r,sg)=>[c[0]+r*cph,c[1]+sg*r*sph];
+  const e1=pt(CE,rE,-1),a1=pt(CA,rA,-1),a2=pt(CA,rA,1),e2=pt(CE,rE,1);
+  const sag=vf==='belt'?10:0;
+  const beltD=`M${e1[0].toFixed(1)} ${e1[1].toFixed(1)} L${a1[0].toFixed(1)} ${a1[1].toFixed(1)} A${rA.toFixed(1)} ${rA.toFixed(1)} 0 0 1 ${a2[0].toFixed(1)} ${a2[1].toFixed(1)} Q${((a2[0]+e2[0])/2).toFixed(1)} ${((a2[1]+e2[1])/2+sag).toFixed(1)} ${e2[0].toFixed(1)} ${e2[1].toFixed(1)} A${rE} ${rE} 0 1 1 ${e1[0].toFixed(1)} ${e1[1].toFixed(1)}`;
+  h+=`<text class="lbl" x="18" y="24">Motor</text><text class="lbl2" x="18" y="38">polea del cigüeñal</text>`;
+  h+=`<path d="${beltD}" fill="none" stroke="${vf==='belt'?'#6d4c41':'#37474f'}" stroke-width="6"/>`;
+  h+=`<path id="beltDash" d="${beltD}" fill="none" stroke="#b0bec5" stroke-width="2" stroke-dasharray="7 9"/>`;
+  const pulley=(c,r,id)=>{let g=`<circle cx="${c[0]}" cy="${c[1]}" r="${r-3}" fill="#cfd8dc" stroke="#455a64" stroke-width="2"/><g id="${id}">`;
+    for(let k=0;k<3;k++){const a=k*2*Math.PI/3;g+=`<line x1="${c[0]}" y1="${c[1]}" x2="${(c[0]+(r-6)*Math.cos(a)).toFixed(1)}" y2="${(c[1]+(r-6)*Math.sin(a)).toFixed(1)}" stroke="#455a64" stroke-width="${r>30?4:2.5}"/>`;}
+    return g+`</g><circle cx="${c[0]}" cy="${c[1]}" r="${r>30?6:3.5}" fill="#455a64"/>`;};
+  h+=pulley(CE,rE,'pulE')+pulley(CA,rA,'pulA');
+  h+=`<text class="lbl2" x="130" y="${162+sag}" text-anchor="middle">correa · i = ${nf(S.ratio,2)}</text>`;
+  if(run&&s.slip>0.1)h+=`<text class="lblr" x="120" y="${180+sag}" text-anchor="middle">¡Chirrido! patina ${nf(s.slip*100,0)} %</text>`;
+  // eje
+  h+=`<line x1="${CA[0]}" y1="100" x2="332" y2="100" stroke="#78909c" stroke-width="4"/>`;
+  // ---- panel de datos ----
+  const st={off:'Llave apagada',key:'Contacto puesto',run:'Motor en marcha'}[S.state];
+  h+=`<rect x="8" y="200" width="200" height="150" rx="8" fill="#eef2f7" stroke="#d9dfe7"/>`;
+  const L=[['Estado',st],['Motor',run?nf(S.rpm,0)+' rpm':'0 rpm'],['Alternador',run?nf(s.nAlt,0)+' rpm':'0 rpm'],['Frecuencia f',run?nf(POLES*s.nAlt/60,0)+' Hz':'—'],['Alternador nominal',S.IN+' A'],['Temperatura',nf(S.T,0)+' °C'],['Batería',S.C+' Ah · SOC '+nf(S.SOC*100,0)+' %']];
+  L.forEach((r,i)=>{h+=`<text class="lbl2" x="16" y="${220+i*19}">${r[0]}:</text><text class="lbl" style="font-size:11.5px" x="200" y="${220+i*19}" text-anchor="end">${r[1]}</text>`;});
+  // ---- carcasa del alternador ----
+  h+=`<rect x="222" y="30" width="418" height="362" rx="14" fill="#f6f8fb" stroke="#90a4ae" stroke-width="2" stroke-dasharray="8 5"/>`;
+  h+=`<text class="lbl" x="232" y="386">Alternador trifásico con regulador incorporado</text>`;
+  // rotor
+  h+=`<rect x="245" y="74" width="55" height="52" rx="6" fill="#e3ecf6" stroke="#546e7a" stroke-width="1.6"/>`;
+  h+=`<path d="${coilH(250,295,100,4)}" class="wthin" stroke-width="2"/>`;
+  h+=`<line x1="300" y1="92" x2="311" y2="92" class="wthin"/><line x1="300" y1="108" x2="323" y2="108" class="wthin"/>`;
+  h+=`<rect x="308" y="80" width="6" height="40" fill="#b87333"/><rect x="320" y="80" width="6" height="40" fill="#b87333"/>`;
+  const worn=vf==='brushes';
+  h+=`<rect x="305" y="${worn?72:64}" width="12" height="${worn?8:16}" fill="${worn?'#ef9a9a':'#616161'}" stroke="${worn?'#c62828':'#212121'}"/>`;
+  h+=`<rect x="317" y="120" width="12" height="${worn?8:16}" fill="${worn?'#ef9a9a':'#616161'}" stroke="${worn?'#c62828':'#212121'}"/>`;
+  h+=`<text class="lbl2" x="248" y="140">Rotor</text>`;
+  if(worn)h+=`<text class="lblr" x="336" y="80">escobillas gastadas</text>`;
+  // alimentación del rotor desde D+
+  h+=`<path class="wire" d="M311 ${worn?72:64} V42 H360 V115"/>`;
+  h+=`<path class="wire" d="M323 ${worn?128:136} V158"/>`;
+  // regulador
+  const rb=(vf==='reg_over'||vf==='reg_under');
+  h+=`<rect x="240" y="158" width="105" height="48" rx="6" fill="#fff" stroke="${rb?'#c62828':'#1f5a94'}" stroke-width="${rb?3:2}"/>`;
+  h+=`<text class="lbl" x="248" y="173" style="font-size:11.5px">Regulador</text>`;
+  const D=s.d||0;
+  // señal PWM esquemática (2 periodos)
+  let pwm=`M250 197`;for(let k=0;k<2;k++){const x0=250+k*24,on=Math.max(1,24*D);pwm+=` L${x0} 184 L${(x0+on).toFixed(1)} 184 L${(x0+on).toFixed(1)} 197 L${x0+24} 197`;}
+  h+=`<path d="${pwm}" fill="none" stroke="#2e7d32" stroke-width="1.6"/>`;
+  h+=`<text class="lbl2" x="339" y="195" text-anchor="end">D ${nf(D*100,0)} %</text>`;
+  if(rb)h+=`<text class="lblr" x="243" y="220">regulador averiado</text>`;
+  h+=`<path class="wire" d="M345 170 H360 V115"/>`;
+  h+=`<text class="lbl2" x="334" y="152">DF</text>`;
+  // masa del regulador
+  h+=`<path class="wire" d="M255 206 V365"/>`;
+  // estator
+  const PY=[235,275,315],CX=[420,480,540];
+  h+=`<path class="wire" d="M275 ${PY[0]} V${PY[2]}"/><circle cx="275" cy="275" r="3.5" fill="#2b3440"/>`;
+  h+=`<text class="lbl2" x="${rb?300:282}" y="226">Estator (Y)</text>`;
+  ['U','V','W'].forEach((ph,i)=>{
+    const y=PY[i],open=(vf==='phase'&&i===0);
+    h+=`<path class="wire" d="M275 ${y} H290"/>`;
+    if(open){h+=`<path d="${coilH(290,316,y,2)}" class="wire" style="stroke:#c62828"/><path d="M${330} ${y} a7 7 0 0 1 14 0" class="wire" style="stroke:#c62828"/><text class="lblr" x="296" y="${y-12}">abierta</text>`;}
+    else h+=`<path d="${coilH(290,344,y,4)}" class="wire"/>`;
+    h+=`<text class="lbl2" x="349" y="${y-5}">${ph}</text>`;
+    const hops=[];CX.forEach((cx,j)=>{if(j<i)hops.push(cx);});
+    h+=`<path class="wire" d="${hLine(344,CX[i],y,hops)}"/>`;
+  });
+  // puente rectificador
+  h+=`<path class="wire" d="M420 150 H640"/><path class="wire" d="M360 115 H640"/><path class="wire" d="M255 365 H640"/>`;
+  h+=`<circle cx="360" cy="115" r="3.5" fill="#2b3440"/><circle cx="255" cy="365" r="3.5" fill="#2b3440"/>`;
+  CX.forEach((x,i)=>{
+    const y=PY[i];
+    h+=`<path class="wire" d="M${x} ${y} V150"/><path class="wire" d="M${x} ${y} V365"/>`;
+    const ym=(y+150)/2, yn=i<2?295:340;
+    const dcls=(i===0&&vf==='d_open')?'dopen':(i===0&&vf==='d_short')?'dshort':'';
+    if(dcls==='dopen'){h+=`<rect x="${x-3}" y="${ym-14}" width="6" height="28" fill="#fbfcfe"/>`+diode(x,ym);h+=`<path d="M${x-10} ${ym-10} L${x+10} ${ym+10} M${x+10} ${ym-10} L${x-10} ${ym+10}" stroke="#c62828" stroke-width="3"/>`;}
+    else{h+=diode(x,ym);if(dcls==='dshort')h+=`<path d="M${x+12} ${ym-10} C${x+22} ${ym-4} ${x+22} ${ym+4} ${x+12} ${ym+10}" stroke="#c62828" stroke-width="3" fill="none"/><line x1="${x}" y1="${ym-14}" x2="${x}" y2="${ym+14}" stroke="#c62828" stroke-width="3"/>`;}
+    if(dcls)h+=`<text class="lblr" x="${x-12}" y="${ym-18}" text-anchor="end">${dcls==='dopen'?'abierto':'en corto'}</text>`;
+    h+=diode(x,yn);
+    h+=`<circle cx="${x}" cy="${y}" r="3.5" fill="#2b3440"/><circle cx="${x}" cy="150" r="3.5" fill="#2b3440"/><circle cx="${x}" cy="365" r="3.5" fill="#2b3440"/>`;
+    // diodo de excitación
+    const xe=x+25;
+    h+=`<path class="wthin" d="M${x} ${y} H${xe}"/><path class="wthin" d="${vLineUp(xe,y,115,[150])}"/>`;
+    h+=diode(xe,(y+150)/2+0,5.5);
+    h+=`<circle cx="${xe}" cy="115" r="3" fill="#2b3440"/>`;
+  });
+  h+=`<text class="lbl2" x="590" y="143" text-anchor="end">B+</text><text class="lbl2" x="600" y="108" text-anchor="end">D+ (excitación)</text><text class="lbl2" x="600" y="358" text-anchor="end">B− (masa)</text>`;
+  h+=`<text class="lbl2" x="448" y="398"></text>`;
+  h+=`<text class="lbl2" x="470" y="48" text-anchor="middle">Puente rectificador: 6 diodos de potencia</text><text class="lbl2" x="470" y="62" text-anchor="middle">+ 3 diodos de excitación (D+)</text>`;
+  // ---- exterior: cable B+, batería, consumidores ----
+  const cableBad=vf==='cable', masaBad=vf==='masa';
+  if(cableBad){h+=`<path class="wire" d="M640 150 H722 l3 -7 l6 14 l6 -14 l6 14 l3 -7 H800 V196"/><text class="lblr" x="712" y="170">R alta</text>`;}
+  else h+=`<path class="wire" d="M640 150 H800 V196"/>`;
+  h+=`<text class="lbl2" x="${cableBad?672:735}" y="143">cable B+</text>`;
+  h+=`<path class="wire" d="M800 150 H860 V380"/><circle cx="800" cy="150" r="3.5" fill="#2b3440"/>`;
+  // masa (carcasa → motor → chasis → −bat)
+  if(masaBad)h+=`<path class="wire" d="M640 365 H720 V410 H742 l3 -7 l6 14 l6 -14 l6 14 l3 -7 H800 V284"/><text class="lblr" x="735" y="432">R alta</text>`;
+  else h+=`<path class="wire" d="M640 365 H720 V410 H800 V284"/>`;
+  h+=`<text class="lbl2" x="700" y="452">masa: carcasa → motor → − batería</text>`;
+  h+=`<g><line x1="770" y1="410" x2="770" y2="420" stroke="#2b3440" stroke-width="2"/><line x1="760" y1="420" x2="780" y2="420" stroke="#2b3440" stroke-width="2"/><line x1="764" y1="424" x2="776" y2="424" stroke="#2b3440" stroke-width="2"/><line x1="767" y1="428" x2="773" y2="428" stroke="#2b3440" stroke-width="2"/></g>`;
+  // batería
+  h+=`<rect x="764" y="200" width="72" height="80" rx="5" fill="#eceff1" stroke="#37474f" stroke-width="2"/>`;
+  h+=`<rect x="793" y="193" width="14" height="7" fill="#c62828"/><rect x="793" y="280" width="14" height="7" fill="#37474f"/>`;
+  h+=`<text class="lbl" x="800" y="218" text-anchor="middle" style="font-size:11.5px">Batería</text><text class="lbl2" x="800" y="231" text-anchor="middle">${S.C} Ah</text>`;
+  const socc=S.SOC>0.7?'#43a047':S.SOC>0.45?'#fb8c00':'#e53935';
+  h+=`<rect x="772" y="238" width="56" height="11" fill="#fff" stroke="#90a4ae"/><rect x="772" y="238" width="${(56*S.SOC).toFixed(1)}" height="11" fill="${socc}"/>`;
+  h+=`<text class="lbl2" x="800" y="266" text-anchor="middle">SOC ${nf(S.SOC*100,0)} %</text>`;
+  // circuito de la lámpara testigo y llave
+  const lampBlown=vf==='lamp';
+  h+=`<path class="wire" d="M800 150 V60 H790"/><path class="wire" d="M745 60 H724"/><path class="wire" d="M700 60 H680 V115 H640"/>`;
+  h+=`<g class="clk" data-act="key"><rect x="738" y="40" width="60" height="30" fill="transparent"/><circle cx="790" cy="60" r="3.5" fill="#2b3440"/><circle cx="745" cy="60" r="3.5" fill="#2b3440"/><line x1="790" y1="60" x2="${key?745:752}" y2="${key?60:46}" stroke="#2b3440" stroke-width="3" stroke-linecap="round"/></g>`;
+  h+=`<text class="lbl2" x="768" y="84" text-anchor="middle">llave (15)</text>`;
+  const lb=s.lampB;
+  h+=`<circle cx="712" cy="60" r="${lb>0.02?20:0}" fill="#ffb300" opacity="${(lb*0.5).toFixed(2)}"/><circle cx="712" cy="60" r="11" fill="${lb>0.02?glow(lb):'#fff'}" stroke="${lampBlown?'#c62828':'#2b3440'}" stroke-width="2.2"/>`;
+  if(lampBlown)h+=`<path d="M704 60 L709 55 M715 65 L720 60" stroke="#c62828" stroke-width="2"/>`;
+  else h+=`<line x1="704.2" y1="52.2" x2="719.8" y2="67.8" stroke="#2b3440" stroke-width="2"/><line x1="704.2" y1="67.8" x2="719.8" y2="52.2" stroke="#2b3440" stroke-width="2"/>`;
+  h+=`<text class="lbl2" x="712" y="30" text-anchor="middle">testigo de carga (L)</text>`;
+  if(lampBlown)h+=`<text class="lblr" x="712" y="92" text-anchor="middle">fundida</text>`;
+  // consumidores
+  const tiles=[...CONS,{id:'pile',sh:'Banco de carga',P:0}];
+  tiles.forEach((c,i)=>{
+    const y=156+i*26, on=c.id==='pile'?S.pile>0:!!S.cons[c.id];
+    const pw=c.id==='pile'?nf(S.pile,0)+' A':(c.id==='base'?c.P+' W (fijo)':c.P+' W');
+    const U=s.U, act=on&&(key||c.id==='pile');
+    const br=act?clamp(Math.pow(U/13.5,3.4),0,1.3):0;
+    h+=`<g class="${c.id==='base'||c.id==='pile'?'':'clk'}" data-cons="${c.id}">`;
+    h+=`<line x1="860" y1="${y+12}" x2="${on?872:866}" y2="${on?y+12:y+5}" stroke="${on?'#2b3440':'#9aa5b1'}" stroke-width="2"/>`;
+    h+=`<rect x="872" y="${y}" width="124" height="23" rx="4" fill="${act?'#fffbe6':'#fff'}" stroke="${act?'#e0a100':'#cfd8dc'}"/>`;
+    if(c.t==='l')h+=`<circle cx="884" cy="${y+11.5}" r="6" fill="${act?glow(Math.min(1,br)):'#eceff1'}" stroke="#546e7a"/>`;
+    else if(c.t==='m')h+=`<circle cx="884" cy="${y+11.5}" r="6" fill="${act?'#c8e6c9':'#eceff1'}" stroke="#546e7a"/><text x="884" y="${y+15}" text-anchor="middle" style="font-size:8.5px;font-weight:700;fill:#2b3440">M</text>`;
+    else h+=`<rect x="879" y="${y+7}" width="10" height="9" fill="${act?'#ffe0b2':'#eceff1'}" stroke="#546e7a"/>`;
+    h+=`<text x="894" y="${y+10}" style="font-size:10px;font-weight:700;fill:#1c2533">${c.sh}</text><text x="894" y="${y+20}" style="font-size:9.5px;fill:#5b6778">${pw}</text></g>`;
+  });
+  h+=`<text class="lbl2" x="934" y="148" text-anchor="middle">consumidores</text>`;
+  // corrientes animadas
+  h+=flowPath('fB','M640 150 H800',s.Ia);
+  h+=flowPath('fBat','M800 150 V196',s.Ibat,s.Ibat<0?'neg':'');
+  h+=flowPath('fCons','M800 150 H860 V380',s.IL+s.Ipile);
+  h+=flowPath('fG','M800 284 V410 H720 V365 H640',s.Ia);
+  h+=flowPath('fRail','M420 150 H640',s.Ia);
+  h+=flowPath('fF1','M360 115 V42 H311 V64',s.Iexc,'fld');
+  h+=flowPath('fF2','M323 136 V158',s.Iexc,'fld');
+  h+=flowPath('fF3','M255 206 V365',s.Iexc,'fld');
+  if(!run&&key)h+=flowPath('fL','M800 150 V60 H680 V115 H640',s.Ip||0,'fld');
+  // pinza
+  for(const k in CLAMPS){const [x,y]=CLAMPS[k],sel=S.clamp===k;
+    h+=`<g class="clk" data-clamp="${k}"><circle cx="${x}" cy="${y}" r="${sel?11:8}" fill="${sel?'rgba(255,152,0,.25)':'rgba(255,255,255,.01)'}" stroke="#ef6c00" stroke-width="${sel?3.5:1.6}" stroke-dasharray="${sel?'':'3 3'}"/>${sel?`<text x="${x+13}" y="${y-8}" style="font-size:10px;font-weight:700;fill:#ef6c00">A</text>`:''}</g>`;}
+  // nodos
+  for(const k in NODES){const [x,y,t]=NODES[k];
+    const tx=k==='Bt'||k==='Bm'?x+12:x+8, ty=k==='Bm'?y+16:k==='Bt'?y-6:y-7;
+    h+=`<g class="node" data-n="${k}"><circle cx="${x}" cy="${y}" r="6.5"/><text x="${tx}" y="${ty}">${t}</text></g>`;}
+  // puntas
+  if(S.mode!=='OFF'){
+    const probe=(n,col,txt,dy)=>{if(!n)return '';const [x,y]=NODES[n];
+      return `<g pointer-events="none"><circle cx="${x}" cy="${y}" r="11" fill="none" stroke="${col}" stroke-width="3.5"/><rect x="${x-44}" y="${y+dy-9}" width="${txt.length*7+8}" height="16" rx="4" fill="${col}"/><text x="${x-40}" y="${y+dy+3}" fill="#fff" font-size="10.5" font-weight="700">${txt}</text></g>`;};
+    h+=probe(S.black,'#111','COM',S.red===S.black?22:14);
+    h+=probe(S.red,'#e53935','V',-14);
+  }
+  $('circ').innerHTML=h;
+  flows=[...$('circ').querySelectorAll('path.flow')].map(p=>({p,id:p.dataset.id,dir:+p.dataset.dir,speed:+p.dataset.speed}));
+  pulE=$('pulE');pulA=$('pulA');beltDash=$('beltDash');
+}
+let flows=[],pulE=null,pulA=null,beltDash=null;
+
+/* ================= curva característica ================= */
+function drawCurve(){
+  const s=SOL,IN=S.IN,X0=60,X1=620,Y0=232,Y1=22,NX=12000;
+  const ymax=Math.ceil(IN*1.2/10)*10, ystep=IN>=90?20:10;
+  const X=n=>X0+(X1-X0)*n/NX, Y=i=>Y0-(Y0-Y1)*i/ymax;
+  let h='';
+  for(let n=0;n<=NX;n+=2000){h+=`<line x1="${X(n)}" y1="${Y1}" x2="${X(n)}" y2="${Y0}" stroke="#e3e8ef"/><text class="lbl2" x="${X(n)}" y="${Y0+15}" text-anchor="middle">${n}</text>`;}
+  for(let i=0;i<=ymax;i+=ystep){h+=`<line x1="${X0}" y1="${Y(i)}" x2="${X1}" y2="${Y(i)}" stroke="#e3e8ef"/><text class="lbl2" x="${X0-6}" y="${Y(i)+4}" text-anchor="end">${i}</text>`;}
+  h+=`<line x1="${X0}" y1="${Y0}" x2="${X1}" y2="${Y0}" stroke="#2b3440"/><line x1="${X0}" y1="${Y0}" x2="${X0}" y2="${Y1}" stroke="#2b3440"/>`;
+  h+=`<text class="lbl2" x="${(X0+X1)/2}" y="${Y0+32}" text-anchor="middle">Régimen del alternador n (rpm)</text>`;
+  h+=`<text class="lbl2" transform="translate(16 ${(Y0+Y1)/2}) rotate(-90)" text-anchor="middle">Corriente de salida I (A)</text>`;
+  // referencias n0, 1800, 6000, ralentí
+  const idleN=800*S.ratio;
+  h+=`<line x1="${X(idleN)}" y1="${Y1}" x2="${X(idleN)}" y2="${Y0}" stroke="#8e24aa" stroke-dasharray="3 3"/><text x="${X(idleN)+3}" y="${Y1+34}" style="font-size:10px;fill:#8e24aa">ralentí (800 rpm)</text>`;
+  h+=`<line x1="${X(6000)}" y1="${Y(IN)}" x2="${X(6000)}" y2="${Y0}" stroke="#90a4ae" stroke-dasharray="4 3"/><line x1="${X0}" y1="${Y(IN)}" x2="${X(6000)}" y2="${Y(IN)}" stroke="#90a4ae" stroke-dasharray="4 3"/>`;
+  h+=`<text class="lbl2" x="${X(6000)+3}" y="${Y0-4}">n<tspan baseline-shift="sub" style="font-size:8px">N</tspan></text><text class="lbl2" x="${X0+4}" y="${Y(IN)-4}">I<tspan baseline-shift="sub" style="font-size:8px">N</tspan> = ${IN} A</text>`;
+  h+=`<text class="lbl2" x="${X(N0)-6}" y="${Y0-5}" text-anchor="end">n<tspan baseline-shift="sub" style="font-size:8px">0</tspan></text>`;
+  // curva nominal
+  let d='';for(let n=0;n<=NX;n+=60){d+=(n?'L':'M')+X(n).toFixed(1)+' '+Y(curveI(n,IN)).toFixed(1);}
+  h+=`<path d="${d}" fill="none" stroke="#1f5a94" stroke-width="2.6"/>`;
+  // curva con avería (solo en modo libre)
+  const f=S.fault;
+  if(!S.evalOn&&f!=='none'&&['belt','reg_under','brushes','d_open','d_short','phase','lamp'].includes(f)){
+    let d2='';for(let n=0;n<=NX;n+=120){
+      const c={...cond(),state:'run',rpm:n/S.ratio,pile:400,cons:{...ALLC}};
+      const r=n<600?{Ia:0}:solve(c);d2+=(n?'L':'M')+X(n).toFixed(1)+' '+Y(Math.min(ymax,r.Ia)).toFixed(1);}
+    h+=`<path d="${d2}" fill="none" stroke="#c62828" stroke-width="2" stroke-dasharray="6 4"/>`;
+  }
+  // demanda y punto de trabajo
+  if(s.run){
+    const dem=s.IL+s.Ipile;
+    if(dem<ymax)h+=`<line x1="${X0}" y1="${Y(dem)}" x2="${X1}" y2="${Y(dem)}" stroke="#e07b00" stroke-dasharray="7 4" stroke-width="1.6"/><text x="${X1-4}" y="${Y(dem)-4}" text-anchor="end" style="font-size:10px;fill:#e07b00">demanda de consumidores ${nf(dem,1)} A</text>`;
+    const px=X(Math.min(NX,s.nAlt)),py=Y(Math.min(ymax,s.Ia));
+    h+=`<circle cx="${px}" cy="${py}" r="6.5" fill="${s.reg?'#1d8a4e':'#c62828'}" stroke="#fff" stroke-width="2"/>`;
+    const dem2=s.IL+s.Ipile,below=Math.abs(py-Y(dem2))<22&&py>Y(dem2)-4||py<Y1+20;
+    h+=`<text x="${px+(px>480?-10:10)}" y="${below?py+20:py-10}" text-anchor="${px>480?'end':'start'}" style="font-size:10.5px;font-weight:700;fill:${s.reg?'#1d8a4e':'#c62828'}">${nf(s.Ia,1)} A · ${s.reg?'regulando':'al límite'}</text>`;
+  }
+  // leyenda
+  h+=`<g transform="translate(${X1-192} ${Y0-(!S.evalOn&&f!=='none'?52:38)})"><rect width="188" height="${!S.evalOn&&f!=='none'?46:32}" fill="#fff" stroke="#d9dfe7" rx="4"/><line x1="8" y1="12" x2="30" y2="12" stroke="#1f5a94" stroke-width="2.6"/><text x="35" y="15" style="font-size:10px;fill:#1c2533">I máx. nominal (${IN} A)</text>`;
+  h+=`<circle cx="19" cy="25" r="4.5" fill="#1d8a4e"/><text x="35" y="28" style="font-size:10px;fill:#1c2533">punto de trabajo actual</text>`;
+  if(!S.evalOn&&f!=='none')h+=`<line x1="8" y1="39" x2="30" y2="39" stroke="#c62828" stroke-width="2" stroke-dasharray="6 4"/><text x="35" y="42" style="font-size:10px;fill:#1c2533">I máx. con la avería</text>`;
+  h+=`</g>`;
+  $('curve').innerHTML=h;
+  $('curveNote').innerHTML=s.run?`Punto de trabajo: n<sub>alt</sub> = ${nf(s.nAlt,0)} rpm; el alternador puede entregar hasta ${nf(s.cap,1)} A${S.evalOn?'':' con la condición actual'} y entrega ${nf(s.Ia,1)} A. ${s.reg?'La demanda es menor que la capacidad: el regulador limita la tensión.':'La demanda supera la capacidad: el alternador trabaja al límite y la diferencia la aporta la batería (se descarga).'}`:'Motor parado: el alternador no genera. Ponga el motor en marcha para ver el punto de trabajo.';
+}
+
+/* ================= instrumentos ================= */
+function meter(){
+  const s=SOL;
+  if(S.mode==='OFF')return {v:'',u:'',note:'Instrumento apagado.'};
+  if(!S.red||!S.black)return {v:'- - -',u:'V',note:'Coloque la punta roja y la negra sobre dos nodos.'};
+  if(S.mode==='V'){
+    const P=potentials(s),v=P[S.red]-P[S.black];
+    let note='';
+    if(v<-0.005)note='Lectura negativa: las puntas están invertidas respecto a la polaridad.';
+    if(S.red==='Bm'&&S.black==='Cs'||S.red==='Cs'&&S.black==='Bm')note+=(note?' ':'')+'Caída de tensión en el lado de masa (orientativo ≤ 0,2 V con carga alta).';
+    if(S.red==='Bp'&&S.black==='Bt'||S.red==='Bt'&&S.black==='Bp')note+=(note?' ':'')+'Caída de tensión en el cable de carga (orientativo ≤ 0,5 V con carga alta).';
+    return {v:nf(v,Math.abs(v)<1?3:2),u:'V',raw:v,note};
+  }
+  const ac=acRms(s)*Math.abs(ACK[S.red]-ACK[S.black]);
+  return {v:nf(ac,3),u:'V~',raw:ac,note:s.run?'Valor eficaz de la componente alterna (rizado). Referencia orientativa ≤ 0,5 V AC entre B+ y − batería.':'Motor parado: no hay rizado.'};
+}
+function clampRead(){
+  const s=SOL;let I=0,note='';
+  switch(S.clamp){
+    case 'bp':I=s.run?s.Ia:(activeFault()==='d_short'?-0.45:0);note='Corriente que entrega el alternador por B+. Flecha de la pinza hacia la batería.';break;
+    case 'bat':I=s.Ibat;note=I>=0?'Positivo: la batería se está cargando.':'Negativo: la batería se está descargando.';break;
+    case 'cons':I=s.IL+s.Ipile;note='Corriente total de los consumidores (incluye el banco de carga).';break;
+    case 'df':I=s.Iexc;note=`Corriente media de excitación del rotor (ciclo de trabajo D = ${nf((s.d||0)*100,0)} %).`;break;
+  }
+  return {I,note};
+}
+function updateInstruments(){
+  const m=meter();
+  $('lcdVal').textContent=m.v;$('lcdUnit').textContent=m.u;
+  $('lcdFn').textContent={V:'V⎓',AC:'V~',OFF:''}[S.mode];
+  $('mnote').textContent=m.note||'';
+  document.querySelectorAll('#modes button').forEach(b=>b.classList.toggle('on',b.dataset.m===S.mode));
+  $('pRed').classList.toggle('on',S.place==='red');$('pBlk').classList.toggle('on',S.place==='black');
+  $('mstat').textContent=S.mode==='OFF'?'':`Punta roja: ${NNAME[S.red]||'—'} · Punta negra (COM): ${NNAME[S.black]||'—'}`;
+  const c=clampRead();
+  $('clVal').textContent=(c.I>=0.05?'+':'')+nf(c.I,Math.abs(c.I)<10?2:1);
+  $('clNote').textContent=c.note;
+  $('clPos').value=S.clamp;
+  return {m,c};
+}
+/* osciloscopio */
+const cv=$('scope'),cx=cv.getContext('2d');
+function scopeInfo(){
+  const s=SOL,ch=$('scCh').value;
+  if(ch==='B'){
+    const fe=s.run?POLES*s.nAlt/60:0;
+    return {ch,pp:s.run?s.ripple:0,fr:6*fe,rms:acRms(s)};
+  }
+  return {ch,d:s.d||0,f:SOL.run||SOL.key?FPWM:0,hi:(s.VD||0)+0.7,lo:0.4};
+}
+let scT0=0;
+function drawScope(t){
+  const W=cv.width,H=cv.height,dx=W/10,dy=H/8,s=SOL;
+  cx.fillStyle='#0b1a12';cx.fillRect(0,0,W,H);
+  cx.strokeStyle='rgba(120,200,140,.18)';cx.lineWidth=1;
+  for(let i=0;i<=10;i++){cx.beginPath();cx.moveTo(i*dx,0);cx.lineTo(i*dx,H);cx.stroke();}
+  for(let j=0;j<=8;j++){cx.beginPath();cx.moveTo(0,j*dy);cx.lineTo(W,j*dy);cx.stroke();}
+  cx.strokeStyle='rgba(120,200,140,.4)';cx.beginPath();cx.moveTo(W/2,0);cx.lineTo(W/2,H);cx.moveTo(0,H/2);cx.lineTo(W,H/2);cx.stroke();
+  const vd=parseFloat($('scV').value),td=parseFloat($('scT').value)/1000,info=scopeInfo();
+  const noise=()=>(Math.random()-0.5)*0.012*(info.ch==='B'?1:10);
+  cx.strokeStyle='#76ff03';cx.lineWidth=2;cx.beginPath();
+  const y0=info.ch==='B'?H/2:H-dy;
+  for(let i=0;i<=W;i+=1){
+    const tt=i/W*10*td;let v=0;
+    if(info.ch==='B'){ if(s.run){const th=2*Math.PI*(POLES*s.nAlt/60)*tt;v=s.ripple*acAt(th,shapeKind(s.f));} v+=noise();}
+    else{ if(info.f){const ph=(tt*FPWM)%1;v=ph<info.d?info.lo:info.hi;} v+=noise();}
+    const y=clamp(y0-v/vd*dy,1,H-1);
+    if(i===0)cx.moveTo(i,y);else cx.lineTo(i,y);
+  }
+  cx.stroke();
+  cx.fillStyle='#b9f6ca';cx.font='15px Consolas, monospace';
+  cx.fillText(`${info.ch==='B'?'CH1 AC':'CH1 DC'}  ${nf(vd,vd<1?1:0)} V/div  ${nf(td*1000,1)} ms/div`,8,20);
+  if(info.ch!=='B'){cx.fillStyle='#ffeb3b';cx.fillText('0 V ▸',2,y0-4);}
+}
+function scopeText(){
+  const i=scopeInfo();
+  if(i.ch==='B')return SOL.run?`Rizado: ${nf(i.pp,2)} V p-p · ${nf(i.rms,3)} V AC (eficaz) · f rizado ≈ ${nf(i.fr,0)} Hz`+(i.pp>7*parseFloat($('scV').value)?' · señal recortada: aumente V/div':''):'Motor parado: sin rizado.';
+  return i.f?`PWM del regulador: D = ${nf(i.d*100,0)} % (tiempo en conducción) · f ≈ ${FPWM} Hz · nivel alto ≈ ${nf(i.hi,1)} V`:'Sin señal: llave apagada.';
+}
+
+/* ================= avisos ================= */
+function event(cls,txt){S.events.unshift({cls,txt});S.events=S.events.slice(0,3);}
+function updateMsgs(){
+  const s=SOL,w=[],f=activeFault();
+  if(S.evalOn){
+    w.push(['i','Modo evaluación: la avería está oculta y los avisos de diagnóstico están desactivados. Mida con los instrumentos y deduzca la causa.']);
+    if(s.run&&s.U>15.2)w.push(['e','¡Atención! Tensión de carga superior a 15 V: riesgo para la batería y los equipos. Anote la lectura y reduzca el tiempo en esta condición.']);
+  }else{
+    if(S.state==='off')w.push(['i',`Llave apagada: tensión en reposo de la batería ≈ ${fV(s.U)}. ${s.U>=12.5?'Batería con buena carga.':s.U>=12.2?'Batería con carga media: conviene recargarla antes de las pruebas.':'Batería descargada: recárguela antes de diagnosticar el sistema de carga.'}`]);
+    if(S.state==='key'){
+      if(f==='lamp')w.push(['e','Contacto puesto y la lámpara testigo NO enciende: sin corriente de preexcitación el rotor no se magnetiza y el alternador no podrá cargar. Revise la lámpara y su circuito (D+/L).']);
+      else if(s.lampState!=='apagada')w.push(['i',`Contacto puesto: lámpara testigo ${s.lampState}; circula la corriente de preexcitación (${nf(s.Ip*1000,0)} mA) desde el borne 15, a través de la lámpara, hacia D+ y el rotor.`]);
+      if(f==='brushes')w.push(['w','La lámpara brilla menos de lo normal: la corriente de preexcitación es baja porque el contacto escobillas–anillos tiene resistencia alta.']);
+    }
+    if(s.run){
+      if(s.U>15)w.push(['e',`Sobrecarga: ${fV(s.U)} en la batería (> 15 V). Las lámparas se funden, la batería gasifica y pierde electrolito, y los módulos electrónicos pueden dañarse. ${S.fullField&&f!=='reg_over'?'Campo pleno activado: desactívelo tras la prueba.':'El regulador no limita la corriente de excitación.'}`]);
+      else if(s.U<13&&s.Ibat<0)w.push(['e',`La batería se descarga: ${fV(s.U)} (< 13 V) y corriente de batería ${fA(s.Ibat)}. ${s.cap<0.5?'El alternador no genera: la lámpara testigo y la corriente de excitación orientan el diagnóstico.':s.reg?'El alternador regula, pero a la batería llega poca tensión: revise las caídas de tensión del circuito de carga.':'La demanda supera la capacidad del alternador en este régimen.'}`]);
+      else if(s.U<13.5)w.push(['w',`Tensión de carga baja: ${fV(s.U)}; la batería apenas se carga.`]);
+      else w.push(['o',`Sistema cargando: ${fV(s.U)} en la batería, ${fA(s.Ia)} en B+ y ${fA(s.Ibat)} hacia la batería.`]);
+      if(!s.reg&&s.cap>0)w.push(['w',`El alternador trabaja al límite de su curva: ${fA(s.cap)} disponibles a ${nf(s.nAlt,0)} rpm y los consumidores piden ${fA(s.IL+s.Ipile)}. Suba el régimen o reduzca consumidores.`]);
+      if(s.lampState!=='apagada')w.push([s.lampState==='encendida'?'e':'w',`Lámpara testigo ${s.lampState} con el motor en marcha: la tensión en D+ (${fV(potentials(s).Dp)}) no iguala a la de la batería (diferencia ${fV(Math.abs(s.Ulamp))}).`]);
+      if(f==='lamp')w.push(['e','Motor en marcha y el alternador no se autoexcita: al estar fundida la lámpara no hubo preexcitación. En algunos alternadores el magnetismo remanente permite cargar a muy altas rpm; este simulador no modela ese caso.']);
+      if(s.slip>0.1)w.push(['w',`La correa patina (${nf(s.slip*100,0)} %): la polea del alternador gira más lenta de lo que indica la relación y la salida cae con carga alta. Se escucha un chirrido. Revise tensión y estado de la correa.`]);
+      const dB=s.Ia*s.Rcab,dM=s.Ia*s.Rg;
+      if(dB>0.5)w.push(['w',`Caída de tensión en el cable B+: ${fV(dB,3)} (orientativo ≤ 0,5 V). La batería recibe menos tensión de la que regula el alternador.`]);
+      if(dM>0.2)w.push(['w',`Caída de tensión en la masa del alternador: ${fV(dM,3)} (orientativo ≤ 0,2 V). Limpie y apriete la trenza/soportes de masa.`]);
+      const ac=acRms(s);
+      if(ac>0.5)w.push(['w',`Rizado elevado en B+: ${nf(ac,2)} V AC (orientativo ≤ 0,5 V AC). Indica un diodo o una fase defectuosa; produce zumbido en la radio y ruido en las señales de los sensores.`]);
+      if(f==='d_short')w.push(['w','Con un diodo en cortocircuito el alternador zumba y, con el motor parado, la batería se descarga a través del estator (≈ 0,45 A).']);
+      if(S.fullField)w.push(['i','Campo pleno: el regulador está puenteado (DF a masa). '+(['brushes','lamp'].includes(f)?'La salida no aumenta: el problema está en el circuito del rotor/escobillas o en la preexcitación, no en el regulador.':'Si la salida sube con el campo pleno y no subía antes, el regulador es el culpable.')]);
+    }else if(f==='d_short'&&S.state==='off')w.push(['w','Motor parado: la pinza en el cable B+ indica ≈ −0,45 A. Un diodo positivo en cortocircuito descarga la batería a través del estator.']);
+    if(s.Igas>1)w.push(['e',`La batería gasifica (≈ ${fA(s.Igas)} se pierden en electrólisis).`]);
+  }
+  const all=[...S.events.map(e=>[e.cls,e.txt]),...w];
+  $('msgs').innerHTML=all.map(([c,t])=>`<div class="${c}">${t}</div>`).join('');
+}
+
+/* ================= resultados ================= */
+function verdict(ok){return ok===null?'<td></td>':`<td class="${ok?'okc':'badc'}">${ok?'✓':'✗'}</td>`;}
+function updateResults(){
+  if(S.evalOn){$('results').innerHTML='';return;}
+  const s=SOL,run=s.run;
+  const rows=[];
+  const r=(n,v,ref,ok)=>rows.push(`<tr><td>${n}</td><td>${v}</td><td>${ref}</td>${verdict(ok)}</tr>`);
+  r('Régimen del alternador',run?nf(s.nAlt,0)+' rpm':'—','',null);
+  r('Corriente máxima disponible',run?fA(s.cap):'—',run?'curva: '+fA(s.capNom):'',null);
+  r('Corriente de salida B+',fA(s.Ia),'',null);
+  r('Corriente de consumidores',fA(s.IL+s.Ipile),'',null);
+  r('Corriente de batería',(s.Ibat>=0?'+':'')+fA(s.Ibat),'+ carga / − descarga',run?s.Ibat>=-0.5:null);
+  r('Tensión regulada (consigna)',run?fV(s.Ureg):'—','13,8–14,6 V',run?s.Ureg>=13.8&&s.Ureg<=14.6:null);
+  r('Tensión en la batería',fV(s.U),run?'13,8–14,6 V':'≈ 12,6 V',run?s.U>=13.8&&s.U<=14.6:s.U>=12.4);
+  r('Caída B+ → + batería',fV(s.Ia*s.Rcab,3),'≤ 0,5 V',run?s.Ia*s.Rcab<=0.5:null);
+  r('Caída − batería → carcasa',fV(s.Ia*s.Rg,3),'≤ 0,2 V',run?s.Ia*s.Rg<=0.2:null);
+  r('Rizado en B+',run?nf(s.ripple,2)+' V p-p · '+nf(acRms(s),3)+' V AC':'—','≤ 0,5 V AC',run?acRms(s)<=0.5:null);
+  r('Ciclo de trabajo PWM D',nf((s.d||0)*100,0)+' %','',null);
+  r('Corriente de excitación',fA(s.Iexc,2),'campo pleno ≈ 2–5 A',null);
+  r('Lámpara testigo',s.lampState,run?'apagada':S.state==='key'?'encendida':'apagada',S.state==='off'?null:(run?s.lampState==='apagada':s.lampState==='encendida'));
+  r('Potencia eléctrica generada',run?nf(s.Pgen,0)+' W':'—','P = U · I',null);
+  if(run&&activeFault()==='belt')r('Patinamiento de la correa',nf(s.slip*100,0)+' %','≈ 0 %',s.slip<0.05);
+  $('results').innerHTML=`<div class="tw"><table><tr><th>Magnitud</th><th>Valor</th><th>Referencia</th><th></th></tr>${rows.join('')}</table></div><p class="muted" style="margin:6px 0 0">Referencias orientativas; confirme con el manual del fabricante.</p>`;
+}
+
+/* ================= modo evaluación ================= */
+const EITEMS=[
+  {k:'a',t:'U batería, ralentí (800 rpm), solo encendido/ECU',u:'V'},
+  {k:'b',t:'U batería, 2000 rpm, todos los consumidores',u:'V'},
+  {k:'c',t:'Corriente máxima de salida B+ a 2000 rpm (todos + banco de carga hasta el límite)',u:'A'},
+  {k:'d',t:'Caída B+ → + batería, 2000 rpm, todos',u:'V'},
+  {k:'e',t:'Caída − batería → carcasa, 2000 rpm, todos',u:'V'},
+  {k:'f',t:'Rizado en B+ (V~ B+ → −Bat), 2000 rpm, todos',u:'V AC'},
+  {k:'g',t:'Tensión en D+ con contacto puesto, motor parado (D+ → −Bat)',u:'V'}
+];
+const EXPL={
+  none:'El sistema está sano: tensión regulada 13,8–14,6 V, caídas de tensión dentro de límite, rizado pequeño y regular, lámpara testigo apagada en marcha y la salida máxima coincide con la curva característica.',
+  belt:'Correa floja: sin carga la tensión es normal, pero con carga alta la correa patina (chirrido), la polea del alternador gira más lento y la salida máxima queda muy por debajo de la curva. El rizado y las caídas de tensión son normales.',
+  reg_over:'Regulador en cortocircuito (sin limitación): el rotor recibe excitación plena (D = 100 %) y la tensión sube por encima de 15 V. Consecuencias: lámparas fundidas, batería que gasifica y pierde electrolito, riesgo para la electrónica.',
+  reg_under:'Regulador sin regulación (excitación mínima): la tensión queda en la de la batería (≈ 12,5 V), no hay carga y la lámpara permanece encendida. La corriente de excitación es muy baja; al puentear el regulador (campo pleno) el alternador vuelve a cargar, lo que confirma que el rotor y las escobillas están bien y que el fallo es del regulador.',
+  brushes:'Escobillas desgastadas: el contacto con los anillos rozantes tiene resistencia alta, el rotor casi no se magnetiza, el alternador no carga y la lámpara testigo queda encendida. Con campo pleno el alternador sigue sin cargar: la corriente no llega al rotor, así que la falla está en escobillas/rotor y no en el regulador. El manual de fallas prematuras (MAHLE) relaciona este daño con contaminantes abrasivos y productos químicos de limpieza.',
+  d_open:'Diodo positivo abierto: el puente pierde parte de los semiciclos de una fase; en el osciloscopio aparece un «valle» repetido y la salida máxima baja aproximadamente un tercio. La tensión puede ser normal con poca carga, pero el rizado supera 0,5 V AC.',
+  d_short:'Diodo positivo en cortocircuito: el rizado es muy grande (zumbido), la salida cae fuerte, la lámpara puede quedar tenue y, con el motor parado, la batería se descarga a través del estator (≈ 0,45 A medidos con la pinza en B+).',
+  phase:'Fase del estator abierta: el alternador trabaja como si fuera monofásico; patrón de rizado irregular con valles profundos y salida máxima reducida aproximadamente a la mitad.',
+  cable:'Cable B+ con resistencia alta: el alternador regula bien en su borne B+, pero la caída B+ → + batería supera 0,5 V con carga y la batería recibe poca tensión (carga insuficiente). La lámpara puede encender tenuemente con carga alta.',
+  masa:'Masa del alternador deficiente: la caída entre − batería y la carcasa supera 0,2 V con carga; la tensión en la batería baja en la misma proporción. La salida y el rizado son normales.',
+  lamp:'Lámpara testigo fundida: con contacto puesto no enciende; sin corriente de preexcitación por D+ el rotor no se magnetiza y el alternador no carga (tensión de batería < 13 V y corriente de excitación casi nula), aunque el alternador esté sano.'
+};
+function newCase(){
+  const pick=a=>a[Math.floor(Math.random()*a.length)];
+  S.hidden={fault:pick(FAULTS.map(x=>x[0]))};
+  S.IN=pick([55,90,120]);S.ratio=pick([2.5,2.6,2.7,2.8,2.9,3.0]);S.T=pick([15,20,25,30,35]);
+  S.C=60;S.SOC=pick([0.72,0.76,0.8,0.84,0.88]);S.kpol=1;S.speed=1;
+  S.state='off';S.rpm=800;S.pile=0;S.fullField=false;S.cons={...BASEC};
+  S.evalChecked=false;S.events=[];
+  buildControls();buildCons();buildEval();render();
+}
+function expected(){
+  const f=S.hidden.fault,b={state:'run',ratio:S.ratio,IN:S.IN,T:S.T,C:S.C,SOC:S.SOC,kpol:S.kpol,fault:f,fullField:false,pile:0};
+  const A=solve({...b,rpm:800,cons:{...BASEC}});
+  const B=solve({...b,rpm:2000,cons:{...ALLC}});
+  const Cm=solve({...b,rpm:2000,cons:{...ALLC},pile:150});
+  const K=solve({...b,state:'key',rpm:800,cons:{...BASEC}});
+  const FF=solve({...b,rpm:2000,cons:{...BASEC},fullField:true});
+  return {a:A.U,b:B.U,c:Cm.Ia,d:B.Ia*B.Rcab,e:B.Ia*B.Rg,f:acRms(B),g:K.VD,lamp:B.lampState,ff:(FF.Ia>1&&FF.U>13.2)?'sí':'no'};
+}
+function buildEval(){
+  const box=$('evalBox');
+  if(!S.evalOn){box.style.display='none';return;}
+  box.style.display='';
+  let h=`<p class="muted" style="margin-top:0">Caso oculto: alternador de <b>${S.IN} A</b>, relación de poleas <b>${nf(S.ratio,2)}</b>, batería ${S.C} Ah. El estado de la batería se mantiene constante durante la evaluación. Establezca cada condición, mida y anote (acepta coma o punto).</p>`;
+  h+=`<div class="tw"><table><tr><th>Medición</th><th>Valor</th></tr>`;
+  for(const it of EITEMS)h+=`<tr><td>${it.t} (${it.u})</td><td><input data-k="${it.k}" inputmode="decimal"></td></tr>`;
+  h+=`<tr><td>Lámpara testigo con motor en marcha (2000 rpm, todos)</td><td><select data-k="lamp"><option value="">—</option><option>apagada</option><option>tenue</option><option>encendida</option></select></td></tr>`;
+  h+=`<tr><td>Prueba de campo pleno (2000 rpm, DF a masa): ¿el alternador carga?</td><td><select data-k="ff"><option value="">—</option><option>sí</option><option>no</option></select></td></tr>`;
+  h+=`<tr><td><b>Diagnóstico</b></td><td><select data-k="dx" style="width:170px"><option value="">— elija —</option>${FAULTS.map(x=>`<option value="${x[0]}">${x[1]}</option>`).join('')}</select></td></tr></table></div>`;
+  h+=`<div class="bar"><button class="btn primary" id="btnCheck">Comprobar</button><button class="btn" id="btnNew">Nuevo caso</button><span class="score" id="score"></span></div><div class="fb" id="fb"></div>`;
+  box.innerHTML=h;
+  $('btnCheck').onclick=checkEval;$('btnNew').onclick=newCase;
+}
+function checkEval(){
+  const E=expected(),f=S.hidden.fault;let pts=0,lines=[];
+  const tol={g:v=>Math.max(0.15,0.05*v),a:v=>0.15,b:v=>0.15,c:v=>Math.max(3,0.07*v),d:v=>Math.max(0.06,0.15*v),e:v=>Math.max(0.04,0.15*v),f:v=>Math.max(0.08,0.2*v)};
+  document.querySelectorAll('#evalBox input').forEach(inp=>{
+    const k=inp.dataset.k,want=E[k],got=parseNum(inp.value);
+    const good=isFinite(got)&&Math.abs(got-want)<=tol[k](Math.abs(want));
+    inp.classList.toggle('ok',good);inp.classList.toggle('bad',!good);
+    inp.title=good?'Correcto':'Valor esperado ≈ '+nf(want,k==='c'?1:k==='a'||k==='b'?2:3);
+    if(good)pts++;
+  });
+  const ls=document.querySelector('#evalBox select[data-k="lamp"]'),lg=ls.value===E.lamp;
+  ls.classList.toggle('ok',lg);ls.classList.toggle('bad',!lg);ls.title='Esperado: '+E.lamp;if(lg)pts++;
+  const fs=document.querySelector('#evalBox select[data-k="ff"]'),fg=fs.value===E.ff;
+  fs.classList.toggle('ok',fg);fs.classList.toggle('bad',!fg);fs.title='Esperado: '+E.ff;if(fg)pts++;
+  const ds=document.querySelector('#evalBox select[data-k="dx"]'),dg=ds.value===f;
+  ds.classList.toggle('ok',dg);ds.classList.toggle('bad',!dg);if(dg)pts+=3;
+  $('score').textContent=`Puntaje: ${pts} / 12`;
+  let fb=`<p><b>${dg?'Diagnóstico correcto':'Diagnóstico incorrecto'}:</b> la avería era «${FNAME[f]}».</p><p>${EXPL[f]}</p>`;
+  if(!dg&&ds.value)fb+=`<p class="muted">Su elección («${FNAME[ds.value]}») se habría manifestado así: ${EXPL[ds.value]}</p>`;
+  if(!ds.value)fb+=`<p class="muted">No eligió ningún diagnóstico.</p>`;
+  if(['reg_under','brushes'].includes(f)||['reg_under','brushes'].includes(ds.value))fb+=`<p><b>Clave para separar regulador y escobillas/rotor:</b> ambos dejan al alternador sin carga y con la lámpara encendida. Al puentear el regulador (campo pleno, DF a masa) el rotor recibe toda la tensión: si el fallo es del regulador, el alternador vuelve a cargar; si son las escobillas o el rotor, sigue sin cargar porque la corriente no llega al bobinado. Con contacto puesto, D+ también difiere: el regulador averiado (D ≈ 10 %) deja D+ ≈ 4,5 V, mientras que las escobillas gastadas, por su resistencia de contacto, lo dejan ≈ 5,8 V (normal ≈ 1,3 V; lámpara fundida ≈ 0 V).</p>`;
+  fb+=`<p class="muted">Valores esperados: U ralentí ${fV(E.a)} · U 2000 rpm ${fV(E.b)} · I máx ${fA(E.c)} (curva nominal a ${nf(2000*S.ratio,0)} rpm: ${fA(curveI(2000*S.ratio,S.IN))}) · ΔU B+ ${fV(E.d,3)} · ΔU masa ${fV(E.e,3)} · rizado ${nf(E.f,3)} V AC · D+ con contacto ${fV(E.g)} · campo pleno: ${E.ff==='sí'?'carga':'no carga'} · lámpara ${E.lamp}. Pase el cursor sobre una casilla roja para ver su valor esperado.</p>`;
+  $('fb').innerHTML=fb;
+  S.evalChecked=true;
+  S.log.push({n:S.log.length+1,c:'Evaluación',m:'Diagnóstico',p:ds.value?FNAME[ds.value]:'—',l:`${pts}/12 (real: ${FNAME[f]})`});
+  drawLog();
+}
+
+/* ================= controles ================= */
+function ctlRange(k,label,val,min,max,step){
+  return `<div class="ctl"><label>${label}</label><div class="row"><input type="range" data-k="${k}" min="${min}" max="${max}" step="${step}" value="${val}"><input type="number" data-k="${k}" min="${min}" max="${max}" step="${step}" value="${val}"></div></div>`;}
+function ctlSelect(k,label,opts,val,dis){
+  return `<div class="ctl"><label>${label}</label><select data-k="${k}" ${dis?'disabled':''}>${opts.map(o=>`<option value="${o[0]}" ${String(o[0])===String(val)?'selected':''}>${o[1]}</option>`).join('')}</select></div>`;}
+function buildControls(){
+  let h='';
+  h+=ctlSelect('state','Estado del vehículo',[['off','Llave apagada'],['key','Contacto puesto (motor parado)'],['run','Motor en marcha']],S.state);
+  h+=ctlRange('rpm','Régimen del motor (rpm)',S.rpm,700,4000,50);
+  h+=ctlRange('ratio','Relación de poleas i = D cigüeñal / D alternador',S.ratio,2.2,3.2,0.05);
+  h+=ctlSelect('IN','Alternador: corriente nominal I_N',[[55,'55 A'],[90,'90 A'],[120,'120 A']],S.IN,S.evalOn);
+  h+=ctlRange('T','Temperatura del regulador (°C)',S.T,-10,90,1);
+  h+=ctlRange('pile','Banco de carga / pila de carbón (A)',S.pile,0,150,1);
+  h+=ctlSelect('C','Capacidad de la batería',[[45,'45 Ah'],[60,'60 Ah'],[75,'75 Ah']],S.C,S.evalOn);
+  h+=ctlRange('SOC','Estado de carga de la batería SOC (%)',Math.round(S.SOC*100),20,100,1);
+  h+=ctlSelect('speed','Velocidad de la simulación (evolución de la batería)',[[1,'Tiempo real'],[10,'× 10'],[60,'× 60 (1 s = 1 min)']],S.speed,S.evalOn);
+  h+=ctlSelect('fault','Avería',S.evalOn?[['hid','— oculta (modo evaluación) —']]:FAULTS,S.evalOn?'hid':S.fault,S.evalOn);
+  h+=`<div class="ctl"><label>Prueba de campo pleno</label><label class="switch" style="color:var(--ink)"><input type="checkbox" data-k="fullField" ${S.fullField?'checked':''}> Puentear el regulador (DF a masa)</label></div>`;
+  $('controls').innerHTML=h;
+  $('controls').querySelectorAll('[data-k]').forEach(inp=>inp.addEventListener(inp.type==='checkbox'||inp.tagName==='SELECT'?'change':'input',()=>{
+    const k=inp.dataset.k;let v=inp.type==='checkbox'?inp.checked:inp.tagName==='SELECT'&&['state','fault'].includes(k)?inp.value:parseNum(inp.value);
+    if(typeof v==='number'&&!isFinite(v))return;
+    if(inp.type==='number'){const mn=+inp.min,mx=+inp.max;if(v<mn||v>mx)return;}
+    setVal(k,v);
+    $('controls').querySelectorAll(`[data-k="${k}"]`).forEach(o=>{if(o!==inp&&o.type!=='checkbox')o.value=v;});
+    render();
+  }));
+}
+function syncCtl(k,v){$('controls').querySelectorAll(`[data-k="${k}"]`).forEach(o=>{if(document.activeElement!==o)o.value=v;});}
+function setState(v){
+  if(v==='run'&&S.state!=='run'){
+    if(S.SOC<0.25){event('e','La batería no tiene carga suficiente para arrancar el motor (SOC < 25 %). Recárguela.');syncCtl('state',S.state);return;}
+    if(!S.evalOn){S.kpol=0.45;}
+    S.SOC=Math.max(0.2,S.SOC-0.002);
+    event('i',S.evalOn?'Motor arrancado.':'Motor arrancado: el arranque consumió carga de la batería; observe la corriente de carga alta al inicio y su disminución progresiva.');
+  }
+  S.state=v;syncCtl('state',v);
+}
+function setVal(k,v){
+  switch(k){
+    case 'state':setState(v);break;
+    case 'rpm':S.rpm=v;break;
+    case 'ratio':S.ratio=v;break;
+    case 'IN':S.IN=+v;break;
+    case 'T':S.T=v;break;
+    case 'pile':S.pile=v;break;
+    case 'C':S.C=+v;break;
+    case 'SOC':S.SOC=v/100;break;
+    case 'speed':S.speed=+v;break;
+    case 'fault':S.fault=v;S.events=[];break;
+    case 'fullField':S.fullField=v;if(v)event('w','Prueba de campo pleno: mantenga la tensión por debajo de ≈ 16 V y realice la prueba solo durante pocos segundos.');break;
+  }
+}
+function buildCons(){
+  $('consBox').innerHTML=CONS.map(c=>`<label><input type="checkbox" data-c="${c.id}" ${S.cons[c.id]?'checked':''} ${c.id==='base'?'disabled':''}> ${c.name} (${c.id==='base'?'≈ 17 A, fijo':c.P+' W'})</label>`).join('');
+  $('consBox').querySelectorAll('input').forEach(i=>i.onchange=()=>{S.cons[i.dataset.c]=i.checked;render();});
+}
+function applyQuick(q){
+  switch(q){
+    case 'off':setState('off');break;
+    case 'key':setState('key');break;
+    case 'idle':S.rpm=800;S.cons={...BASEC};S.pile=0;setState('run');break;
+    case 'r2000':S.rpm=2000;S.cons={...BASEC};S.pile=0;setState('run');break;
+    case 'r2000c':S.rpm=2000;S.cons={...BASEC,cruce:true,desemp:true,sopl:true};S.pile=0;setState('run');break;
+    case 'r2000all':S.rpm=2000;S.cons={...ALLC};S.pile=0;setState('run');break;
+    case 'maxout':S.rpm=2000;S.cons={...ALLC};S.pile=150;setState('run');break;
+  }
+  syncCtl('rpm',S.rpm);syncCtl('pile',S.pile);buildCons();render();
+}
+
+/* ================= pestañas (procedimientos) ================= */
+const TABS={
+  libre:{n:'Operación libre',h:`<h3>Operación libre</h3><p style="margin:0">Explore el sistema: arranque el motor, varíe el régimen, la relación de poleas y los consumidores, y observe el punto de trabajo en la curva característica. La batería evoluciona con el tiempo: con «× 60» se aprecia cómo la corriente de carga, alta tras el arranque, disminuye a medida que sube el SOC.</p>`,q:null},
+  tension:{n:'Prueba 1 · Tensión de carga',h:`<h3>Prueba 1 · Tensión de carga (ralentí y 2000 rpm)</h3><ol><li>Llave apagada: mida +Bat → −Bat (≈ 12,4–12,7 V).</li><li>Contacto puesto: la lámpara testigo debe encender.</li><li>Ralentí sin carga: la lámpara se apaga; mida +Bat → −Bat.</li><li>2000 rpm sin carga y con carga (cruce + desempañador + soplador): la tensión debe mantenerse en 13,8–14,6 V (orientativo). Al conectar las luces la tensión baja un poco y se recupera.</li></ol>`,q:'idle'},
+  salida:{n:'Prueba 2 · Salida máxima',h:`<h3>Prueba 2 · Salida máxima de corriente</h3><ol><li>Coloque la pinza en el cable B+.</li><li>Motor a 2000 rpm, todos los consumidores encendidos.</li><li>Suba el banco de carga hasta que la tensión de la batería baje de la regulada (≈ 12,5–13 V): ahora el alternador entrega su máximo.</li><li>Compare la corriente con la curva característica a ese régimen (≥ 90 % orientativo). Una salida baja indica correa patinando, diodo/fase defectuosa o problema de excitación.</li><li>Devuelva el banco a 0 A al terminar.</li></ol>`,q:'maxout'},
+  caida:{n:'Prueba 3 · Caídas de tensión',h:`<h3>Prueba 3 · Caídas de tensión del circuito de carga</h3><ol><li>Motor a 2000 rpm con carga alta (todos los consumidores): la caída es proporcional a la corriente.</li><li>Lado positivo: punta roja en B+ del alternador, negra en + batería: ≤ 0,5 V (orientativo).</li><li>Lado de masa: punta roja en − batería, negra en la carcasa del alternador: ≤ 0,2 V (orientativo).</li><li>Si una caída es excesiva, limpie y apriete terminales, cable B+ y trenza de masa.</li></ol>`,q:'r2000all'},
+  rizado:{n:'Prueba 4 · Rizado y excitación',h:`<h3>Prueba 4 · Rizado (diodos y estator) y corriente de excitación</h3><ol><li>Motor a 2000 rpm con carga media.</li><li>Multímetro en V~ entre B+ y − batería: ≤ 0,5 V AC (orientativo).</li><li>Osciloscopio en B+ (acople AC, 0,2–0,5 V/div): sano = rizado pequeño y regular de 6 crestas por ciclo; diodo abierto = valles periódicos; diodo en corto = rizado muy grande; fase abierta = patrón irregular.</li><li>Pinza en el cable de excitación (DF): observe la corriente media y el ciclo de trabajo PWM (canal DF del osciloscopio). Active el campo pleno unos segundos: la corriente de excitación debe subir a ≈ 2–5 A.</li></ol>`,q:'r2000c'}
+};
+function buildTabs(){
+  $('tabs').innerHTML=Object.keys(TABS).map(k=>`<button data-k="${k}" class="${k===S.tab?'on':''}">${TABS[k].n}</button>`).join('');
+  $('tabs').querySelectorAll('button').forEach(b=>b.onclick=()=>{S.tab=b.dataset.k;buildTabs();});
+  const t=TABS[S.tab];
+  $('proc').innerHTML=t.h+(t.q?`<div class="bar" style="margin-top:4px"><button class="btn small primary" id="btnApply">Aplicar las condiciones de esta prueba</button></div>`:'');
+  if(t.q)$('btnApply').onclick=()=>{applyQuick(t.q);if(S.tab==='salida'){S.clamp='bp';}if(S.tab==='caida'){S.mode='V';S.red='Bp';S.black='Bt';}if(S.tab==='rizado'){S.mode='AC';S.red='Bp';S.black='Bm';}render();};
+}
+
+/* ================= registro ================= */
+function condTxt(){const s=SOL;return s.run?`Motor ${nf(S.rpm,0)} rpm · alt. ${nf(s.nAlt,0)} rpm · consumo ${nf(s.Pl,0)} W${S.pile?' + banco '+nf(S.pile,0)+' A':''}`:{off:'Llave apagada',key:'Contacto puesto'}[S.state];}
+function addLog(kind){
+  const {m,c}=updateInstruments();
+  if(kind==='M'){if(!m.v||m.v==='- - -')return;S.log.push({n:S.log.length+1,c:condTxt(),m:S.mode==='AC'?'Tensión AC (rizado)':'Tensión DC',p:`${NODES[S.red][2]} → ${NODES[S.black][2]}`,l:m.v+' '+m.u});}
+  if(kind==='C')S.log.push({n:S.log.length+1,c:condTxt(),m:'Corriente (pinza)',p:CLNAME[S.clamp],l:(c.I>=0.05?'+':'')+nf(c.I,2)+' A'});
+  if(kind==='S'){const i=scopeInfo();S.log.push({n:S.log.length+1,c:condTxt(),m:i.ch==='B'?'Rizado (osciloscopio)':'PWM excitación',p:i.ch==='B'?'B+ → −Bat':'DF → carcasa',l:i.ch==='B'?`${nf(i.pp,2)} V p-p; ${nf(i.fr,0)} Hz`:`D = ${nf(i.d*100,0)} %; ${FPWM} Hz`});}
+  drawLog();
+}
+function drawLog(){
+  $('logTbl').innerHTML=S.log.length?`<table><tr><th>N.º</th><th>Condición</th><th>Magnitud</th><th>Puntos</th><th>Lectura</th></tr>${S.log.map(r=>`<tr><td>${r.n}</td><td>${r.c}</td><td>${r.m}</td><td>${r.p}</td><td>${r.l}</td></tr>`).join('')}</table>`:'<p class="muted">Aún no hay lecturas registradas.</p>';
+}
+function csv(){
+  const q=x=>String(x).replace(/;/g,',');
+  const lines=['N;Condición;Magnitud;Puntos;Lectura',...S.log.map(r=>[r.n,r.c,r.m,r.p,r.l].map(q).join(';'))];
+  const blob=new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='registro_sistema_de_carga.csv';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+
+/* ================= eventos ================= */
+$('circ').addEventListener('pointerdown',ev=>{
+  const nd=ev.target.closest('.node');
+  if(nd){if(S.mode!=='OFF'){if(S.place==='red')S.red=nd.dataset.n;else S.black=nd.dataset.n;}render();return;}
+  const cl=ev.target.closest('[data-clamp]');if(cl){S.clamp=cl.dataset.clamp;render();return;}
+  const ky=ev.target.closest('[data-act="key"]');if(ky){setState(S.state==='off'?'key':'off');render();return;}
+  const cs=ev.target.closest('[data-cons]');
+  if(cs){const id=cs.dataset.cons;if(id==='base'||id==='pile')return;S.cons[id]=!S.cons[id];buildCons();render();}
+});
+document.querySelectorAll('#modes button').forEach(b=>b.addEventListener('click',()=>{S.mode=b.dataset.m;render();}));
+$('pRed').onclick=()=>{S.place='red';updateInstruments();};
+$('pBlk').onclick=()=>{S.place='black';updateInstruments();};
+document.querySelectorAll('#quickM button').forEach(b=>b.onclick=()=>{const [r,k]=b.dataset.p.split(',');S.red=r;S.black=k;if(S.mode==='OFF')S.mode='V';render();});
+$('clPos').onchange=e=>{S.clamp=e.target.value;render();};
+document.querySelectorAll('#quickCond button').forEach(b=>b.onclick=()=>applyQuick(b.dataset.q));
+$('btnAll').onclick=()=>{S.cons={...ALLC};buildCons();render();};
+$('btnNone').onclick=()=>{S.cons={...BASEC};buildCons();render();};
+$('logM').onclick=()=>addLog('M');$('logC').onclick=()=>addLog('C');$('logS').onclick=()=>addLog('S');
+$('btnCsv').onclick=csv;$('btnClr').onclick=()=>{S.log=[];drawLog();};
+$('scCh').onchange=e=>{$('scV').value=e.target.value==='DF'?'5':'0.2';$('scT').value=e.target.value==='DF'?'2':'0.5';updateSlow();};
+$('scV').onchange=updateSlow;$('scT').onchange=updateSlow;
+$('evalMode').onchange=e=>{
+  S.evalOn=e.target.checked;
+  if(S.evalOn){newCase();}
+  else{S.hidden=null;S.evalChecked=false;buildControls();buildCons();buildEval();render();}
+};
+
+/* ================= ciclo principal ================= */
+function render(){
+  SOL=solve(cond());
+  drawSVG();drawCurve();updateInstruments();updateResults();updateMsgs();
+  $('scRead').textContent=scopeText();
+}
+function updateSlow(){$('scRead').textContent=scopeText();}
+let last=performance.now(),acc=0;
+function tick(t){
+  const dt=Math.min(0.05,(t-last)/1000);last=t;
+  // evolución de la batería
+  if(!S.evalOn&&SOL){
+    const sdt=dt*S.speed;
+    if(SOL.run)S.kpol+=(1-S.kpol)*Math.min(1,sdt/180);
+    const Ieff=SOL.Ibat>0?(SOL.Ibat-SOL.Igas)*0.9:SOL.Ibat;
+    S.SOC=clamp(S.SOC+Ieff*sdt/3600/S.C,0.05,1);
+  }
+  acc+=dt;
+  if(acc>0.4){acc=0;
+    render();syncCtl('SOC',Math.round(S.SOC*100));}
+  // animaciones
+  if(SOL){
+    const VS=1/25; // animación ralentizada (misma proporción motor/alternador)
+    S.angE=(S.angE+(SOL.run?S.rpm*6*VS:0)*dt)%360;S.angA=(S.angA+(SOL.run?SOL.nAlt*6*VS:0)*dt)%360;
+    if(pulE)pulE.setAttribute('transform',`rotate(${S.angE.toFixed(1)} 80 100)`);
+    if(pulA)pulA.setAttribute('transform',`rotate(${S.angA.toFixed(1)} 185 100)`);
+    if(beltDash){S.beltOff=(S.beltOff-(SOL.run?Math.min(260,S.rpm*0.09):0)*dt)%1600;beltDash.style.strokeDashoffset=S.beltOff;}
+  }
+  for(const f of flows){let o=(S.flowOff[f.id]||0)-f.speed*dt*f.dir;o%=1700;S.flowOff[f.id]=o;f.p.style.strokeDashoffset=o;}
+  drawScope(t);
+  requestAnimationFrame(tick);
+}
+buildTabs();buildControls();buildCons();buildEval();render();drawLog();
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>

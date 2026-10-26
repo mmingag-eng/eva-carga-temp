@@ -1,0 +1,1402 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Simulador Lector de Esquemas</title>
+<style>
+:root{--bg:#f3f5f8;--card:#fff;--ink:#1c2533;--muted:#5b6778;--line:#d9dfe7;--brand:#12355b;--brand2:#1f5a94;--accent:#e07b00;--ok:#1d8a4e;--okbg:#e6f4ec;--bad:#c62828;--badbg:#fdecea;--warnbg:#fff4e0;--wire:#2b3440;--flow:#ffb300}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.45}
+header{background:linear-gradient(90deg,var(--brand),var(--brand2));color:#fff;padding:14px 22px}
+header h1{margin:0;font-size:1.35rem;font-weight:600}
+header p{margin:3px 0 0;opacity:.85;font-size:.9rem}
+main{max-width:1400px;margin:0 auto;padding:16px;display:grid;grid-template-columns:minmax(0,1.75fr) minmax(320px,1fr);gap:16px}
+@media(max-width:980px){main{grid-template-columns:1fr}}
+section,aside{min-width:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:16px}
+.card h2{font-size:1.02rem;margin:0 0 10px;color:var(--brand)}
+.card h3{font-size:.95rem;margin:12px 0 6px;color:var(--brand2)}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.tabs button,.btn{border:1px solid var(--line);background:#fff;color:var(--ink);padding:7px 13px;border-radius:7px;cursor:pointer;font-size:.9rem}
+.tabs button.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+.btn:hover,.tabs button:hover{border-color:var(--brand2)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.small{padding:4px 9px;font-size:.82rem}
+.btn.on{background:var(--brand2);color:#fff;border-color:var(--brand2)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.toolbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px;font-size:.86rem}
+.toolbar .sep{width:1px;height:22px;background:var(--line);margin:0 4px}
+.svgwrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:#fbfcfe}
+svg#plano{display:block;width:100%;min-width:740px;height:auto;user-select:none}
+/* plano */
+.band{fill:#eceff3;stroke:#c9d0da;stroke-width:1}
+.bandl{font-size:9px;fill:#7a8594;font-style:italic}
+.bus{stroke:var(--wire);stroke-width:2.6;fill:none}
+.busl{font-size:12px;font-weight:700;fill:var(--brand)}
+.trk{stroke:#d5dbe3;stroke-width:1}
+.trkn{font-size:10px;fill:var(--muted);text-anchor:middle}
+.wh{stroke:#fbfcfe;stroke-width:7;fill:none;stroke-linejoin:round}
+.wl{stroke:var(--wire);stroke-width:2;fill:none;stroke-linejoin:round;stroke-linecap:round}
+.wl.int{stroke:#6d7784;stroke-width:1.2}
+.wc{fill:none;stroke-width:2.6;stroke-linejoin:round}
+.wo{stroke:#1a1a1a;stroke-width:4.4;fill:none;stroke-linejoin:round}
+.hit{stroke:transparent;stroke-width:14;fill:none;cursor:pointer}
+.hitr{fill:transparent;cursor:pointer}
+.hlu{stroke:#ffcc80;stroke-width:9;fill:none;stroke-linejoin:round;stroke-linecap:round;opacity:.9}
+.flow{fill:none;stroke:var(--flow);stroke-width:3.2;stroke-dasharray:2.5 12;stroke-linecap:round;pointer-events:none}
+.sy{stroke:var(--wire);stroke-width:1.8;fill:#fff}
+.sn{stroke:var(--wire);stroke-width:1.8;fill:none}
+.cmp.hl .sy,.cmp.hl .sn{stroke:#d35400}
+.cmp.sel .sy,.cmp.sel .sn,.wg.sel .wl{stroke:#c62828}
+.dim{opacity:.28}
+.cl{font-size:10.5px;font-weight:700;fill:var(--ink)}
+.cl2{font-size:9px;fill:var(--muted)}
+.tl{font-size:8.5px;fill:#1f5a94;font-weight:600}
+.tl.flash{fill:#fff;animation:none}
+.tlbg{fill:#e07b00;rx:2}
+.wlab{font-size:8.5px;fill:#4a5563;paint-order:stroke;stroke:#fbfcfe;stroke-width:3px;pointer-events:none}
+.dot{fill:var(--wire)}
+.tp circle.v{fill:#fff;stroke:var(--brand2);stroke-width:1.6}
+.tp:hover circle.v{fill:#dbe9f7}
+.tp{cursor:crosshair}
+.relbox{fill:none;stroke:#8a95a3;stroke-width:1;stroke-dasharray:4 3}
+.mech{stroke:#6d7784;stroke-width:1.2;stroke-dasharray:3 2;fill:none}
+.clk{cursor:pointer}
+.legend{font-size:.8rem;color:var(--muted);margin-top:6px;display:flex;flex-wrap:wrap;gap:4px 16px}
+/* controles */
+.ctl{margin-bottom:10px}
+.ctl label{display:block;font-size:.86rem;color:var(--muted);margin-bottom:3px}
+.ctl .row{display:flex;gap:8px;align-items:center}
+.ctl input[type=range]{flex:1;min-width:0}
+.ctl input[type=number]{width:90px;padding:4px 6px;border:1px solid var(--line);border-radius:6px}
+.ctl select,select.w{padding:5px 6px;border:1px solid var(--line);border-radius:6px;min-width:130px;max-width:100%;font-size:.88rem}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:4px 18px}
+@media(max-width:620px){.grid2{grid-template-columns:1fr}}
+.eq{background:#f7f9fc;border-left:4px solid var(--brand2);padding:10px 14px;border-radius:6px;font-size:.92rem}
+.eq p{margin:5px 0}
+.f{font-family:"Cambria Math","Times New Roman",serif;font-size:1.05rem}
+/* multímetro */
+.meter{background:#39414d;border-radius:14px;padding:14px;color:#fff;box-shadow:inset 0 0 0 3px #e0a100}
+.lcd{background:#b9c9a4;color:#1d2616;border-radius:6px;padding:10px 12px;font-family:"Consolas","Courier New",monospace;display:flex;justify-content:space-between;align-items:flex-end;min-height:66px;box-shadow:inset 0 2px 6px rgba(0,0,0,.35)}
+.lcd .val{font-size:2.2rem;font-weight:700;letter-spacing:1px}
+.lcd .unit{font-size:1.2rem;font-weight:700}
+.lcd .fn{font-size:.8rem;align-self:flex-start}
+.modes{display:flex;gap:6px;margin:12px 0 8px}
+.modes button{flex:1;padding:9px 0;border-radius:8px;border:0;background:#555f6d;color:#fff;font-weight:700;cursor:pointer;font-size:.95rem}
+.modes button.on{background:#e0a100;color:#1c1c1c}
+.probes{display:flex;gap:6px;align-items:center;font-size:.85rem;flex-wrap:wrap}
+.probes button{border:0;border-radius:6px;padding:5px 10px;cursor:pointer;font-weight:600}
+.pr{background:#e53935;color:#fff;opacity:.55}.pb{background:#111;color:#fff;opacity:.55;border:1px solid #888!important}
+.probes button.on{opacity:1;outline:2px solid #fff}
+.mnote{font-size:.83rem;color:#e7ecf2;margin-top:8px;min-height:2.4em}
+.mstat{font-size:.8rem;color:#c6cfda;margin-top:4px}
+table{border-collapse:collapse;width:100%;font-size:.86rem}
+th,td{border-bottom:1px solid var(--line);padding:5px 6px;text-align:right;vertical-align:top}
+th:first-child,td:first-child{text-align:left}
+th{background:#eef2f7;color:var(--brand);font-weight:600}
+td.l,th.l{text-align:left}
+.tblwrap{overflow-x:auto}
+.msgs div{padding:7px 10px;border-radius:6px;margin-bottom:6px;font-size:.87rem}
+.msgs .w{background:var(--warnbg);border-left:4px solid var(--accent)}
+.msgs .e{background:var(--badbg);border-left:4px solid var(--bad)}
+.msgs .i{background:#e8f1fb;border-left:4px solid var(--brand2)}
+.msgs .o{background:var(--okbg);border-left:4px solid var(--ok)}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center}
+.switch{display:flex;align-items:center;gap:8px;font-size:.9rem;margin:6px 0}
+details summary{cursor:pointer;font-weight:600;color:var(--brand)}
+details ol{padding-left:20px;margin:8px 0}
+.score{font-weight:700;margin-left:6px}
+.muted{color:var(--muted);font-size:.85rem}
+footer{text-align:center;color:var(--muted);font-size:.8rem;padding:10px 0 24px}
+.st-on{color:var(--ok);font-weight:700}.st-off{color:var(--muted)}.st-w{color:var(--accent);font-weight:700}.st-e{color:var(--bad);font-weight:700}
+/* info */
+.info h4{margin:0 0 4px;font-size:1rem;color:var(--brand)}
+.info p{margin:4px 0;font-size:.88rem}
+.chip{display:inline-block;border-radius:12px;padding:1px 8px;margin:2px 3px 2px 0;font-size:.8rem;background:#eef2f7;border:1px solid var(--line)}
+.chip.ok{background:var(--okbg);border-color:var(--ok)}
+.chip.bad{background:var(--badbg);border-color:var(--bad)}
+.swatch{display:inline-block;width:34px;height:12px;border:1px solid #333;border-radius:3px;vertical-align:middle;margin-right:4px}
+.path{font-size:.84rem;background:#f7f9fc;border-left:3px solid var(--accent);padding:5px 8px;border-radius:4px;margin:4px 0}
+/* bornes */
+.bgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}
+.bcard{border:1px solid var(--line);border-radius:8px;padding:8px 10px;cursor:pointer;background:#fff}
+.bcard:hover,.bcard.on{border-color:var(--brand2);background:#f3f8fe}
+.bnum{font-size:1.35rem;font-weight:800;color:var(--brand);font-family:Consolas,"Courier New",monospace}
+.bgrp{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
+.bdet{border:2px solid var(--brand2);border-radius:10px;padding:10px 14px;margin:10px 0;background:#f7fafe}
+.bdet .bnum{font-size:2rem}
+tr.clk:hover td{background:#f3f8fe}
+tr.on td{background:#e3eefb}
+/* simbología */
+.sgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:8px}
+.tile{border:1px solid var(--line);border-radius:8px;background:#fff;padding:6px;text-align:center;cursor:pointer;position:relative}
+.tile:hover,.tile.on{border-color:var(--brand2);background:#f3f8fe}
+.tile svg{width:100%;height:auto;max-width:130px}
+.tile .nm{font-size:.8rem;font-weight:600;color:var(--brand);min-height:2.4em;opacity:0;transition:opacity .15s}
+.tile:hover .nm,.sgrid.names .nm,.tile.on .nm{opacity:1}
+.gs *{fill:none;stroke:#1c2533;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.gs .fl{fill:#1c2533}
+.gs .gy{fill:#9aa4b1;stroke:#5b6778}
+.gs text{fill:#1c2533;stroke:none;font-size:11px;font-weight:700;font-family:"Segoe UI",Arial,sans-serif}
+.gs text.s{font-size:9px;font-weight:600;fill:#1f5a94}
+.gs .dsh{stroke-dasharray:4 3;stroke-width:1.6}
+/* ejercicio y evaluación */
+.ex{background:#f7f9fc;border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:10px}
+.ex .sym{font-weight:700;color:var(--bad)}
+.steps{margin:6px 0}
+.q{border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:10px;background:#fff}
+.q .qt{font-weight:600;margin-bottom:6px}
+.q label{display:block;padding:4px 6px;border-radius:5px;cursor:pointer;font-size:.9rem}
+.q label:hover{background:#f3f8fe}
+.q label.ok{background:var(--okbg);outline:1px solid var(--ok)}
+.q label.bad{background:var(--badbg);outline:1px solid var(--bad)}
+.q .fb{margin-top:6px;font-size:.87rem;padding:6px 9px;border-radius:6px;display:none}
+.q .fb.ok{display:block;background:var(--okbg);border-left:4px solid var(--ok)}
+.q .fb.bad{display:block;background:var(--badbg);border-left:4px solid var(--bad)}
+.qsym{width:150px;border:1px solid var(--line);border-radius:6px;background:#fbfcfe;margin:4px 0}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+<header>
+  <h1>Simulador 11 · Lectura e interpretación de esquemas eléctricos automotrices</h1>
+  <p>Electricidad Automotriz · Unidad 4: Circuitos eléctricos auxiliares (esquemas DIN y planos de corriente) · Tecnología Superior en Mecánica Automotriz · ISTS</p>
+</header>
+
+<main>
+<section>
+  <div class="card">
+    <div class="tabs" id="tabs"></div>
+
+    <!-- Sigue la corriente -->
+    <div id="exView" class="hidden">
+      <div class="ex">
+        <div class="bar" style="margin-top:0">
+          <select class="w" id="exSel"></select>
+          <button class="btn primary" id="exStart">Iniciar caso (avería oculta)</button>
+          <button class="btn small" id="exQuit">Salir del caso</button>
+        </div>
+        <div id="exBody" style="margin-top:8px"></div>
+      </div>
+    </div>
+
+    <!-- Plano -->
+    <div id="planoView">
+      <div class="toolbar">
+        <span class="muted">Clic en el plano:</span>
+        <button class="btn small on" id="mId">Identificar / accionar</button>
+        <button class="btn small" id="mMed">Medir (multímetro)</button>
+        <span class="sep"></span>
+        <button class="btn small" id="btnClrSel">Quitar resaltado</button>
+      </div>
+      <div class="svgwrap"><svg id="plano" viewBox="0 0 790 640" aria-label="Plano de corriente"></svg></div>
+      <div class="legend">
+        <span><b>30 · 15 · X</b> líneas de potencial (arriba) · <b>31</b> masa (abajo)</span>
+        <span><b>1…16</b> vías (pistas) para localizar componentes</span>
+        <span>● empalme · cruce sin punto = sin conexión</span>
+        <span>trazo fino = conexión interna de la caja de fusibles y relés</span>
+        <span><b>ro/sw 1,5</b> = color base rojo, traza negra, 1,5 mm²</span>
+      </div>
+      <div class="muted" style="margin-top:6px">Los puntos amarillos en movimiento indican el sentido convencional de la corriente (de + a −). Haga clic en <b>D</b>, <b>E1</b>, <b>E4</b> o <b>F</b> para accionarlos; en cualquier componente para resaltar su circuito completo; en un cable para ver su color, sección y bornes.</div>
+    </div>
+
+    <!-- Bornes -->
+    <div id="bornesView" class="hidden">
+      <div class="toolbar">
+        <input id="bQ" placeholder="Buscar borne o función…" style="padding:5px 8px;border:1px solid var(--line);border-radius:6px;min-width:0;flex:1">
+        <select class="w" id="bG"></select>
+        <button class="btn small on" id="bVt">Tabla</button><button class="btn small" id="bVc">Tarjetas</button>
+      </div>
+      <div id="bDet"></div>
+      <div id="bList"></div>
+      <p class="muted">Denominaciones según DIN 72552. Algunos fabricantes usan números propios o variantes (p. ej., VW llama <b>X</b> a la línea de consumidores desconectables, equivalente al borne 75). Confirme siempre con el esquema del fabricante.</p>
+    </div>
+
+    <!-- Simbología -->
+    <div id="simbView" class="hidden">
+      <div class="toolbar">
+        <label class="switch" style="margin:0"><input type="checkbox" id="sNames"> Mostrar siempre los nombres</label>
+        <span class="muted">Pase el cursor (o toque) un símbolo para ver su nombre.</span>
+      </div>
+      <div class="sgrid" id="sGrid"></div>
+      <div id="sDet" class="bdet" style="margin-top:10px"><span class="muted">Seleccione un símbolo para ver su descripción.</span></div>
+      <p class="muted">Símbolos según DIN 40900 / IEC 60617, en la forma usada en los planos de corriente automotrices. Algunos fabricantes (sobre todo asiáticos y americanos) dibujan variantes; por ejemplo, la masa como triángulo o peine.</p>
+    </div>
+
+    <!-- Evaluación -->
+    <div id="evalView" class="hidden">
+      <div class="ex">
+        <b>Cuestionario aleatorio de 10 preguntas</b> generado con los datos del plano, los bornes DIN 72552 y la simbología. Responda todas y pulse «Comprobar». Cada pregunta muestra la explicación.
+        <div class="bar"><button class="btn" id="qNew">Nuevo cuestionario</button><button class="btn primary" id="qChk">Comprobar</button><span class="score" id="qScore"></span></div>
+      </div>
+      <div id="qList"></div>
+    </div>
+  </div>
+
+  <div class="card" id="paramCard">
+    <h2>Parámetros y mandos del circuito</h2>
+    <div class="grid2" id="controls"></div>
+    <div class="bar">
+      <button class="btn" id="btnReset">Restablecer circuito</button>
+      <button class="btn" id="btnFuses">Reponer fusibles</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Valores de referencia y lectura del plano</h2>
+    <div class="eq" id="eqs"></div>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>¿Cómo usar el simulador?</summary>
+      <ol>
+        <li><b>Plano de corriente:</b> identifique las líneas de potencial 30, 15 y X (arriba) y la masa 31 (abajo). Cada componente se localiza por el número de vía del pie del plano.</li>
+        <li>Haga clic en un componente para resaltar su circuito completo, desde la línea de potencial hasta masa; la animación de flujo aparece solo si el circuito está activo. Lea en «Elemento seleccionado» el recorrido y los bornes.</li>
+        <li>Accione D (encendido), E1 (luces), E4 (cruce/carretera) y F (pedal de freno) con un clic o desde «Parámetros». Suba la temperatura del refrigerante para que el termocontacto F18 active el electroventilador.</li>
+        <li>Haga clic en un cable para leer su designación (color base/traza y sección) y los bornes que une. Active «Colorear cables» para verlos con su color.</li>
+        <li><b>Medir:</b> pulse «Medir», elija la punta (roja o negra) y haga clic en los puntos de prueba. La punta negra comienza en masa (31). Midiendo entre dos puntos de un mismo cable o componente se obtiene la caída de tensión.</li>
+        <li>Seleccione una «Avería» y compruebe cómo cambian las lecturas; relacione cada síntoma con el recorrido de la corriente.</li>
+        <li><b>Sigue la corriente:</b> inicie un caso con avería oculta, marque en orden el recorrido de la corriente y luego mida para diagnosticar. Pulse «Comprobar» para ver la explicación.</li>
+        <li>Repase las pestañas «Bornes DIN 72552» y «Simbología» y resuelva el cuestionario de «Evaluación». Descargue el registro en CSV para entregarlo.</li>
+      </ol>
+    </details>
+  </div>
+</section>
+
+<aside>
+  <div class="card">
+    <h2>Multímetro digital</h2>
+    <div class="meter">
+      <div class="lcd"><span class="fn" id="lcdFn">V⎓</span><span><span class="val" id="lcdVal">- - -</span> <span class="unit" id="lcdUnit">V</span></span></div>
+      <div class="modes" id="modes"><button data-m="V" class="on">V⎓</button><button data-m="OFF">OFF</button></div>
+      <div class="probes">Colocar punta:
+        <button class="pr on" id="pRed">● Roja (V)</button>
+        <button class="pb" id="pBlk">● Negra (COM)</button>
+      </div>
+      <div class="mstat" id="mstat"></div>
+      <div class="mnote" id="mnote"></div>
+      <div class="bar"><button class="btn small" id="btnLog">Registrar lectura</button></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Elemento seleccionado</h2>
+    <div class="info" id="info"><p class="muted">Haga clic en un componente, un cable o una línea de potencial del plano.</p></div>
+  </div>
+
+  <div class="card">
+    <h2>Avisos</h2>
+    <div class="msgs" id="msgs"></div>
+  </div>
+
+  <div class="card">
+    <h2>Estado del circuito</h2>
+    <div class="tblwrap" id="results"></div>
+  </div>
+
+  <div class="card">
+    <h2>Registro de mediciones y respuestas</h2>
+    <div class="tblwrap" id="logTbl"></div>
+    <div class="bar">
+      <button class="btn small" id="btnCsv">Descargar CSV</button>
+      <button class="btn small" id="btnClr">Limpiar registro</button>
+    </div>
+  </div>
+</aside>
+</main>
+<footer>Simulador didáctico · Carrera de Mecánica Automotriz · Instituto Superior Tecnológico Sudamericano</footer>
+
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+function nf(x,d){return x.toLocaleString('es-EC',{minimumFractionDigits:d,maximumFractionDigits:d,useGrouping:false});}
+function parseNum(s){if(s==null)return NaN;s=String(s).trim().replace(',','.');return s===''?NaN:Number(s);}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function pick(a){return a[Math.floor(Math.random()*a.length)];}
+function uniq(a){return [...new Set(a)];}
+const TX=t=>22+44*t;
+const Y30=40,Y15=62,YX=84,Y31=600;
+const RHO=0.0178;      // resistividad del cobre (Ω·mm²/m)
+const GMIN=1e-9;
+const PULL_IN=7.0, DROP_OUT=3.0, RCOIL=80;  // relé (valores orientativos)
+const F18_ON=95, F18_OFF=88;                // termocontacto (orientativo)
+
+/* ======================= COLORES DE CABLE ======================= */
+const COLS={sw:['negro','#1a1a1a','schwarz','BK','B'],ws:['blanco','#ffffff','weiß','WH','W'],ro:['rojo','#d32f2f','rot','RD','R'],br:['marrón','#7b4a2e','braun','BN','Br'],
+  gn:['verde','#2e7d32','grün','GN','G'],bl:['azul','#1565c0','blau','BU','L / Bl'],ge:['amarillo','#f9c21a','gelb','YE','Y'],gr:['gris','#9e9e9e','grau','GY','Gr'],
+  li:['lila (violeta)','#8e24aa','lila','VT','V'],or:['naranja','#ef6c00','orange','OG','O'],rs:['rosa','#f48fb1','rosa','PK','P']};
+function decodeCol(c){const [b,t]=c.split('/');return t?`${COLS[b][0]} con traza (franja) ${COLS[t][0]}`:COLS[b][0];}
+function capit(s){return s.charAt(0).toUpperCase()+s.slice(1);}
+
+/* ======================= COMPONENTES ======================= */
+const COMP={
+  bus30:{n:'Línea 30',d:'Positivo directo de batería. Tiene tensión siempre, aunque el encendido esté desconectado.'},
+  bus15:{n:'Línea 15',d:'Positivo conmutado por el encendido: tiene tensión solo con el conmutador D en posición de contacto.'},
+  busX:{n:'Línea X',d:'Positivo de consumidores desconectables (equivale al borne 75 de DIN 72552). Con encendido conectado tiene tensión; durante el arranque se desconecta para descargar la batería. En muchos VW se alimenta a través del relé de descarga J59; aquí se simplifica con el contacto X del conmutador D.'},
+  bus31:{n:'Masa (línea 31)',d:'Retorno al negativo de la batería a través de la carrocería y los puntos de masa. En los esquemas VW los cables de masa son marrones (br).'},
+  A:{n:'Batería',d:'Batería de 12 V. Borne + a la línea 30 y borne − a masa (31) mediante la cinta de masa.'},
+  D:{n:'Conmutador de encendido',d:'En posición de contacto une 30 con 15 y con X. En posición de arranque alimenta además el borne 50 (motor de arranque, fuera de este plano) y desconecta X.',sw:true},
+  S1:{n:'Fusible S1 · mando de luces',d:'Protege el circuito de mando (bobinas de J1 y J2) que pasa por E1 y E4.'},
+  S2:{n:'Fusible S2 · luz de cruce izquierda',d:'Protege el filamento de cruce (56b) del faro izquierdo L1.'},
+  S3:{n:'Fusible S3 · luz de cruce derecha',d:'Protege el filamento de cruce (56b) del faro derecho L2.'},
+  S4:{n:'Fusible S4 · luz de carretera izquierda',d:'Protege el filamento de carretera (56a) del faro izquierdo L1.'},
+  S5:{n:'Fusible S5 · luz de carretera derecha',d:'Protege el filamento de carretera (56a) del faro derecho L2.'},
+  S6:{n:'Fusible S6 · mando del electroventilador',d:'Protege el circuito de mando de J3 (bobina y termocontacto F18); se alimenta de la línea 15.'},
+  S7:{n:'Fusible S7 · electroventilador',d:'Protege el circuito de potencia del electroventilador V7 (contacto de J3 y motor).'},
+  S8:{n:'Fusible S8 · luces de freno',d:'Protege el interruptor F y las lámparas de freno M9 y M10. Aquí se alimenta de la línea 30 (el freno funciona sin encendido); algunos fabricantes lo alimentan desde 15.'},
+  E1:{n:'Interruptor de luces',d:'Accionamiento manual (letra E en la nomenclatura VW). Entrada X, salida 56 hacia el conmutador E4. Solo conmuta la corriente de mando de los relés (≈ 0,16 A).',sw:true},
+  E4:{n:'Conmutador de luz de cruce / carretera',d:'Palanca bajo el volante: envía el borne 56 a 56b (cruce, bobina de J1) o a 56a (carretera, bobina de J2).',sw:true},
+  J1:{n:'Relé de luz de cruce',d:'Bobina 86/85 (≈ 80 Ω, orientativo) y contacto de trabajo 30/87. La corriente de mando pasa por E1 y E4; la corriente de los dos filamentos de cruce (≈ 9–10 A) pasa por el contacto.'},
+  J2:{n:'Relé de luz de carretera',d:'Bobina 86/85 y contacto 30/87. Alimenta los filamentos de carretera (56a) a través de S4 y S5.'},
+  J3:{n:'Relé del electroventilador',d:'Bobina alimentada desde 15 (S6); su borne 85 va a masa a través del termocontacto F18 (masa conmutada, borne 31b). El contacto 30/87 alimenta el motor V7 desde S7.'},
+  L1:{n:'Lámpara bifilamento H4, faro izquierdo',d:'Filamento de cruce 55 W (borne 56b) y de carretera 60 W (borne 56a), con masa común (31) por el pin 3 del conector T3a.'},
+  L2:{n:'Lámpara bifilamento H4, faro derecho',d:'Filamento de cruce 55 W (56b) y de carretera 60 W (56a), masa común por T3b/3.'},
+  T3a:{n:'Conector de 3 vías del faro izquierdo',d:'T3a/1 = 56b (cruce) · T3a/2 = 56a (carretera) · T3a/3 = 31 (masa). La notación T3a/2 significa: conector T de 3 vías, variante «a», contacto 2.'},
+  T3b:{n:'Conector de 3 vías del faro derecho',d:'T3b/1 = 56b (cruce) · T3b/2 = 56a (carretera) · T3b/3 = 31 (masa).'},
+  T2c:{n:'Conector de 2 vías del electroventilador',d:'T2c/1 = positivo desde J3/87 · T2c/2 = masa.'},
+  V7:{n:'Electroventilador del radiador',d:'Motor de corriente continua de imanes permanentes (≈ 190 W, orientativo). Se modela como una resistencia equivalente en marcha de 0,75 Ω.'},
+  F18:{n:'Termocontacto del electroventilador',d:`Interruptor accionado por temperatura (letra F: accionamiento no manual en VW). Cierra a ≈ ${F18_ON} °C y abre a ≈ ${F18_OFF} °C (valores orientativos; consulte el manual del fabricante). Muchos VW usan un termocontacto de dos etapas (dos velocidades).`},
+  F:{n:'Interruptor de luz de freno',d:'Accionado por el pedal (letra F en VW). Con el pedal pisado cierra y alimenta el borne 54 hacia M9 y M10.',sw:true},
+  M9:{n:'Lámpara de luz de freno izquierda',d:'Lámpara P21W (21 W).'},
+  M10:{n:'Lámpara de luz de freno derecha',d:'Lámpara P21W (21 W).'}
+};
+const BUS={bus30:{n:'30',y:Y30},bus15:{n:'15',y:Y15},busX:{n:'X',y:YX},bus31:{n:'31',y:Y31}};
+
+/* ======================= ELEMENTOS ELÉCTRICOS =======================
+   k: bat, sw, fuse, relk, coil, lamp, motor, pin, thermo, w (cable) */
+const EL=[
+ {id:'BAT',c:'A',k:'bat',n1:'Ap',n2:'An',p1:[66,312],p2:[66,348],tl1:'A (+)',tl2:'A (−)'},
+ {id:'D15',c:'D',k:'sw',n1:'d30',n2:'d15',p1:[110,106],p2:[140,106],tl1:'D/30',tl2:'D/15'},
+ {id:'DX',c:'D',k:'sw',n1:'d30',n2:'dX',p1:[110,106],p2:[164,106],tl1:'D/30',tl2:'D/X'},
+ {id:'S1',c:'S1',k:'fuse',a:10,n1:'s1a',n2:'s1b',p1:[286,111],p2:[286,145]},
+ {id:'E1',c:'E1',k:'sw',n1:'e1a',n2:'e1b',p1:[286,172],p2:[286,204],tl1:'E1/X',tl2:'E1/56'},
+ {id:'E4b',c:'E4',k:'sw',n1:'e4c',n2:'e4b',p1:[286,226],p2:[268,270],tl1:'E4/56',tl2:'E4/56b'},
+ {id:'E4a',c:'E4',k:'sw',n1:'e4c',n2:'e4a',p1:[286,226],p2:[304,270],tl1:'E4/56',tl2:'E4/56a'},
+ {id:'J1c',c:'J1',k:'coil',n1:'j1_86',n2:'j1_85',p1:[242,306],p2:[242,386],tl1:'J1/86',tl2:'J1/85'},
+ {id:'J1k',c:'J1',k:'relk',n1:'j1_30',n2:'j1_87',p1:[198,306],p2:[198,386],tl1:'J1/30',tl2:'J1/87'},
+ {id:'J2c',c:'J2',k:'coil',n1:'j2_86',n2:'j2_85',p1:[330,306],p2:[330,386],tl1:'J2/86',tl2:'J2/85'},
+ {id:'J2k',c:'J2',k:'relk',n1:'j2_30',n2:'j2_87',p1:[374,306],p2:[374,386],tl1:'J2/30',tl2:'J2/87'},
+ {id:'S2',c:'S2',k:'fuse',a:10,n1:'s2a',n2:'s2b',p1:[418,462],p2:[418,496]},
+ {id:'S4',c:'S4',k:'fuse',a:10,n1:'s4a',n2:'s4b',p1:[462,462],p2:[462,496]},
+ {id:'S3',c:'S3',k:'fuse',a:10,n1:'s3a',n2:'s3b',p1:[506,462],p2:[506,496]},
+ {id:'S5',c:'S5',k:'fuse',a:10,n1:'s5a',n2:'s5b',p1:[550,462],p2:[550,496]},
+ {id:'T3a1',c:'T3a',k:'pin',n1:'s2t',n2:'l1b',p1:[418,508],p2:[418,522],pl:'T3a/1',tl1:'T3a/1 lado mazo',tl2:'L1/56b'},
+ {id:'T3a2',c:'T3a',k:'pin',n1:'s4t',n2:'l1a',p1:[462,508],p2:[462,522],pl:'T3a/2',tl1:'T3a/2 lado mazo',tl2:'L1/56a'},
+ {id:'L1b',c:'L1',k:'lamp',P:55,n1:'l1b',n2:'l1m',p1:[418,522],p2:[440,572],tl1:'L1/56b',tl2:'L1/31 (lado lámpara)'},
+ {id:'L1a',c:'L1',k:'lamp',P:60,n1:'l1a',n2:'l1m',p1:[462,522],p2:[440,572],tl1:'L1/56a',tl2:'L1/31 (lado lámpara)'},
+ {id:'T3a3',c:'T3a',k:'pin',n1:'l1m',n2:'l1g',p1:[440,572],p2:[440,584],pl:'T3a/3',tl1:'L1/31 (lado lámpara)',tl2:'T3a/3 lado mazo'},
+ {id:'T3b1',c:'T3b',k:'pin',n1:'s3t',n2:'l2b',p1:[506,508],p2:[506,522],pl:'T3b/1',tl1:'T3b/1 lado mazo',tl2:'L2/56b'},
+ {id:'T3b2',c:'T3b',k:'pin',n1:'s5t',n2:'l2a',p1:[550,508],p2:[550,522],pl:'T3b/2',tl1:'T3b/2 lado mazo',tl2:'L2/56a'},
+ {id:'L2b',c:'L2',k:'lamp',P:55,n1:'l2b',n2:'l2m',p1:[506,522],p2:[528,572],tl1:'L2/56b',tl2:'L2/31 (lado lámpara)'},
+ {id:'L2a',c:'L2',k:'lamp',P:60,n1:'l2a',n2:'l2m',p1:[550,522],p2:[528,572],tl1:'L2/56a',tl2:'L2/31 (lado lámpara)'},
+ {id:'T3b3',c:'T3b',k:'pin',n1:'l2m',n2:'l2g',p1:[528,572],p2:[528,584],pl:'T3b/3',tl1:'L2/31 (lado lámpara)',tl2:'T3b/3 lado mazo'},
+ {id:'S7',c:'S7',k:'fuse',a:30,n1:'s7a',n2:'s7b',p1:[594,111],p2:[594,145]},
+ {id:'S6',c:'S6',k:'fuse',a:5,n1:'s6a',n2:'s6b',p1:[638,111],p2:[638,145]},
+ {id:'S8',c:'S8',k:'fuse',a:10,n1:'s8a',n2:'s8b',p1:[682,111],p2:[682,145]},
+ {id:'J3k',c:'J3',k:'relk',n1:'j3_30',n2:'j3_87',p1:[594,306],p2:[594,386],tl1:'J3/30',tl2:'J3/87'},
+ {id:'J3c',c:'J3',k:'coil',n1:'j3_86',n2:'j3_85',p1:[638,306],p2:[638,386],tl1:'J3/86',tl2:'J3/85'},
+ {id:'T2c1',c:'T2c',k:'pin',n1:'v7t',n2:'v7p',p1:[594,446],p2:[594,458],pl:'T2c/1',tl1:'T2c/1 lado mazo',tl2:'V7 (+)'},
+ {id:'V7',c:'V7',k:'motor',n1:'v7p',n2:'v7n',p1:[594,458],p2:[594,530],tl1:'V7 (+)',tl2:'V7 (−)'},
+ {id:'T2c2',c:'T2c',k:'pin',n1:'v7n',n2:'v7g',p1:[594,530],p2:[594,542],pl:'T2c/2',tl1:'V7 (−)',tl2:'T2c/2 lado mazo'},
+ {id:'F18',c:'F18',k:'thermo',n1:'f18a',n2:'f18b',p1:[638,458],p2:[638,500],tl1:'F18 entrada (desde J3/85)',tl2:'F18 salida (a masa)'},
+ {id:'F',c:'F',k:'sw',n1:'fa',n2:'fb',p1:[682,236],p2:[682,272],tl1:'F entrada',tl2:'F/54'},
+ {id:'M9',c:'M9',k:'lamp',P:21,n1:'m9a',n2:'m9b',p1:[682,528],p2:[682,562],tl1:'M9/54',tl2:'M9/31'},
+ {id:'M10',c:'M10',k:'lamp',P:21,n1:'m10a',n2:'m10b',p1:[726,528],p2:[726,562],tl1:'M10/54',tl2:'M10/31'},
+ // cables (col: designación VW; sec en mm²; len en m, orientativa)
+ {id:'wA30',k:'w',n1:'30',n2:'Ap',pts:[[66,Y30],[66,312]],col:'ro',sec:25,len:0.8,fr:'Línea 30 (portafusibles)',to:'Batería A, borne +'},
+ {id:'wA31',k:'w',n1:'An',n2:'31',pts:[[66,348],[66,Y31]],col:'br',sec:25,len:0.6,fr:'Batería A, borne −',to:'Punto de masa en la carrocería (31)'},
+ {id:'wD30',k:'w',n1:'30',n2:'d30',pts:[[110,Y30],[110,106]],col:'ro',sec:6,len:1.2,fr:'Línea 30',to:'Conmutador D, borne 30'},
+ {id:'wD15',k:'w',n1:'d15',n2:'15',pts:[[140,106],[140,Y15]],col:'sw',sec:4,len:1.2,fr:'Conmutador D, borne 15',to:'Línea 15'},
+ {id:'wDX',k:'w',n1:'dX',n2:'X',pts:[[164,106],[164,YX]],col:'sw/ge',sec:4,len:1.2,fr:'Conmutador D, borne X',to:'Línea X'},
+ {id:'wXS1',k:'w',int:1,n1:'X',n2:'s1a',pts:[[286,YX],[286,111]],fr:'Línea X',to:'Fusible S1'},
+ {id:'wS1E1',k:'w',n1:'s1b',n2:'e1a',pts:[[286,145],[286,172]],col:'ws/sw',sec:1,len:1.5,fr:'Fusible S1',to:'Interruptor de luces E1, borne X'},
+ {id:'wE1E4',k:'w',n1:'e1b',n2:'e4c',pts:[[286,204],[286,226]],col:'ge',sec:1,len:0.8,fr:'E1, borne 56',to:'Conmutador E4, borne 56'},
+ {id:'wE4J1',k:'w',n1:'e4b',n2:'j1_86',pts:[[268,270],[268,284],[242,284],[242,306]],col:'ge/ws',sec:0.5,len:1.8,fr:'E4, borne 56b',to:'Relé J1, borne 86'},
+ {id:'wE4J2',k:'w',n1:'e4a',n2:'j2_86',pts:[[304,270],[304,284],[330,284],[330,306]],col:'ws',sec:0.5,len:1.8,fr:'E4, borne 56a',to:'Relé J2, borne 86'},
+ {id:'w30J1',k:'w',int:1,n1:'30',n2:'j1_30',pts:[[198,Y30],[198,306]],fr:'Línea 30',to:'Relé J1, borne 30'},
+ {id:'w30J2',k:'w',int:1,n1:'30',n2:'j2_30',pts:[[374,Y30],[374,306]],fr:'Línea 30',to:'Relé J2, borne 30'},
+ {id:'wJ1c',k:'w',n1:'j1_85',n2:'31',pts:[[242,386],[242,Y31]],col:'br',sec:0.5,len:0.5,fr:'Relé J1, borne 85',to:'Masa (31)'},
+ {id:'wJ2c',k:'w',n1:'j2_85',n2:'31',pts:[[330,386],[330,Y31]],col:'br',sec:0.5,len:0.5,fr:'Relé J2, borne 85',to:'Masa (31)'},
+ {id:'wJ1o',k:'w',int:1,n1:'j1_87',n2:'j1o',pts:[[198,386],[198,440],[418,440]],fr:'Relé J1, borne 87',to:'Distribución interna 56b (S2 y S3)'},
+ {id:'wJ1S2',k:'w',int:1,n1:'j1o',n2:'s2a',pts:[[418,440],[418,462]],fr:'Distribución interna 56b',to:'Fusible S2'},
+ {id:'wJ1S3',k:'w',int:1,n1:'j1o',n2:'s3a',pts:[[418,440],[506,440],[506,462]],fr:'Distribución interna 56b',to:'Fusible S3'},
+ {id:'wJ2o',k:'w',int:1,n1:'j2_87',n2:'j2o',pts:[[374,386],[374,420],[462,420]],fr:'Relé J2, borne 87',to:'Distribución interna 56a (S4 y S5)'},
+ {id:'wJ2S4',k:'w',int:1,n1:'j2o',n2:'s4a',pts:[[462,420],[462,462]],fr:'Distribución interna 56a',to:'Fusible S4'},
+ {id:'wJ2S5',k:'w',int:1,n1:'j2o',n2:'s5a',pts:[[462,420],[550,420],[550,462]],fr:'Distribución interna 56a',to:'Fusible S5'},
+ {id:'wS2T',k:'w',n1:'s2b',n2:'s2t',pts:[[418,496],[418,508]],col:'ge',sec:1.5,len:2,fr:'Fusible S2',to:'Conector T3a/1 (faro izq., 56b)'},
+ {id:'wS4T',k:'w',n1:'s4b',n2:'s4t',pts:[[462,496],[462,508]],col:'ws',sec:1.5,len:2,fr:'Fusible S4',to:'Conector T3a/2 (faro izq., 56a)'},
+ {id:'wS3T',k:'w',n1:'s3b',n2:'s3t',pts:[[506,496],[506,508]],col:'ge/sw',sec:1.5,len:2.4,fr:'Fusible S3',to:'Conector T3b/1 (faro der., 56b)'},
+ {id:'wS5T',k:'w',n1:'s5b',n2:'s5t',pts:[[550,496],[550,508]],col:'ws/sw',sec:1.5,len:2.4,fr:'Fusible S5',to:'Conector T3b/2 (faro der., 56a)'},
+ {id:'wL1g',k:'w',n1:'l1g',n2:'31',pts:[[440,584],[440,Y31]],col:'br',sec:1.5,len:0.6,fr:'Conector T3a/3 (masa faro izq.)',to:'Punto de masa, vano motor izquierdo (31)'},
+ {id:'wL2g',k:'w',n1:'l2g',n2:'31',pts:[[528,584],[528,Y31]],col:'br',sec:1.5,len:0.6,fr:'Conector T3b/3 (masa faro der.)',to:'Punto de masa, vano motor derecho (31)'},
+ {id:'w30S7',k:'w',int:1,n1:'30',n2:'s7a',pts:[[594,Y30],[594,111]],fr:'Línea 30',to:'Fusible S7'},
+ {id:'w15S6',k:'w',int:1,n1:'15',n2:'s6a',pts:[[638,Y15],[638,111]],fr:'Línea 15',to:'Fusible S6'},
+ {id:'w30S8',k:'w',int:1,n1:'30',n2:'s8a',pts:[[682,Y30],[682,111]],fr:'Línea 30',to:'Fusible S8'},
+ {id:'wS7J3',k:'w',int:1,n1:'s7b',n2:'j3_30',pts:[[594,145],[594,306]],fr:'Fusible S7',to:'Relé J3, borne 30'},
+ {id:'wS6J3',k:'w',int:1,n1:'s6b',n2:'j3_86',pts:[[638,145],[638,306]],fr:'Fusible S6',to:'Relé J3, borne 86'},
+ {id:'wJ3T',k:'w',n1:'j3_87',n2:'v7t',pts:[[594,386],[594,446]],col:'ro/ws',sec:4,len:1.5,fr:'Relé J3, borne 87',to:'Conector T2c/1 (V7 +)'},
+ {id:'wV7g',k:'w',n1:'v7g',n2:'31',pts:[[594,542],[594,Y31]],col:'br',sec:4,len:0.8,lr:1,fr:'Conector T2c/2 (V7 −)',to:'Punto de masa, frontal (31)'},
+ {id:'wJ3F18',k:'w',n1:'j3_85',n2:'f18a',pts:[[638,386],[638,458]],col:'gn/ws',sec:0.5,len:1.5,fr:'Relé J3, borne 85',to:'Termocontacto F18'},
+ {id:'wF18g',k:'w',n1:'f18b',n2:'31',pts:[[638,500],[638,Y31]],col:'br',sec:0.5,len:0.5,fr:'Termocontacto F18',to:'Masa (31)'},
+ {id:'wS8F',k:'w',n1:'s8b',n2:'fa',pts:[[682,145],[682,236]],col:'ro/sw',sec:1,len:1.5,fr:'Fusible S8',to:'Interruptor de luz de freno F'},
+ {id:'wFbs',k:'w',n1:'fb',n2:'bs',pts:[[682,272],[682,330]],col:'sw/ro',sec:1,len:1,fr:'Interruptor F, borne 54',to:'Empalme A3 (54) en el mazo'},
+ {id:'wbsM9',k:'w',n1:'bs',n2:'m9a',pts:[[682,330],[682,528]],col:'sw/ro',sec:1,len:4.5,fr:'Empalme A3 (54)',to:'Luz de freno izquierda M9'},
+ {id:'wbsM10',k:'w',n1:'bs',n2:'m10a',pts:[[682,330],[726,330],[726,528]],col:'sw/ro',sec:1,len:4.8,fr:'Empalme A3 (54)',to:'Luz de freno derecha M10'},
+ {id:'wM9g',k:'w',n1:'m9b',n2:'31',pts:[[682,562],[682,Y31]],col:'br',sec:1,len:0.4,fr:'Luz de freno M9',to:'Punto de masa, portón trasero (31)'},
+ {id:'wM10g',k:'w',n1:'m10b',n2:'31',pts:[[726,562],[726,Y31]],col:'br',sec:1,len:0.4,fr:'Luz de freno M10',to:'Punto de masa, portón trasero (31)'}
+];
+const byId={};EL.forEach(e=>{byId[e.id]=e;if(e.k==='w'){e.c=e.id;e.p1=e.pts[0];e.p2=e.pts[e.pts.length-1];e.tl1=e.fr;e.tl2=e.to;}
+  if(e.k==='fuse'){e.tl1=e.id+' entrada';e.tl2=e.id+' salida';}});
+function wireR(e){return e.int?0.0008:RHO*e.len/e.sec;}
+
+/* ======================= RECORRIDOS (CIRCUITOS) ======================= */
+const PATHS=[
+ {id:'ctrlB',n:'Mando del relé de cruce J1',els:['busX','wXS1','S1','wS1E1','E1','wE1E4','E4b','wE4J1','J1c','wJ1c','bus31']},
+ {id:'ctrlA',n:'Mando del relé de carretera J2',els:['busX','wXS1','S1','wS1E1','E1','wE1E4','E4a','wE4J2','J2c','wJ2c','bus31']},
+ {id:'cruceL',n:'Luz de cruce izquierda (potencia)',els:['bus30','w30J1','J1k','wJ1o','wJ1S2','S2','wS2T','T3a1','L1b','T3a3','wL1g','bus31']},
+ {id:'cruceR',n:'Luz de cruce derecha (potencia)',els:['bus30','w30J1','J1k','wJ1o','wJ1S3','S3','wS3T','T3b1','L2b','T3b3','wL2g','bus31']},
+ {id:'carrL',n:'Luz de carretera izquierda (potencia)',els:['bus30','w30J2','J2k','wJ2o','wJ2S4','S4','wS4T','T3a2','L1a','T3a3','wL1g','bus31']},
+ {id:'carrR',n:'Luz de carretera derecha (potencia)',els:['bus30','w30J2','J2k','wJ2o','wJ2S5','S5','wS5T','T3b2','L2a','T3b3','wL2g','bus31']},
+ {id:'ventC',n:'Mando del relé del electroventilador J3',els:['bus15','w15S6','S6','wS6J3','J3c','wJ3F18','F18','wF18g','bus31']},
+ {id:'ventP',n:'Electroventilador V7 (potencia)',els:['bus30','w30S7','S7','wS7J3','J3k','wJ3T','T2c1','V7','T2c2','wV7g','bus31']},
+ {id:'frenoL',n:'Luz de freno izquierda',els:['bus30','w30S8','S8','wS8F','F','wFbs','wbsM9','M9','wM9g','bus31']},
+ {id:'frenoR',n:'Luz de freno derecha',els:['bus30','w30S8','S8','wS8F','F','wFbs','wbsM10','M10','wM10g','bus31']},
+ {id:'alim',n:'Alimentación: batería y conmutador de encendido',els:['BAT','wA30','wA31','bus30','bus31','wD30','D15','DX','wD15','wDX','bus15','busX']}
+];
+const STEP={bus30:'Línea 30',bus15:'Línea 15',busX:'Línea X',bus31:'Masa 31',BAT:'Batería A',D15:'D (30→15)',DX:'D (30→X)',
+  E1:'E1 (X→56)',E4b:'E4 (56→56b)',E4a:'E4 (56→56a)',J1c:'J1 bobina (86→85)',J2c:'J2 bobina (86→85)',J3c:'J3 bobina (86→85)',
+  J1k:'J1 contacto (30→87)',J2k:'J2 contacto (30→87)',J3k:'J3 contacto (30→87)',T3a1:'T3a/1',T3a2:'T3a/2',T3a3:'T3a/3',T3b1:'T3b/1',T3b2:'T3b/2',T3b3:'T3b/3',
+  L1b:'L1 (56b, cruce)',L1a:'L1 (56a, carretera)',L2b:'L2 (56b, cruce)',L2a:'L2 (56a, carretera)',T2c1:'T2c/1',T2c2:'T2c/2',V7:'V7',F18:'F18',F:'F (→54)',M9:'M9',M10:'M10'};
+function stepsOf(p){return p.els.filter(x=>!(byId[x]&&byId[x].k==='w')).map(x=>STEP[x]||x);}
+function pathText(p){return stepsOf(p).join(' → ');}
+
+/* ======================= AVERÍAS ======================= */
+const FAULTS={
+ none:{n:'Sin avería',g:''},
+ S1:{n:'Fusible S1 (mando de luces) fundido',g:'luz',mod:{S1:{open:1}},tps:['S1:1','S1:2','J1c:1'],ex:'Sin S1 no llega tensión (X) al interruptor E1: ninguna bobina de relé se excita (J1 y J2 sin clic) y no enciende ningún faro, ni en cruce ni en carretera. Entrada de S1 ≈ U de batería, salida 0 V.'},
+ S2:{n:'Fusible S2 (cruce izquierdo) fundido',g:'luz',mod:{S2:{open:1}},tps:['S2:1','S2:2'],ex:'S2 alimenta solo el filamento de cruce del faro izquierdo. Tensión de batería en su entrada y 0 V en su salida: el fusible está abierto.'},
+ S3:{n:'Fusible S3 (cruce derecho) fundido',g:'luz',mod:{S3:{open:1}},tps:['S3:1','S3:2'],ex:'S3 alimenta únicamente el filamento de cruce del faro derecho (L2, borne 56b). Hay tensión de batería en la entrada de S3 y 0 V en su salida: el fusible está abierto. El faro izquierdo funciona porque tiene su propio fusible (S2). Antes de reponerlo, busque la causa (cortocircuito, lámpara de potencia incorrecta).'},
+ S4:{n:'Fusible S4 (carretera izquierda) fundido',g:'luz',mod:{S4:{open:1}},tps:['S4:1','S4:2'],ex:'S4 alimenta solo el filamento de carretera (56a) del faro izquierdo: tensión en su entrada y 0 V en la salida.'},
+ S5:{n:'Fusible S5 (carretera derecha) fundido',g:'luz',mod:{S5:{open:1}},tps:['S5:1','S5:2'],ex:'S5 alimenta solo el filamento de carretera (56a) del faro derecho: tensión en su entrada y 0 V en la salida.'},
+ J1c:{n:'Bobina del relé J1 cortada',g:'luz',mod:{J1c:{open:1}},tps:['J1c:1','J1c:2','J1k:2'],ex:'La bobina recibe tensión en 86 (≈ U de batería) y 85 está a masa (0 V), pero no circula corriente: el relé no hace «clic», el contacto 30/87 no cierra y 87 queda en 0 V. Ningún faro de cruce enciende; la carretera (J2) funciona.'},
+ J1k:{n:'Contacto 30/87 de J1 quemado (no cierra)',g:'luz',mod:{J1k:{burnt:1}},tps:['J1c:1','J1k:1','J1k:2'],ex:'La bobina se excita (86 ≈ U de batería, se oye el «clic») y en 30 hay tensión, pero 87 queda en 0 V: el contacto está quemado o picado. Sustituya el relé.'},
+ J1s:{n:'Contacto de J1 pegado (soldado)',g:'luz',mod:{J1k:{stuck:1}},tps:['J1c:1','J1k:2'],ex:'El contacto 30/87 permanece cerrado aunque la bobina no reciba tensión: las luces de cruce quedan encendidas con E1 apagado e incluso sin encendido, y descargan la batería. Con E1 apagado se mide 0 V en 86 y ≈ U de batería en 87.'},
+ wE4J1:{n:'Cable ge/ws 0,5 (E4/56b – J1/86) cortado',g:'luz',mod:{wE4J1:{open:1}},tps:['E4b:2','J1c:1'],ex:'En la salida 56b de E4 hay tensión, pero en el borne 86 de J1 hay 0 V: el cable entre ambos está interrumpido. El relé no se excita y no enciende ninguna luz de cruce.'},
+ L2b:{n:'Filamento de cruce de L2 fundido',g:'luz',mod:{L2b:{open:1}},tps:['L2b:1','L2b:2'],ex:'En el borne 56b del faro derecho hay tensión de batería y el lado de masa de la lámpara está a 0 V (masa correcta): el filamento está abierto. Confírmelo con el óhmetro con la lámpara desmontada. La carretera del mismo faro sigue funcionando (otro filamento).'},
+ L1a:{n:'Filamento de carretera de L1 fundido',g:'luz',mod:{L1a:{open:1}},tps:['L1a:1','L1a:2'],ex:'En el borne 56a del faro izquierdo hay tensión y su masa está a 0 V: el filamento de carretera está abierto.'},
+ T3b1:{n:'Contacto T3b/1 oxidado (sin continuidad)',g:'luz',mod:{T3b1:{open:1}},tps:['T3b1:1','T3b1:2'],ex:'Llega tensión al conector por el lado del mazo (T3b/1), pero no al borne 56b de la lámpara: el contacto del conector está interrumpido. Limpie o sustituya el terminal.'},
+ T3bR:{n:'Resistencia de contacto alta en T3b/1 (1,5 Ω)',g:'luz',mod:{T3b1:{R:1.5}},tps:['T3b1:1','T3b1:2'],ex:'Con la luz de cruce encendida, entre T3b/1 lado mazo y lado faro cae una tensión de varios voltios (orientativo: ≤ 0,1 V por conexión). El faro derecho se ve débil. Limpie o sustituya el terminal.'},
+ L2g:{n:'Masa del faro derecho interrumpida (cable br T3b/3 – 31)',g:'luz',mod:{wL2g:{open:1}},tps:['L2b:1','L2b:2'],ex:'Sin su masa propia, la corriente del filamento de cruce de L2 busca otro camino: sale por su filamento de carretera, retrocede por T3b/2, S5 y S4 y llega a masa a través del filamento de carretera de L1 (retroalimentación por otro consumidor). Resultado: el faro derecho apenas brilla y ambas luces de carretera brillan débilmente aunque estén apagadas. En el lado de masa de L2 se miden varios voltios en lugar de 0 V: el circuito está abierto o con mala conexión en el lado de masa (cable marrón o punto de masa).'},
+ S5sc:{n:'Cable ws/sw (S5 – L2/56a) en cortocircuito a masa',g:'luz',sc:{n1:'s5b',n2:'31'},tps:['S5:1','S5:2'],ex:'Al conectar la luz de carretera, el aislamiento dañado une el positivo con la carrocería: la corriente sube a cientos de amperios y S5 se funde (protege el cable). Busque el roce del mazo antes de reponer el fusible.'},
+ S6:{n:'Fusible S6 (mando de J3) fundido',g:'vent',mod:{S6:{open:1}},tps:['S6:1','S6:2','J3c:1'],ex:'Sin S6 la bobina de J3 no recibe tensión de la línea 15 (86 = 0 V) aunque F18 cierre: el relé no conmuta y V7 no gira. Entrada de S6 ≈ U de batería (con encendido), salida 0 V.'},
+ S7:{n:'Fusible S7 (30 A, ventilador) fundido',g:'vent',mod:{S7:{open:1}},tps:['S7:1','S7:2','J3k:1'],ex:'El relé J3 conmuta (hay «clic»), pero su borne 30 no tiene tensión porque S7 está abierto: entrada de S7 ≈ U de batería, salida 0 V.'},
+ J3c:{n:'Bobina del relé J3 cortada',g:'vent',mod:{J3c:{open:1}},tps:['J3c:1','J3c:2'],ex:'Con F18 cerrado, el borne 86 de J3 tiene ≈ U de batería y el 85 está a 0 V (masa por F18), pero el relé no conmuta: la bobina está abierta.'},
+ F18o:{n:'Termocontacto F18 no cierra',g:'vent',f18:'open',tps:['J3c:1','J3c:2'],ex:'Con el motor caliente, en ambos bornes de la bobina (86 y 85) se mide ≈ U de batería: la bobina está sana, pero su masa a través de F18 no se cierra. Prueba: puentee F18 a masa; si el ventilador arranca, sustituya el termocontacto.'},
+ F18s:{n:'Termocontacto F18 pegado (siempre cerrado)',g:'vent',f18:'stuck',tps:['J3c:2','F18:1'],ex:'F18 conecta la bobina de J3 a masa aunque el motor esté frío: el electroventilador funciona siempre que el encendido esté conectado.'},
+ V7o:{n:'Motor V7 interrumpido (escobillas gastadas)',g:'vent',mod:{V7:{open:1}},tps:['V7:1','V7:2'],ex:'En el borne + del motor hay ≈ U de batería y en su borne − hay 0 V (masa correcta), pero no circula corriente: el motor está abierto (escobillas, colector o bobinado).'},
+ V7g:{n:'Masa de V7 deficiente (0,5 Ω)',g:'vent',mod:{wV7g:{R:0.5}},tps:['V7:2','T2c2:2'],ex:'Con el ventilador funcionando, entre el borne − del motor y masa cae una tensión de varios voltios (orientativo ≤ 0,2 V en el lado de masa). El motor gira lento. Limpie y apriete el punto de masa.'},
+ S8:{n:'Fusible S8 (luces de freno) fundido',g:'freno',mod:{S8:{open:1}},tps:['S8:1','S8:2'],ex:'S8 alimenta el interruptor F y ambas lámparas: entrada de S8 ≈ U de batería, salida 0 V; ninguna luz de freno enciende.'},
+ Fo:{n:'Interruptor de luz de freno F desajustado (no cierra)',g:'freno',mod:{F:{open:1}},tps:['F:1','F:2'],ex:'Con el pedal pisado, en la entrada de F hay ≈ U de batería y en su salida (borne 54) 0 V: el interruptor no cierra. Ajuste o sustituya F.'},
+ M10:{n:'Lámpara de freno M10 fundida',g:'freno',mod:{M10:{open:1}},tps:['M10:1','M10:2'],ex:'En el borne 54 de M10 hay tensión y su masa está a 0 V: el filamento está abierto. M9 enciende porque está en paralelo.'},
+ M10g:{n:'Masa de M10 interrumpida',g:'freno',mod:{wM10g:{open:1}},tps:['M10:1','M10:2'],ex:'En ambos bornes de M10 se mide ≈ U de batería respecto a masa: el retorno a masa está abierto (cable marrón o punto de masa).'},
+ M9:{n:'Lámpara de freno M9 fundida',g:'freno',mod:{M9:{open:1}},tps:['M9:1','M9:2'],ex:'En el borne 54 de M9 hay tensión y su masa está a 0 V: el filamento está abierto.'}
+};
+const FGROUP={luz:'Alumbrado de faros',vent:'Electroventilador',freno:'Luces de freno'};
+
+/* ======================= CASOS «SIGUE LA CORRIENTE» ======================= */
+const SCEN=[
+ {id:'cruceR',t:'El faro derecho de luz de cruce no enciende (o apenas brilla); el izquierdo sí.',g:'luz',set:{D:1,E1:1,E4:'b',F:0,T:80},
+  ask:'Marque en orden el recorrido de la corriente del filamento de cruce del faro derecho, desde la línea de potencial hasta masa.',
+  path:['bus30','J1','S3','T3b','L2','T3b?','bus31'],faults:['S3','T3b1','L2b','L2g']},
+ {id:'cruceAll',t:'No enciende ninguna luz de cruce; la luz de carretera sí funciona.',g:'luz',set:{D:1,E1:1,E4:'b',F:0,T:80},
+  ask:'Como fallan los dos faros a la vez, la causa está en la parte común: el mando del relé J1. Marque en orden el recorrido de la corriente de mando de J1, desde la línea de potencial hasta masa.',
+  path:['busX','S1','E1','E4','J1','bus31'],faults:['J1c','J1k','wE4J1']},
+ {id:'carrL',t:'Con luz de carretera, el faro izquierdo no enciende (en cruce sí enciende).',g:'luz',set:{D:1,E1:1,E4:'a',F:0,T:80},
+  ask:'Marque en orden el recorrido de la corriente del filamento de carretera del faro izquierdo, desde la línea de potencial hasta masa.',
+  path:['bus30','J2','S4','T3a','L1','T3a?','bus31'],faults:['S4','L1a']},
+ {id:'vent',t:'Con el encendido conectado y el motor a 105 °C, el electroventilador no funciona.',g:'vent',set:{D:1,E1:0,E4:'b',F:0,T:105},
+  ask:'Marque en orden el recorrido de la corriente de potencia del electroventilador, desde la línea de potencial hasta masa.',
+  path:['bus30','S7','J3','T2c','V7','T2c?','bus31'],faults:['S7','S6','J3c','F18o','V7o']},
+ {id:'frenoAll',t:'Al pisar el pedal no enciende ninguna luz de freno.',g:'freno',set:{D:0,E1:0,E4:'b',F:1,T:80},
+  ask:'Marque en orden el recorrido de la corriente de una de las luces de freno, desde la línea de potencial hasta masa.',
+  path:['bus30','S8','F','M9|M10','bus31'],faults:['S8','Fo']},
+ {id:'frenoR',t:'Al frenar, la luz de freno derecha no enciende; la izquierda sí.',g:'freno',set:{D:0,E1:0,E4:'b',F:1,T:80},
+  ask:'Marque en orden el recorrido de la corriente de la luz de freno derecha, desde la línea de potencial hasta masa.',
+  path:['bus30','S8','F','M10','bus31'],faults:['M10','M10g']}
+];
+
+/* ======================= CONSUMIDORES ======================= */
+const CONS=[
+ {id:'L1b',n:'L1 · cruce izquierdo',Pn:55},{id:'L2b',n:'L2 · cruce derecho',Pn:55},
+ {id:'L1a',n:'L1 · carretera izquierdo',Pn:60},{id:'L2a',n:'L2 · carretera derecho',Pn:60},
+ {id:'V7',n:'V7 · electroventilador',Pn:192},{id:'M9',n:'M9 · freno izquierdo',Pn:21},{id:'M10',n:'M10 · freno derecho',Pn:21}
+];
+
+/* ======================= ESTADO ======================= */
+const DEF={Ub:12.6,T:80,D:1,E1:1,E4:'b',F:0};
+const ST={tab:'plano',click:'id',Ub:12.6,T:80,f18:false,D:1,E1:1,E4:'b',F:0,fault:'none',blown:new Set(),
+  sel:null,hl:new Set(),labels:true,colors:false,
+  meter:{mode:'V',place:'red',red:null,black:'bus31'},hidden:false,log:[],ex:null,quiz:null,events:[]};
+let SOL=null;
+function updF18(){if(ST.T>=F18_ON)ST.f18=true;else if(ST.T<=F18_OFF)ST.f18=false;}
+
+/* ======================= SOLUCIONADOR (MNA) ======================= */
+function gauss(A,b){
+  const n=b.length;
+  for(let c=0;c<n;c++){
+    let p=c;for(let r=c+1;r<n;r++)if(Math.abs(A[r][c])>Math.abs(A[p][c]))p=r;
+    [A[c],A[p]]=[A[p],A[c]];[b[c],b[p]]=[b[p],b[c]];
+    const d=A[c][c];if(Math.abs(d)<1e-300)continue;
+    for(let r=c+1;r<n;r++){const f=A[r][c]/d;if(f===0)continue;for(let k=c;k<n;k++)A[r][k]-=f*A[c][k];b[r]-=f*b[c];}
+  }
+  const x=new Float64Array(n);
+  for(let r=n-1;r>=0;r--){let s=b[r];for(let k=r+1;k<n;k++)s-=A[r][k]*x[k];x[r]=Math.abs(A[r][r])<1e-300?0:s/A[r][r];}
+  return x;
+}
+function mna(list,src){
+  const idx={};let n=0;const add=k=>{if(k!=='31'&&idx[k]===undefined)idx[k]=n++;};
+  list.forEach(x=>{add(x.n1);add(x.n2);});add(src.np);add(src.nn);
+  const m=n+1;const A=Array.from({length:m},()=>new Float64Array(m)),b=new Float64Array(m);
+  for(let i=0;i<n;i++)A[i][i]+=GMIN;
+  for(const x of list){const g=1/x.R,i=idx[x.n1],j=idx[x.n2];
+    if(i!==undefined)A[i][i]+=g;if(j!==undefined)A[j][j]+=g;if(i!==undefined&&j!==undefined){A[i][j]-=g;A[j][i]-=g;}}
+  const i=idx[src.np],j=idx[src.nn];A[i][n]+=1;A[n][i]+=1;A[j][n]-=1;A[n][j]-=1;b[n]=src.V;
+  const x=gauss(A,b);const V={'31':0};for(const k in idx)V[k]=x[idx[k]];
+  const I={};for(const e of list)I[e.id]=(V[e.n1]-V[e.n2])/e.R;
+  return {V,I,Is:x[n]};
+}
+function build(cfg,f,blown,rel){
+  const mod=f.mod||{},L=[];
+  for(const e of EL){
+    const m=mod[e.id]||{};
+    if(e.k==='bat')continue;
+    if(m.open)continue;
+    let R;
+    switch(e.k){
+      case 'w':R=wireR(e);break;
+      case 'fuse':if(blown.has(e.id))continue;R=0.08/e.a;break;
+      case 'sw':{let on=false;
+        if(e.id==='D15'||e.id==='DX')on=cfg.D===1;else if(e.id==='E1')on=cfg.E1===1;
+        else if(e.id==='E4b')on=cfg.E4==='b';else if(e.id==='E4a')on=cfg.E4==='a';else if(e.id==='F')on=cfg.F===1;
+        if(!on)continue;R=0.005;break;}
+      case 'relk':if(!rel[e.c])continue;R=0.004;break;
+      case 'coil':R=RCOIL;break;
+      case 'lamp':R=144/e.P;break;
+      case 'motor':R=0.75;break;
+      case 'pin':R=0.002;break;
+      case 'thermo':{let on=cfg.f18;if(f.f18==='open')on=false;if(f.f18==='stuck')on=true;if(!on)continue;R=0.005;break;}
+    }
+    if(m.R!==undefined)R=m.R;
+    L.push({id:e.id,n1:e.n1,n2:e.n2,R});
+  }
+  if(f.sc)L.push({id:'SC',n1:f.sc.n1,n2:f.sc.n2,R:0.02});
+  L.push({id:'RI',n1:'Bi',n2:'Ap',R:0.01});   // resistencia interna de la batería
+  return L;
+}
+function solve(cfg){
+  const f=FAULTS[cfg.fault]||FAULTS.none,mod=f.mod||{};
+  const blown=new Set(cfg.blown||[]);
+  const rel={J1:false,J2:false,J3:false},coil={};
+  let r=null;
+  for(let o=0;o<5;o++){
+    for(let it=0;it<12;it++){
+      r=mna(build(cfg,f,blown,rel),{np:'Bi',nn:'An',V:cfg.Ub});
+      let ch=false;
+      for(const j of ['J1','J2','J3']){
+        const c=byId[j+'c'],k=mod[j+'k']||{};
+        const vc=(r.V[c.n1]??0)-(r.V[c.n2]??0);
+        coil[j]=(mod[j+'c']||{}).open?false:(rel[j]?vc>DROP_OUT:vc>PULL_IN);
+        const s=k.stuck?true:k.burnt?false:coil[j];
+        if(s!==rel[j]){rel[j]=s;ch=true;}
+      }
+      if(!ch)break;
+    }
+    let nb=false;
+    for(const e of EL)if(e.k==='fuse'&&!blown.has(e.id)&&Math.abs(r.I[e.id]||0)>2*e.a){blown.add(e.id);nb=true;}
+    if(!nb)break;
+  }
+  const V=n=>r.V[n]??0;
+  return {V,I:r.I,rel,coil,blown,It:-r.Is};
+}
+function cfgNow(){return {Ub:ST.Ub,D:ST.D,E1:ST.E1,E4:ST.E4,F:ST.F,f18:ST.f18,fault:ST.fault,blown:ST.blown};}
+function compute(){
+  const before=new Set(ST.blown);
+  SOL=solve(cfgNow());
+  for(const b of SOL.blown)if(!before.has(b)){ST.blown.add(b);if(!ST.hidden)ST.events.unshift(['e',`Fusible ${b} fundido por sobrecorriente (${nf(byId[b].a,0)} A). Elimine la causa antes de reponerlo con «Reponer fusibles».`]);}
+  ST.events=ST.events.slice(0,3);
+}
+function consP(id,S){const e=byId[id];const I=S.I[id]||0;return Math.abs((S.V(e.n1)-S.V(e.n2))*I);}
+
+/* ======================= PUNTOS DE PRUEBA ======================= */
+const TPS={};
+(function(){
+  const add=(x,y,n,l,prio)=>{const k=x+','+y;if(!TPS[k]||TPS[k].prio<prio)TPS[k]={id:k,x,y,n,l,prio};};
+  for(const e of EL){
+    if(e.k==='w'){
+      if(!BUSN(e.n1))add(e.p1[0],e.p1[1],e.n1,e.fr,1);
+      if(!BUSN(e.n2))add(e.p2[0],e.p2[1],e.n2,e.to,1);
+    }else if(e.k!=='bat'||true){
+      if(e.id==='DX'||e.id==='D15'){add(e.p2[0],e.p2[1],e.n2,e.tl2,2);add(e.p1[0],e.p1[1],e.n1,e.tl1,2);continue;}
+      add(e.p1[0],e.p1[1],e.n1,e.tl1,2);add(e.p2[0],e.p2[1],e.n2,e.tl2,2);
+    }
+  }
+  TPS['418,440'].l='Distribución interna 56b (salida J1/87)';
+  TPS['462,420'].l='Distribución interna 56a (salida J2/87)';
+  TPS['682,330'].l='Empalme A3 (borne 54)';
+  TPS.bus30={id:'bus30',x:748,y:Y30,n:'30',l:'Línea 30'};
+  TPS.bus15={id:'bus15',x:748,y:Y15,n:'15',l:'Línea 15'};
+  TPS.busX={id:'busX',x:748,y:YX,n:'X',l:'Línea X'};
+  TPS.bus31={id:'bus31',x:748,y:Y31,n:'31',l:'Masa (31)'};
+})();
+function BUSN(n){return n==='30'||n==='15'||n==='X'||n==='31';}
+function ref(r){const [id,k]=r.split(':');const e=byId[id];return k==='1'?{n:e.n1,l:e.tl1}:{n:e.n2,l:e.tl2};}
+
+/* ======================= DIBUJO DEL PLANO ======================= */
+const svg=$('plano');
+let flows=[],rotorEl=null,rotSpeed=0,rotAng=0;
+const FUSECOL={5:'#d9bf8c',10:'#e53935',15:'#1e88e5',20:'#fdd835',30:'#43a047'};
+function P(pts){return pts.map(p=>p[0]+','+p[1]).join(' ');}
+function speedOf(I){return 10+18*Math.log10(1+Math.abs(I)*20);}
+function t(x,y,txt,cls,extra){return `<text class="${cls}" x="${x}" y="${y}" ${extra||''}>${txt}</text>`;}
+function term(x,y,txt,anchor){return `<text class="tl" data-term="${txt}" x="${x}" y="${y}" ${anchor?`text-anchor="${anchor}"`:''}>${txt}</text>`;}
+function hlState(){
+  const els=new Set(),comps=new Set();
+  if(ST.sel){
+    if(ST.sel.t==='w'){els.add(ST.sel.id);}
+    else if(BUS[ST.sel.id]){els.add(ST.sel.id);comps.add(ST.sel.id);}
+    else{
+      const mine=EL.filter(e=>e.c===ST.sel.id).map(e=>e.id);
+      for(const p of PATHS)if(p.els.some(x=>mine.includes(x)))p.els.forEach(x=>els.add(x));
+      if(!els.size)mine.forEach(x=>els.add(x));
+    }
+  }
+  if(ST.hl.size)ST.hl.forEach(x=>els.add(x));
+  for(const x of els){if(BUS[x])comps.add(x);else if(byId[x])comps.add(byId[x].c);}
+  return {els,comps,on:els.size>0};
+}
+function isOn(id){const e=byId[id];if(!SOL)return false;return Math.abs(SOL.I[id]||0)>0.02;}
+function drawPlano(){
+  const H=hlState();
+  const vis=ST.showFault!==false&&!ST.hidden;
+  const fmod=(FAULTS[ST.fault]||{}).mod||{};
+  let s='';
+  s+=`<rect x="30" y="28" width="732" height="126" rx="6" class="band"/>`;
+  s+=t(484,104,'Caja de fusibles y relés (portafusibles)','bandl','text-anchor="middle"');
+  for(let k=1;k<=16;k++){const x=TX(k);s+=`<line class="trk" x1="${x-22}" y1="610" x2="${x-22}" y2="636"/>`+t(x,627,k,'trkn');}
+  s+=`<line class="trk" x1="${TX(16)+22}" y1="610" x2="${TX(16)+22}" y2="636"/>`;
+  // líneas de potencial
+  for(const b in BUS){const y=BUS[b].y,dim=H.on&&!H.els.has(b)?' dim':'',sel=ST.sel&&ST.sel.id===b?' sel':'';
+    s+=`<g class="cmp${dim}${sel}${H.els.has(b)?' hl':''}" data-c="${b}">${H.els.has(b)?`<line class="hlu" x1="36" y1="${y}" x2="756" y2="${y}"/>`:''}<line class="bus" x1="36" y1="${y}" x2="756" y2="${y}"/><line class="hit" x1="36" y1="${y}" x2="756" y2="${y}"/>
+      <text class="busl" data-term="${BUS[b].n}" x="14" y="${y+4}">${BUS[b].n}</text><text class="busl" data-term="${BUS[b].n}" x="772" y="${y+4}">${BUS[b].n}</text></g>`;}
+  // cables
+  flows=[];
+  for(const e of EL.filter(e=>e.k==='w')){
+    const dim=H.on&&!H.els.has(e.id)?' dim':'',sel=ST.sel&&ST.sel.id===e.id?' sel':'';
+    const cut=vis&&fmod[e.id]&&fmod[e.id].open;
+    let g=`<g class="wg${dim}${sel}" data-w="${e.id}">`;
+    g+=`<polyline class="wh" points="${P(e.pts)}"/>`;
+    if(H.els.has(e.id))g+=`<polyline class="hlu" points="${P(e.pts)}"/>`;
+    if(ST.colors&&!e.int){const [b,tr]=e.col.split('/');
+      g+=`<polyline class="wo" points="${P(e.pts)}"/><polyline class="wc" style="stroke:${COLS[b][1]}" points="${P(e.pts)}"/>`;
+      if(tr)g+=`<polyline class="wc" style="stroke:${COLS[tr][1]};stroke-dasharray:5 6" points="${P(e.pts)}"/>`;}
+    else g+=`<polyline class="wl${e.int?' int':''}" points="${P(e.pts)}"/>`;
+    if(cut){const [x1,y1]=e.pts[e.pts.length-2],[x2,y2]=e.pts[e.pts.length-1];const mx=(x1+x2)/2,my=(y1+y2)/2;
+      g+=`<rect x="${mx-5}" y="${my-5}" width="10" height="10" fill="#fbfcfe"/><line x1="${mx-6}" y1="${my-4}" x2="${mx+6}" y2="${my-8}" stroke="#c62828" stroke-width="2"/><line x1="${mx-6}" y1="${my+8}" x2="${mx+6}" y2="${my+4}" stroke="#c62828" stroke-width="2"/>`;}
+    if(vis&&fmod[e.id]&&fmod[e.id].R!==undefined){const [x1,y1]=e.pts[0],[x2,y2]=e.pts[1];g+=`<circle cx="${(x1+x2)/2}" cy="${(y1+y2)/2}" r="6" fill="none" stroke="#c62828" stroke-width="2" stroke-dasharray="3 2"/>`;}
+    const I=SOL.I[e.id]||0;
+    if(Math.abs(I)>0.02){const pts=I>0?e.pts:[...e.pts].reverse();g+=`<polyline class="flow" data-sp="${speedOf(I).toFixed(1)}" points="${P(pts)}"/>`;}
+    g+=`<polyline class="hit" points="${P(e.pts)}"/>`;
+    if(ST.labels&&!e.int)g+=wlabel(e);
+    g+='</g>';s+=g;
+  }
+  if(vis&&(FAULTS[ST.fault]||{}).sc){s+=`<g><line x1="550" y1="502" x2="566" y2="502" stroke="#c62828" stroke-width="2" stroke-dasharray="3 2"/><text x="569" y="505" font-size="8.5" fill="#c62828">corto a masa</text></g>`;}
+  // componentes
+  for(const c in COMP){if(BUS[c])continue;
+    const dim=H.on&&!H.comps.has(c)?' dim':'',hl=H.comps.has(c)?' hl':'',sel=ST.sel&&ST.sel.id===c?' sel':'';
+    s+=`<g class="cmp${dim}${hl}${sel}${COMP[c].sw?' clk':''}" data-c="${c}">${drawComp(c,vis,fmod)}</g>`;}
+  // puntos de unión
+  const dots=[[66,Y30],[110,Y30],[198,Y30],[374,Y30],[594,Y30],[682,Y30],[140,Y15],[638,Y15],[164,YX],[286,YX],
+    [66,Y31],[242,Y31],[330,Y31],[440,Y31],[528,Y31],[594,Y31],[638,Y31],[682,Y31],[726,Y31],[418,440],[462,420],[682,330]];
+  s+=dots.map(d=>`<circle class="dot" cx="${d[0]}" cy="${d[1]}" r="3.3"/>`).join('');
+  s+=t(686,344,'A3','cl2');
+  // puntos de prueba
+  if(ST.click==='med'&&ST.meter.mode!=='OFF'){
+    for(const k in TPS){const p=TPS[k];s+=`<g class="tp" data-tp="${k}"><title>${p.l}</title><circle cx="${p.x}" cy="${p.y}" r="9" fill="transparent"/><circle class="v" cx="${p.x}" cy="${p.y}" r="3.6"/></g>`;}
+  }
+  // puntas
+  if(ST.meter.mode!=='OFF'){
+    const pr=(k,col,txt,dy)=>{const p=TPS[k];if(!p)return '';return `<g pointer-events="none"><circle cx="${p.x}" cy="${p.y}" r="8" fill="none" stroke="${col}" stroke-width="3"/><rect x="${p.x-(p.x>700?44:-6)}" y="${p.y+dy-8}" width="36" height="14" rx="3" fill="${col}"/><text x="${p.x-(p.x>700?40:-10)}" y="${p.y+dy+3}" fill="#fff" font-size="9" font-weight="700">${txt}</text></g>`;};
+    s+=pr(ST.meter.black,'#111','COM',ST.meter.red===ST.meter.black?16:12);
+    s+=pr(ST.meter.red,'#e53935','V+',-12);
+  }
+  svg.innerHTML=s;
+  flows=[...svg.querySelectorAll('polyline.flow')].map(p=>({p,sp:+p.dataset.sp,o:0}));
+  rotorEl=svg.querySelector('#rotor');
+  const pv=consP('V7',SOL);rotSpeed=pv>5?360*Math.sqrt(pv/192)*1.4:0;
+  if(ST.flashTerm){svg.querySelectorAll(`[data-term="${ST.flashTerm}"]`).forEach(el=>{el.style.fill='#e07b00';el.style.fontSize=el.classList.contains('busl')?'15px':'11px';});}
+}
+function wlabel(e){
+  // etiqueta en el tramo vertical más largo (por debajo de la banda superior)
+  let best=null,bl=0;
+  for(let i=0;i<e.pts.length-1;i++){const [x1,y1]=e.pts[i],[x2,y2]=e.pts[i+1];
+    if(x1===x2){const a=Math.max(Math.min(y1,y2),156),b=Math.max(y1,y2);const L=b-a;if(L>bl){bl=L;best=[x1,(a+b)/2];}}}
+  if(!best||bl<46)return '';
+  const txt=`${e.col} ${nf(e.sec,e.sec<10?1:0)}`;
+  const [x,y]=best;
+  return `<text class="wlab" transform="translate(${e.lr?x+10:x-4} ${y}) rotate(-90)" text-anchor="middle">${txt}</text>`;
+}
+function fuseSym(e,vis){
+  const [x,y1]=e.p1,[,y2]=e.p2,cy=(y1+y2)/2,bl=ST.blown.has(e.id)||(((FAULTS[ST.fault]||{}).mod||{})[e.id]||{}).open;
+  const showB=bl&&(vis||ST.blown.has(e.id)&&!ST.hidden);
+  let g=`<rect class="hitr" x="${x-10}" y="${y1}" width="20" height="${y2-y1}"/><line class="sn" x1="${x}" y1="${y1}" x2="${x}" y2="${cy-11}"/><line class="sn" x1="${x}" y1="${cy+11}" x2="${x}" y2="${y2}"/>`;
+  g+=`<rect class="sy" x="${x-6}" y="${cy-11}" width="12" height="22" rx="2" style="fill:${FUSECOL[e.a]};fill-opacity:.55"/>`;
+  g+=showB?`<polyline points="${x},${cy-11} ${x},${cy-4} ${x+3},${cy-1}" fill="none" stroke="#c62828" stroke-width="2"/><polyline points="${x-3},${cy+1} ${x},${cy+4} ${x},${cy+11}" fill="none" stroke="#c62828" stroke-width="2"/>`
+    :`<line class="sn" x1="${x}" y1="${cy-11}" x2="${x}" y2="${cy+11}"/>`;
+  g+=t(x+9,cy-2,e.id,'cl')+t(x+9,cy+9,nf(e.a,0)+' A'+(showB?' ✕':''),'cl2');
+  return g;
+}
+function swSym(x,y1,y2,on,act){
+  const a=y1+9,b=y2-9;
+  let g=`<line class="sn" x1="${x}" y1="${y1}" x2="${x}" y2="${a}"/><line class="sn" x1="${x}" y1="${b}" x2="${x}" y2="${y2}"/>`;
+  g+=`<line class="sn" x1="${x-4}" y1="${a}" x2="${x}" y2="${a}"/>`;
+  g+=`<circle cx="${x}" cy="${b}" r="2.2" fill="#2b3440"/>`;
+  g+=on?`<line class="sn" x1="${x}" y1="${b}" x2="${x-1}" y2="${a+1}" style="stroke-width:2.4"/>`:`<line class="sn" x1="${x}" y1="${b}" x2="${x+11}" y2="${a+2}" style="stroke-width:2.4"/>`;
+  const mx=on?x-0.5:x+5.5,my=(a+b)/2+ (on?0:1);
+  if(act==='man')g+=`<line class="mech" x1="${mx}" y1="${my}" x2="${x-14}" y2="${my}"/><line class="sn" x1="${x-14}" y1="${my-5}" x2="${x-14}" y2="${my+5}"/>`;
+  if(act==='mec')g+=`<line class="mech" x1="${mx}" y1="${my}" x2="${x-14}" y2="${my}"/><path class="sn" d="M${x-14} ${my-5} L${x-19} ${my} L${x-14} ${my+5}"/>`;
+  if(act==='temp')g+=`<line class="mech" x1="${mx}" y1="${my}" x2="${x-13}" y2="${my}"/><rect class="sy" x="${x-25}" y="${my-6}" width="12" height="12"/><text x="${x-19}" y="${my+4}" font-size="9" text-anchor="middle" fill="#2b3440">ϑ</text>`;
+  return g;
+}
+function lampGlow(cx,cy,p,r){return p>0.02?`<circle cx="${cx}" cy="${cy}" r="${r}" fill="#ffd54f" opacity="${Math.min(.55,p*0.5).toFixed(2)}"/>`:'';}
+function drawComp(c,vis,fmod){
+  const S=SOL;let g='';
+  const rel=(j,xk,xc)=>{
+    const k=byId[j+'k'],co=byId[j+'c'],on=S.rel[j],coilOn=S.coil[j]&&!(fmod[j+'c']||{}).open;
+    const x0=Math.min(xk,xc)-20,x1=Math.max(xk,xc)+20;
+    let h=`<rect class="hitr" x="${x0}" y="298" width="${x1-x0}" height="96"/><rect class="relbox" x="${x0}" y="298" width="${x1-x0}" height="96" rx="4"/>`;
+    h+=`<line class="sn" x1="${xc}" y1="306" x2="${xc}" y2="331"/><line class="sn" x1="${xc}" y1="361" x2="${xc}" y2="386"/>`;
+    h+=`<rect class="sy" x="${xc-7}" y="331" width="14" height="30" style="fill:${coilOn?'#ffe0b2':'#fff'}"/>`;
+    if(vis&&(fmod[j+'c']||{}).open)h+=`<line x1="${xc-9}" y1="340" x2="${xc+9}" y2="352" stroke="#c62828" stroke-width="2"/>`;
+    h+=swSym(xk,306,386,on,null);
+    const bx=on?xk-0.5:xk+5.5;const dir=xc>xk?1:-1;
+    h+=`<line class="mech" x1="${xc-7*dir}" y1="346" x2="${bx}" y2="346"/>`;
+    if(vis&&(fmod[j+'k']||{}).burnt)h+=`<text x="${xk+(dir>0?-6:6)}" y="340" font-size="10" fill="#c62828" text-anchor="middle">✕</text>`;
+    const ka=dir>0?'end':null,kx=dir>0?xk-4:xk+4,ca=dir>0?null:'end',cx2=dir>0?xc+4:xc-4;
+    h+=term(kx,318,'30',ka)+term(kx,384,'87',ka)+term(cx2,318,'86',ca)+term(cx2,384,'85',ca);
+    h+=t(x1-2,407,j,'cl','text-anchor="end"');
+    return h;
+  };
+  switch(c){
+    case 'A':{const x=66;
+      g=`<rect class="hitr" x="48" y="306" width="40" height="48"/><line class="sn" x1="${x}" y1="312" x2="${x}" y2="322"/><line class="sn" x1="${x}" y1="340" x2="${x}" y2="348"/>
+        <line class="sn" x1="${x-12}" y1="322" x2="${x+12}" y2="322"/><line class="sn" x1="${x-6}" y1="328" x2="${x+6}" y2="328" style="stroke-width:4"/>
+        <line class="sn" x1="${x-12}" y1="334" x2="${x+12}" y2="334"/><line class="sn" x1="${x-6}" y1="340" x2="${x+6}" y2="340" style="stroke-width:4"/>`;
+      g+=t(x-20,320,'+','cl')+t(x-20,346,'−','cl')+t(x+16,326,'A','cl')+t(x+16,338,nf(ST.Ub,1)+' V','cl2');break;}
+    case 'D':{const on=ST.D===1;
+      g=`<rect class="hitr" x="94" y="104" width="82" height="48"/><rect class="sy" x="94" y="106" width="82" height="44" rx="4" style="fill:#fff"/>`;
+      g+=`<line class="sn" x1="110" y1="106" x2="110" y2="138"/><line class="sn" x1="140" y1="106" x2="140" y2="122"/><line class="sn" x1="164" y1="106" x2="164" y2="122"/><line class="sn" x1="134" y1="122" x2="170" y2="122"/>`;
+      g+=`<circle cx="110" cy="138" r="2.2" fill="#2b3440"/>`+(on?`<line class="sn" x1="110" y1="138" x2="160" y2="123" style="stroke-width:2.4"/>`:`<line class="sn" x1="110" y1="138" x2="156" y2="140" style="stroke-width:2.4"/>`);
+      g+=term(113,116,'30')+term(143,116,'15')+term(167,116,'X');
+      g+=t(98,147,'D','cl')+t(172,147,on?'pos. I':'pos. 0','cl2','text-anchor="end"');break;}
+    case 'E1':{const e=byId.E1;g=`<rect class="hitr" x="266" y="170" width="36" height="36"/>`+swSym(286,e.p1[1],e.p2[1],ST.E1===1,'man');
+      g+=t(270,186,'E1','cl','text-anchor="end"')+term(290,181,'X')+term(290,203,'56');break;}
+    case 'E4':{const b=ST.E4==='b';
+      g=`<rect class="hitr" x="252" y="222" width="68" height="50"/><line class="sn" x1="286" y1="226" x2="286" y2="236"/><circle cx="286" cy="236" r="2.2" fill="#2b3440"/>`;
+      g+=`<line class="sn" x1="268" y1="270" x2="268" y2="258"/><line class="sn" x1="304" y1="270" x2="304" y2="258"/><line class="sn" x1="264" y1="258" x2="272" y2="258"/><line class="sn" x1="300" y1="258" x2="308" y2="258"/>`;
+      g+=`<line class="sn" x1="286" y1="236" x2="${b?269:303}" y2="257" style="stroke-width:2.4"/>`;
+      g+=`<line class="mech" x1="${b?279:293}" y1="245" x2="${b?293:279}" y2="245"/>`;
+      g+=term(290,234,'56')+term(265,268,'56b','end')+term(308,268,'56a');
+      g+=t(262,246,'E4','cl','text-anchor="end"');break;}
+    case 'J1':g=rel('J1',198,242);break;
+    case 'J2':g=rel('J2',374,330);break;
+    case 'J3':g=rel('J3',594,638);break;
+    case 'S1':case 'S2':case 'S3':case 'S4':case 'S5':case 'S6':case 'S7':case 'S8':g=fuseSym(byId[c],vis);break;
+    case 'F':{const e=byId.F;const on=ST.F===1&&!(fmod.F||{}).open;
+      g=`<rect class="hitr" x="662" y="232" width="40" height="44"/>`+swSym(682,e.p1[1],e.p2[1],on,'mec');
+      if(vis&&(fmod.F||{}).open)g+=`<text x="700" y="247" font-size="9" fill="#c62828">desajustado</text>`;
+      g+=t(692,250,'F','cl')+term(686,284,'54')+t(692,262,ST.F?'pedal pisado':'pedal suelto','cl2');break;}
+    case 'F18':{const e=byId.F18;const f=FAULTS[ST.fault]||{};let on=ST.f18;if(f.f18==='open')on=false;if(f.f18==='stuck')on=true;
+      g=`<rect class="hitr" x="612" y="456" width="36" height="46"/>`+swSym(638,e.p1[1],e.p2[1],on,'temp');
+      g+=t(648,474,'F18','cl')+t(648,486,nf(ST.T,0)+' °C','cl2');
+      if(vis&&f.f18)g+=t(648,498,f.f18==='open'?'no cierra':'pegado','cl2','style="fill:#c62828"');break;}
+    case 'L1':case 'L2':{const xl=c==='L1'?418:506,xr=xl+44,cx=xl+22,cy=552;
+      const pb=consP(c+'b',S)/55,pa=consP(c+'a',S)/60;
+      const ob=vis&&(fmod[c+'b']||{}).open,oa=vis&&(fmod[c+'a']||{}).open;
+      g=`<rect class="hitr" x="${xl-6}" y="522" width="56" height="50"/>`+lampGlow(cx,cy,Math.max(pb,pa),30);
+      g+=`<line class="sn" x1="${xl}" y1="522" x2="${xl}" y2="${cy}"/><line class="sn" x1="${xl}" y1="${cy}" x2="${cx-16}" y2="${cy}"/>`;
+      g+=`<line class="sn" x1="${xr}" y1="522" x2="${xr}" y2="${cy}"/><line class="sn" x1="${xr}" y1="${cy}" x2="${cx+16}" y2="${cy}"/>`;
+      g+=`<circle class="sy" cx="${cx}" cy="${cy}" r="16" style="fill:${pb>0.05||pa>0.05?'#fff8d6':'#fff'}"/>`;
+      const fil=(x1,on,brk)=>brk?`<polyline points="${x1},${cy} ${(x1+cx)/2},${cy+4}" fill="none" stroke="#c62828" stroke-width="2"/><polyline points="${(x1+cx)/2+2},${cy+8} ${cx},${cy+10}" fill="none" stroke="#c62828" stroke-width="2"/>`
+        :`<polyline points="${x1},${cy} ${(x1+cx)/2},${cy-5} ${(x1+cx)/2+2},${cy+7} ${cx},${cy+10}" fill="none" stroke="${on>0.05?'#ff8f00':'#2b3440'}" stroke-width="${on>0.05?2.4:1.6}"/>`;
+      g+=fil(cx-16,pb,ob)+fil(cx+16,pa,oa);
+      g+=`<line class="sn" x1="${cx}" y1="${cy+10}" x2="${cx}" y2="572"/>`;
+      g+=term(xl-3,536,'56b','end')+term(xr+3,536,'56a');
+      if(c==='L1')g+=t(xl-6,558,'L1','cl','text-anchor="end"')+t(xl-6,569,'55/60 W','cl2','text-anchor="end"');
+      else g+=t(xr+6,558,'L2','cl')+t(xr+6,569,'55/60 W','cl2');
+      break;}
+    case 'T3a':case 'T3b':case 'T2c':{
+      for(const e of EL.filter(e=>e.c===c)){const [x,y1]=e.p1,[,y2]=e.p2;const o=vis&&(fmod[e.id]||{}).open,rr=vis&&(fmod[e.id]||{}).R!==undefined;
+        g+=`<rect class="hitr" x="${x-7}" y="${y1-2}" width="30" height="${y2-y1+4}"/><rect class="sy" x="${x-5}" y="${y1}" width="10" height="${y2-y1}" rx="1.5" style="fill:#e8eef6${o||rr?';stroke:#c62828':''}"/>`;
+        g+=o?`<line x1="${x}" y1="${y1}" x2="${x}" y2="${y1+4}" stroke="#2b3440" stroke-width="1.6"/><line x1="${x}" y1="${y2-4}" x2="${x}" y2="${y2}" stroke="#2b3440" stroke-width="1.6"/>`:`<line class="sn" x1="${x}" y1="${y1}" x2="${x}" y2="${y2}"/>`;
+        g+=`<text class="cl2" x="${x+7}" y="${(y1+y2)/2+3}" style="font-size:8px">${e.pl}</text>`;}
+      break;}
+    case 'V7':{const cx=594,cy=494;const p=consP('V7',S)/192;
+      const o=vis&&(fmod.V7||{}).open;
+      g=`<rect class="hitr" x="574" y="458" width="40" height="72"/><line class="sn" x1="${cx}" y1="458" x2="${cx}" y2="478"/><line class="sn" x1="${cx}" y1="510" x2="${cx}" y2="530"/>`;
+      g+=`<g id="rotor" transform="rotate(${rotAng.toFixed(1)} ${cx} ${cy})"><path d="M${cx} ${cy-21} a21 21 0 0 1 18 10" fill="none" stroke="${p>0.05?'#1f5a94':'#c3cad4'}" stroke-width="2.2"/><path d="M${cx} ${cy+21} a21 21 0 0 1 -18 -10" fill="none" stroke="${p>0.05?'#1f5a94':'#c3cad4'}" stroke-width="2.2"/></g>`;
+      g+=`<circle class="sy" cx="${cx}" cy="${cy}" r="16" style="${o?'stroke:#c62828':''}"/><text x="${cx}" y="${cy+5}" text-anchor="middle" font-size="14" font-weight="700" fill="#2b3440">M</text>`;
+      g+=t(584,541,'V7','cl','text-anchor="end"');break;}
+    case 'M9':case 'M10':{const e=byId[c];const [x,y1]=e.p1,[,y2]=e.p2,cy=(y1+y2)/2;const p=consP(c,S)/21;const o=vis&&(fmod[c]||{}).open;
+      g=`<rect class="hitr" x="${x-14}" y="${y1}" width="28" height="${y2-y1}"/>`+lampGlow(x,cy,p,22);
+      g+=`<line class="sn" x1="${x}" y1="${y1}" x2="${x}" y2="${cy-11}"/><line class="sn" x1="${x}" y1="${cy+11}" x2="${x}" y2="${y2}"/>`;
+      g+=`<circle class="sy" cx="${x}" cy="${cy}" r="11" style="fill:${p>0.05?'#ffcdd2':'#fff'}"/>`;
+      g+=o?`<line x1="${x-7.8}" y1="${cy-7.8}" x2="${x-2}" y2="${cy-2}" stroke="#c62828" stroke-width="2"/><line x1="${x+2}" y1="${cy+2}" x2="${x+7.8}" y2="${cy+7.8}" stroke="#c62828" stroke-width="2"/><line x1="${x-7.8}" y1="${cy+7.8}" x2="${x+7.8}" y2="${cy-7.8}" stroke="#c62828" stroke-width="2"/>`
+        :`<line class="sn" x1="${x-7.8}" y1="${cy-7.8}" x2="${x+7.8}" y2="${cy+7.8}"/><line class="sn" x1="${x-7.8}" y1="${cy+7.8}" x2="${x+7.8}" y2="${cy-7.8}"/>`;
+      if(c==='M9')g+=t(x-15,cy+1,'M9','cl','text-anchor="end"')+t(x-15,cy+12,'21 W','cl2','text-anchor="end"');
+      else g+=t(x+15,cy+1,'M10','cl')+t(x+15,cy+12,'21 W','cl2');
+      break;}
+  }
+  return g;
+}
+
+/* animación */
+let last=performance.now();
+function tick(ts){const dt=Math.min(0.05,(ts-last)/1000);last=ts;
+  for(const f of flows){f.o=(f.o-f.sp*dt)%1000;f.p.style.strokeDashoffset=f.o;}
+  if(rotorEl&&rotSpeed>0){rotAng=(rotAng+rotSpeed*dt)%360;rotorEl.setAttribute('transform',`rotate(${rotAng.toFixed(1)} 594 494)`);}
+  requestAnimationFrame(tick);}
+requestAnimationFrame(tick);
+
+/* ======================= MULTÍMETRO ======================= */
+function meter(){
+  const m=ST.meter;
+  if(m.mode==='OFF')return {v:'',u:'',note:'Instrumento apagado.'};
+  if(ST.ex&&ST.ex.step===1)return {v:'LOCK',u:'',note:'Primero complete el recorrido de la corriente (paso 1).'};
+  if(!m.red||!m.black)return {v:'- - -',u:'V',note:'Pulse «Medir», elija la punta y haga clic en un punto de prueba del plano. La punta negra está en masa (31).'};
+  const v=SOL.V(TPS[m.red].n)-SOL.V(TPS[m.black].n);
+  let note='';
+  if(v<-0.005)note='Lectura negativa: la punta roja está en un punto de menor potencial que la negra.';
+  else if(m.black==='bus31'&&Math.abs(v)<0.05)note='≈ 0 V respecto a masa: el punto no recibe tensión o está conectado a masa.';
+  else if(m.black!=='bus31'&&TPS[m.black].n!=='31')note='Medición entre dos puntos: si ambos pertenecen al mismo tramo, la lectura es la caída de tensión en ese tramo.';
+  return {v:nf(v,2),u:'V',raw:v,note};
+}
+function updateMeter(){
+  const m=meter();
+  $('lcdVal').textContent=m.v;$('lcdUnit').textContent=m.u;$('lcdFn').textContent=ST.meter.mode==='V'?'V⎓':'';
+  $('mnote').textContent=m.note||'';
+  document.querySelectorAll('#modes button').forEach(b=>b.classList.toggle('on',b.dataset.m===ST.meter.mode));
+  $('pRed').classList.toggle('on',ST.meter.place==='red');$('pBlk').classList.toggle('on',ST.meter.place==='black');
+  const r=ST.meter.red?TPS[ST.meter.red].l:'—',b=ST.meter.black?TPS[ST.meter.black].l:'—';
+  $('mstat').textContent=ST.meter.mode==='OFF'?'':`Punta roja: ${r} · Punta negra (COM): ${b}`;
+  return m;
+}
+
+/* ======================= INFORMACIÓN DEL ELEMENTO ======================= */
+function fmtI(i){const a=Math.abs(i);return a<1?nf(a*1000,0)+' mA':nf(a,2)+' A';}
+function infoWire(e){
+  const I=SOL.I[e.id]||0,dU=Math.abs(SOL.V(e.n1)-SOL.V(e.n2));
+  if(e.int)return `<h4>Conexión interna</h4><p>${e.fr} → ${e.to}</p><p>Pista o puente interno de la caja de fusibles y relés (trazo fino en el plano); no es un cable del mazo y no lleva designación de color.</p><p>Corriente: <b>${fmtI(I)}</b></p>`;
+  const [b,tr]=e.col.split('/');
+  const sw=`<span class="swatch" style="background:${COLS[b][1]}${tr?`;background-image:repeating-linear-gradient(90deg,transparent 0 6px,${COLS[tr][1]} 6px 10px)`:''}"></span>`;
+  let h=`<h4>Cable ${e.col} ${nf(e.sec,e.sec<10?1:0)}</h4>`;
+  h+=`<p>${sw}<b>${capit(decodeCol(e.col))}</b>; sección <b>${nf(e.sec,e.sec<10?1:0)} mm²</b>.</p>`;
+  h+=`<p>Origen: <b>${e.fr}</b><br>Destino: <b>${e.to}</b></p>`;
+  h+=`<p>Longitud estimada ${nf(e.len,1)} m · R = ρ·L/A = ${nf(wireR(e)*1000,1)} mΩ · I = <b>${fmtI(I)}</b> · caída de tensión <b>${nf(dU,3)} V</b>${ST.hidden?'':(ST.fault&&(((FAULTS[ST.fault].mod||{})[e.id])||{}).open?' <span class="st-e">(cable cortado)</span>':'')}</p>`;
+  h+=`<p class="muted">Abreviaturas VW (alemán): ${b} = ${COLS[b][2]}${tr?`, ${tr} = ${COLS[tr][2]}`:''}. El primer color es el base y el segundo la traza. La abreviatura varía según el fabricante: IEC 60757 ${COLS[b][3]}${tr?'/'+COLS[tr][3]:''} · BMW y Mercedes usan abreviaturas alemanas en mayúsculas (RT, SW, BR, GE…) · japoneses/coreanos ${COLS[b][4]}${tr?'-'+COLS[tr][4]:''}.</p>`;
+  return h;
+}
+function compState(c){
+  const S=SOL,v=n=>nf(S.V(n),2);
+  switch(c){
+    case 'A':return `Tensión en bornes: <b>${nf(S.V('Ap')-S.V('An'),2)} V</b> · corriente entregada: <b>${fmtI(S.It)}</b>`;
+    case 'D':return `Posición: <b>${ST.D?'I (contacto): 30 unido con 15 y X':'0 (desconectado)'}</b>`;
+    case 'E1':return `Estado: <b>${ST.E1?'conectado (X → 56)':'apagado'}</b> · corriente de mando ${fmtI(S.I.E1||0)}`;
+    case 'E4':return `Posición: <b>${ST.E4==='b'?'cruce (56 → 56b)':'carretera (56 → 56a)'}</b>`;
+    case 'F':return `Pedal: <b>${ST.F?'pisado':'suelto'}</b> · salida 54: ${v('fb')} V`;
+    case 'F18':return `Temperatura: <b>${nf(ST.T,0)} °C</b> · contacto <b>${isClosedF18()?'cerrado':'abierto'}</b>`;
+    case 'J1':case 'J2':case 'J3':{const co=byId[c+'c'];const vc=S.V(co.n1)-S.V(co.n2);
+      return `Bobina 86–85: <b>${nf(vc,2)} V</b> (${fmtI(S.I[c+'c']||0)}) · contacto 30/87: <b>${S.rel[c]?'cerrado':'abierto'}</b> · corriente de contacto ${fmtI(S.I[c+'k']||0)}`;}
+    case 'L1':case 'L2':return `Cruce (56b): ${nf(consP(c+'b',S),1)} W · Carretera (56a): ${nf(consP(c+'a',S),1)} W`;
+    case 'V7':return `Tensión en el motor: <b>${nf(S.V('v7p')-S.V('v7n'),2)} V</b> · corriente ${fmtI(S.I.V7||0)} · potencia ${nf(consP('V7',S),0)} W`;
+    case 'M9':case 'M10':return `Tensión: <b>${nf(S.V(byId[c].n1)-S.V(byId[c].n2),2)} V</b> · potencia ${nf(consP(c,S),1)} W`;
+    default:if(byId[c]&&byId[c].k==='fuse')return `Corriente: <b>${fmtI(S.I[c]||0)}</b> de ${nf(byId[c].a,0)} A nominales`;
+      return '';
+  }
+}
+function isClosedF18(){const f=FAULTS[ST.fault]||{};if(f.f18==='open')return false;if(f.f18==='stuck')return true;return ST.f18;}
+function updateInfo(){
+  const el=$('info');
+  if(!ST.sel){el.innerHTML='<p class="muted">Haga clic en un componente, un cable o una línea de potencial del plano.</p>';return;}
+  if(ST.sel.t==='w'){el.innerHTML=infoWire(byId[ST.sel.id]);return;}
+  const c=ST.sel.id,C=COMP[c];
+  let h=`<h4>${BUS[c]?C.n:c+' · '+C.n}</h4><p>${C.d}</p>`;
+  const stt=ST.hidden&&!['A','D','E1','E4','F'].includes(c)?'':compState(c);
+  if(stt)h+=`<p>${stt}</p>`;
+  const mine=BUS[c]?[c]:EL.filter(e=>e.c===c).map(e=>e.id);
+  const ps=PATHS.filter(p=>p.els.some(x=>mine.includes(x)));
+  if(BUS[c]){const ps2=PATHS.filter(p=>p.els.includes(c)&&p.id!=='alim');h+=`<p class="muted">Circuitos que parten de o llegan a esta línea: ${ps2.map(p=>p.n).join(' · ')}</p>`;}
+  else if(ps.length){h+=`<p><b>Forma parte de:</b></p>`+ps.map(p=>`<div class="path"><b>${p.n}</b><br>${pathText(p)}</div>`).join('');}
+  el.innerHTML=h;
+}
+
+/* ======================= RESULTADOS Y AVISOS ======================= */
+function consState(c,S){const p=consP(c.id,S)/c.Pn;if(p>0.6)return ['st-on',c.id==='V7'?'Funciona':'Encendido'];if(p>0.08)return ['st-w',c.id==='V7'?'Gira lento':'Débil'];return ['st-off',c.id==='V7'?'Detenido':'Apagado'];}
+function updateResults(){
+  const S=SOL;let h='<table><tr><th>Consumidor</th><th>U (V)</th><th>I (A)</th><th>P (W)</th><th>Estado</th></tr>';
+  for(const c of CONS){const e=byId[c.id];const U=S.V(e.n1)-S.V(e.n2),I=Math.abs(S.I[c.id]||0);const [cl,tx]=consState(c,S);
+    h+=ST.hidden?`<tr><td>${c.n}</td><td>—</td><td>—</td><td>—</td><td class="${cl}">${tx}</td></tr>`
+      :`<tr><td>${c.n}</td><td>${nf(Math.abs(U),2)}</td><td>${nf(I,2)}</td><td>${nf(Math.abs(U*I),1)}</td><td class="${cl}">${tx}</td></tr>`;}
+  h+='</table>';
+  if(!ST.hidden){
+    h+='<table style="margin-top:8px"><tr><th>Relé</th><th>U bobina (V)</th><th>Contacto 30/87</th></tr>';
+    for(const j of ['J1','J2','J3']){const co=byId[j+'c'];h+=`<tr><td>${j}</td><td>${nf(S.V(co.n1)-S.V(co.n2),2)}</td><td>${S.rel[j]?'<span class="st-on">cerrado</span>':'<span class="st-off">abierto</span>'}</td></tr>`;}
+    h+='</table><p class="muted" style="margin:6px 0 0">Fusibles: '+EL.filter(e=>e.k==='fuse').map(e=>{const bl=ST.blown.has(e.id)||(((FAULTS[ST.fault].mod||{})[e.id])||{}).open;return `${e.id} ${bl?'<span class="st-e">fundido</span>':nf(Math.abs(S.I[e.id]||0),2)+'/'+nf(e.a,0)+' A'}`;}).join(' · ')+`</p><p class="muted" style="margin:4px 0 0">Corriente total de la batería: ${nf(S.It,2)} A</p>`;
+  }else h+='<p class="muted" style="margin:6px 0 0">Caso con avería oculta: solo se muestra el síntoma. Mida con el multímetro para localizar la causa.</p>';
+  $('results').innerHTML=h;
+}
+function updateMsgs(){
+  const S=SOL,w=[];
+  if(ST.hidden)w.push(['i','Caso con avería oculta: la avería no se dibuja en el plano. Relacione el síntoma con el recorrido de la corriente y mida tensiones respecto a masa (o caídas de tensión) para localizarla.']);
+  else if(ST.fault!=='none')w.push(['w',`Avería simulada: ${FAULTS[ST.fault].n}. ${FAULTS[ST.fault].ex}`]);
+  if(!ST.D)w.push(['i','Encendido desconectado (D en 0): las líneas 15 y X no tienen tensión. Solo la línea 30 está activa (luces de freno y alimentación de los contactos de los relés).']);
+  if(ST.D&&ST.E1&&!ST.hidden)w.push(['i',ST.E4==='b'?'Luz de cruce: E1 y E4 envían X → 56 → 56b a la bobina de J1 (86 → 85 → masa); J1 cierra 30 → 87 y alimenta S2 y S3.':'Luz de carretera: E4 envía 56 → 56a a la bobina de J2; J2 cierra 30 → 87 y alimenta S4 y S5. J1 se desexcita.']);
+  if(!ST.hidden){
+    const closed=isClosedF18();
+    if(ST.D&&closed&&S.rel.J3)w.push(['i',`F18 cerrado (${nf(ST.T,0)} °C): conecta a masa el borne 85 de J3 → el relé cierra 30/87 y V7 funciona (${fmtI(S.I.V7||0)}).`]);
+    else if(ST.D&&!closed&&ST.T>=F18_ON)w.push(['w','Motor caliente pero F18 abierto: el electroventilador no arranca y el motor puede sobrecalentarse.']);
+    else if(!ST.D&&ST.T>=F18_ON)w.push(['i','Motor caliente, pero sin encendido la bobina de J3 no se alimenta (S6 depende de la línea 15). En muchos vehículos existe un postfuncionamiento del ventilador; este plano no lo incluye.']);
+    for(const j of ['J1','J2','J3'])if(S.coil[j]&&!S.rel[j])w.push(['e',`Relé ${j}: la bobina recibe tensión (se oye el «clic»), pero el contacto 30/87 no cierra.`]);
+    if(S.rel.J1&&!S.coil.J1)w.push(['e','Relé J1: el contacto 30/87 está cerrado sin tensión en la bobina (contacto pegado). Las luces de cruce no se apagan y descargan la batería.']);
+    for(const c of CONS){const e=byId[c.id];const U=S.V(e.n1)-S.V(e.n2);const p=consP(c.id,S)/c.Pn;if(p>0.08&&U<ST.Ub-1.2)w.push(['w',`${c.n}: recibe solo ${nf(U,2)} V (${nf(ST.Ub,1)} V en batería). Caída de tensión excesiva en el circuito: mida las caídas en el lado positivo (orientativo ≤ 0,5 V) y en el lado de masa (≤ 0,2 V).`]);}
+  }
+  if(ST.F&&!ST.hidden&&consP('M9',S)>10&&consP('M10',S)>10)w.push(['o','Luces de freno encendidas: F cierra 30 (S8) → 54 → M9 y M10 en paralelo → masa.']);
+  const all=[...ST.events,...w];
+  $('msgs').innerHTML=all.length?all.map(([c,t])=>`<div class="${c}">${t}</div>`).join(''):'<div class="i">Sin avisos.</div>';
+}
+
+/* ======================= CONTROLES ======================= */
+function ctlRange(k,label,val,min,max,step){return `<div class="ctl"><label>${label}</label><div class="row"><input type="range" data-k="${k}" min="${min}" max="${max}" step="${step}" value="${val}"><input type="number" data-k="${k}" min="${min}" max="${max}" step="${step}" value="${val}"></div></div>`;}
+function ctlSelect(k,label,opts,val){return `<div class="ctl"><label>${label}</label><select data-k="${k}">${opts.map(o=>`<option value="${o[0]}" ${String(o[0])===String(val)?'selected':''}>${o[1]}</option>`).join('')}</select></div>`;}
+function buildControls(){
+  let h='';
+  h+=ctlRange('Ub','Tensión de la batería U (V) · 12,6 V motor parado; 13,8–14,4 V motor en marcha (orientativo)',ST.Ub,11.5,14.4,0.1);
+  h+=ctlRange('T','Temperatura del refrigerante (°C) · F18 cierra ≈ 95 °C (orientativo)',ST.T,20,115,1);
+  h+=ctlSelect('D','Conmutador de encendido D',[[0,'0 · desconectado'],[1,'I · contacto (30 → 15 y X)']],ST.D);
+  h+=ctlSelect('E1','Interruptor de luces E1',[[0,'0 · apagado'],[1,'56 · faros encendidos']],ST.E1);
+  h+=ctlSelect('E4','Conmutador de luces E4',[['b','56b · luz de cruce'],['a','56a · luz de carretera']],ST.E4);
+  h+=ctlSelect('F','Pedal de freno (interruptor F)',[[0,'suelto'],[1,'pisado']],ST.F);
+  let fo='<option value="none">Sin avería</option>';
+  for(const g in FGROUP){fo+=`<optgroup label="${FGROUP[g]}">`+Object.keys(FAULTS).filter(k=>FAULTS[k].g===g).map(k=>`<option value="${k}">${FAULTS[k].n}</option>`).join('')+'</optgroup>';}
+  h+=`<div class="ctl" style="grid-column:1/-1"><label>Avería simulada</label><select data-k="fault" id="faultSel" style="width:100%">${fo}</select></div>`;
+  h+=`<div class="ctl"><label class="switch" style="color:var(--ink)"><input type="checkbox" data-k="labels" ${ST.labels?'checked':''}> Mostrar designación de cables</label></div>`;
+  h+=`<div class="ctl"><label class="switch" style="color:var(--ink)"><input type="checkbox" data-k="colors" ${ST.colors?'checked':''}> Colorear cables según su código</label></div>`;
+  $('controls').innerHTML=h;
+  $('controls').querySelectorAll('[data-k]').forEach(inp=>inp.addEventListener(inp.type==='range'||inp.type==='number'?'input':'change',()=>{
+    const k=inp.dataset.k;
+    if(inp.type==='checkbox'){ST[k]=inp.checked;render();return;}
+    if(k==='fault'){ST.fault=inp.value;ST.blown.clear();ST.events=[];render();return;}
+    if(k==='E4'){ST.E4=inp.value;render();return;}
+    let v=parseNum(inp.value);if(!isFinite(v))return;
+    if(k==='Ub'||k==='T'){v=Math.min(+inp.max,Math.max(+inp.min,v));ST[k]=v;if(k==='T')updF18();
+      $('controls').querySelectorAll(`[data-k="${k}"]`).forEach(o=>{if(o!==inp)o.value=v;});}
+    else ST[k]=v;
+    render();
+  }));
+  syncControls();
+}
+function syncControls(){
+  const set=(k,v)=>$('controls').querySelectorAll(`[data-k="${k}"]`).forEach(o=>{if(o.type==='checkbox')o.checked=!!v;else if(document.activeElement!==o)o.value=v;});
+  set('Ub',ST.Ub);set('T',ST.T);set('D',ST.D);set('E1',ST.E1);set('E4',ST.E4);set('F',ST.F);
+  const fs=$('faultSel');if(fs){fs.disabled=ST.hidden;fs.value=ST.hidden?'none':ST.fault;}
+}
+
+/* ======================= VALORES DE REFERENCIA ======================= */
+function buildEqs(){
+  const cr=Object.keys(COLS).map(k=>`<tr><td><span class="swatch" style="background:${COLS[k][1]}"></span>${capit(COLS[k][0])}</td><td class="l"><b>${k}</b> (${COLS[k][2]})</td><td class="l">${COLS[k][3]}</td><td class="l">${COLS[k][4]}</td></tr>`).join('');
+  $('eqs').innerHTML=`
+  <p><b>Cómo se lee un plano de corriente (estilo VW / DIN):</b></p>
+  <p>• Arriba, las líneas de potencial: <b>30</b> (positivo directo), <b>15</b> (positivo tras el encendido), <b>X</b> (consumidores desconectables, ≈ borne 75). Abajo, la masa <b>31</b>. La corriente se lee de arriba (+) hacia abajo (−).</p>
+  <p>• Los componentes se dibujan desconectados de su posición real y se localizan por el número de <b>vía</b> (pista) del pie del plano.</p>
+  <p>• Letras de identificación VW: A batería · D conmutador de encendido · E interruptor de accionamiento manual · F interruptor accionado mecánicamente, por presión o temperatura · J relé o unidad de control · L lámpara de faro · M lámpara de señalización · S fusible · T conector (T3b/2 = conector de 3 vías «b», contacto 2) · V motor. Otros fabricantes usan otra nomenclatura (p. ej., DIN 40719: F fusible, K relé, H lámpara, S interruptor, M motor).</p>
+  <p>• Designación de cable: <b>ro/sw 1,5</b> = color base rojo, traza negra, sección 1,5 mm².</p>
+  <p class="f">R = U<sub>nom</sub>² / P<sub>nom</sub> &nbsp;·&nbsp; I = U / R &nbsp;·&nbsp; P = U · I &nbsp;·&nbsp; R<sub>cable</sub> = ρ · L / A &nbsp;(ρ<sub>Cu</sub> ≈ 0,0178 Ω·mm²/m) &nbsp;·&nbsp; ΔU = I · R</p>
+  <p class="muted">Modelo del simulador: lámparas H4 55/60 W y P21W con R = 144 / P (12 V nominales); relés con bobina de 80 Ω, cierre ≥ 7 V y apertura ≤ 3 V; electroventilador como resistencia equivalente de 0,75 Ω en marcha; resistencia interna de la batería 0,01 Ω; los fusibles se funden al superar el doble de su corriente nominal. Todos son valores orientativos; consulte el manual del fabricante.</p>
+  <h3>Códigos de color de cables</h3>
+  <div class="tblwrap"><table><tr><th>Color</th><th class="l">VW (alemán)</th><th class="l">IEC 60757</th><th class="l">Japoneses / coreanos</th></tr>${cr}</table></div>
+  <p class="muted">La abreviatura varía según el fabricante y el país: VW usa «ro» para rojo, otros esquemas alemanes «rt» o «RT»; en Toyota o Hyundai la «L» es azul (Suzuki usa «Bl»), y «Lg» verde claro, «Sb» celeste. Verifique siempre la tabla de abreviaturas del esquema que esté usando.</p>
+  <h3>Fusibles de cuchilla (ISO 8820): color según la corriente nominal</h3>
+  <div class="tblwrap"><table><tr><th>Corriente</th><th class="l">Color</th><th>Corriente</th><th class="l">Color</th></tr>
+  <tr><td>5 A</td><td class="l"><span class="swatch" style="background:#d9bf8c"></span>beige (canela)</td><td>20 A</td><td class="l"><span class="swatch" style="background:#fdd835"></span>amarillo</td></tr>
+  <tr><td>7,5 A</td><td class="l"><span class="swatch" style="background:#795548"></span>marrón</td><td>25 A</td><td class="l"><span class="swatch" style="background:#f5f5f5"></span>blanco / natural</td></tr>
+  <tr><td>10 A</td><td class="l"><span class="swatch" style="background:#e53935"></span>rojo</td><td>30 A</td><td class="l"><span class="swatch" style="background:#43a047"></span>verde</td></tr>
+  <tr><td>15 A</td><td class="l"><span class="swatch" style="background:#1e88e5"></span>azul</td><td>40 A</td><td class="l"><span class="swatch" style="background:#fb8c00"></span>naranja</td></tr></table></div>
+  <h3>Sección orientativa del cable según la corriente</h3>
+  <div class="tblwrap"><table><tr><th>Sección</th><th class="l">Uso típico (orientativo; depende de la longitud, la temperatura y el mazo)</th></tr>
+  <tr><td>0,35–0,5 mm²</td><td class="l">Señales de sensores, bobinas de relé, mandos (&lt; 3 A)</td></tr>
+  <tr><td>0,75–1,0 mm²</td><td class="l">Luces de posición y freno, pequeños consumidores (hasta ≈ 8–10 A)</td></tr>
+  <tr><td>1,5 mm²</td><td class="l">Faros, bocina (≈ 10–15 A)</td></tr>
+  <tr><td>2,5–4,0 mm²</td><td class="l">Electroventilador, alimentaciones de relés (≈ 20–30 A)</td></tr>
+  <tr><td>6–10 mm²</td><td class="l">Alimentaciones principales, cable de carga del alternador</td></tr>
+  <tr><td>16–35 mm²</td><td class="l">Batería, masa de motor, motor de arranque</td></tr></table></div>
+  <p class="muted">Método de caída de tensión (orientativo): ≤ 0,5 V en todo el lado positivo y ≤ 0,2 V en el lado de masa de un consumidor en funcionamiento; ≤ 0,1 V por conexión o conector.</p>`;
+}
+
+/* ======================= BORNES DIN 72552 ======================= */
+const BORNES=[
+ {b:'30',g:'Alimentación',s:'Positivo directo de batería (sin pasar por el encendido)',f:'Entrada directa desde el borne + de la batería. Tiene tensión siempre, aunque el encendido esté desconectado.',e:'Línea 30 del plano: alimenta los contactos de J1, J2 y J3 y el fusible S8 de las luces de freno. También las luces de emergencia.',pl:1},
+ {b:'15',g:'Alimentación',s:'Positivo después del conmutador de encendido (contacto)',f:'Salida del conmutador de encendido en posición de marcha: positivo conmutado.',e:'Línea 15 del plano: alimenta el mando del electroventilador (S6 → J3/86). También la bobina de encendido y el cuadro de instrumentos.',pl:1},
+ {b:'X (75)',t:'X',g:'Alimentación',s:'Consumidores que se desconectan durante el arranque',f:'DIN 72552 define el borne 75 para radio, encendedor y consumidores similares. VW lo denomina X: tiene tensión con el encendido conectado y se desconecta durante el arranque (relé de descarga J59).',e:'Línea X del plano: alimenta el mando de luces (S1 → E1 → E4).',pl:1},
+ {b:'31',g:'Masa',s:'Masa: retorno directo al negativo de batería',f:'Retorno directo al negativo de la batería o a masa (carrocería).',e:'Línea 31 al pie del plano; en VW, cables marrones (br).',pl:1},
+ {b:'31b',g:'Masa',s:'Masa conmutada (a través de interruptor o relé)',f:'Retorno a masa a través de un interruptor o de un relé.',e:'En el plano, la bobina de J3 se conecta a masa a través del termocontacto F18. También la masa del motor del limpiaparabrisas a través del conmutador.'},
+ {b:'50',g:'Arranque',s:'Mando del motor de arranque',f:'Salida del conmutador de encendido en posición de arranque hacia el relé o solenoide (automático) del motor de arranque.',e:'Conmutador D, posición de arranque → borne 50 del solenoide del motor de arranque.'},
+ {b:'49',g:'Señalización',s:'Entrada del relé de intermitencia (destellador)',f:'Entrada de alimentación del relé de intermitencia.',e:'Destellador alimentado desde 15 (intermitentes) o desde 30 (luces de emergencia a través del interruptor).'},
+ {b:'49a',g:'Señalización',s:'Salida del relé de intermitencia',f:'Salida intermitente del destellador hacia el conmutador de intermitentes y las lámparas.',e:'Destellador 49a → conmutador de intermitentes → lámparas del lado izquierdo (L) o derecho (R).'},
+ {b:'53',g:'Limpiaparabrisas',s:'Motor del limpiaparabrisas, entrada + (1.ª velocidad)',f:'Entrada positiva del motor del limpiaparabrisas (velocidad lenta).',e:'Conmutador del limpiaparabrisas, posición 1 → motor, borne 53.'},
+ {b:'53a',g:'Limpiaparabrisas',s:'Limpiaparabrisas: + de la desconexión final (posición de parada)',f:'Positivo para la desconexión final: alimenta el contacto de parada del motor.',e:'El contacto de parada mantiene el motor alimentado hasta que las escobillas llegan a su posición de reposo, aunque se apague el conmutador.'},
+ {b:'53b',g:'Limpiaparabrisas',s:'Limpiaparabrisas: devanado en derivación / 2.ª velocidad',f:'DIN 72552: devanado en derivación (shunt) del motor del limpiaparabrisas. En los motores de imanes permanentes muchos fabricantes (p. ej., VW) lo usan para la velocidad rápida; la norma define también 53i para la tercera escobilla (velocidad alta).',e:'Conmutador en posición 2 → motor, borne 53b.'},
+ {b:'53e',g:'Limpiaparabrisas',s:'Limpiaparabrisas: devanado de frenado',f:'Devanado o conexión de frenado del motor: detiene el motor con precisión en la posición de parada.',e:'Al llegar a la posición de reposo, el contacto de parada cortocircuita el inducido a través de 53e y el motor frena.'},
+ {b:'54',g:'Alumbrado',s:'Luces de freno',f:'Luces de freno: salida del interruptor de luz de freno hacia las lámparas (también en el enchufe de remolque).',e:'Interruptor F, borne 54 → empalme A3 → M9 y M10.',pl:1},
+ {b:'56',g:'Alumbrado',s:'Faros: alimentación del conmutador de luces',f:'Luz de faros: salida del interruptor de luces hacia el conmutador de cruce/carretera.',e:'E1, borne 56 → E4, borne 56.',pl:1},
+ {b:'56a',g:'Alumbrado',s:'Luz de carretera y su testigo',f:'Luz de carretera y testigo de luz de carretera.',e:'E4, borne 56a → bobina de J2 → S4 y S5 → filamentos 56a de L1 y L2.',pl:1},
+ {b:'56b',g:'Alumbrado',s:'Luz de cruce',f:'Luz de cruce (luz corta).',e:'E4, borne 56b → bobina de J1 → S2 y S3 → filamentos 56b de L1 y L2.',pl:1},
+ {b:'58',g:'Alumbrado',s:'Luces de posición, matrícula e iluminación del tablero',f:'Luces de posición, luz de matrícula e iluminación de instrumentos (58L lado izquierdo, 58R lado derecho).',e:'Interruptor de luces en la primera posición → luces de posición y de matrícula.'},
+ {b:'61',g:'Alternador',s:'Testigo de carga del alternador',f:'Lámpara de control de carga (testigo del alternador).',e:'Cuadro de instrumentos → borne 61 (D+) del alternador; el testigo se apaga cuando el alternador carga.'},
+ {b:'85',g:'Relé',s:'Relé: final de la bobina (−)',f:'Salida (final) del devanado de la bobina del relé; normalmente va a masa. Importa si el relé lleva diodo de extinción (polaridad).',e:'J1/85 y J2/85 a masa directa; J3/85 a masa a través de F18.',pl:1},
+ {b:'86',g:'Relé',s:'Relé: inicio de la bobina (+)',f:'Entrada (inicio) del devanado de la bobina: positivo de mando.',e:'J1/86 recibe 56b desde E4; J3/86 recibe 15 a través de S6.',pl:1},
+ {b:'87',g:'Relé',s:'Relé: contacto (en la práctica ISO, salida NA)',f:'DIN 72552 designa con 87 el contacto de reposo y conmutado (87 común, 87a y 87b salidas). En la práctica, los mini-relés automotrices ISO usan 30 como entrada común, 87 como salida del contacto normalmente abierto (NA) y 87a como salida normalmente cerrada (NC).',e:'J1/87 → S2 y S3 (luces de cruce). Verifique siempre el esquema impreso en el relé: la posición física de 30 y 86 cambia entre fabricantes.',pl:1},
+ {b:'87a',g:'Relé',s:'Relé: salida del contacto normalmente cerrado (NC)',f:'Salida del contacto de reposo: tiene continuidad con la entrada (30 en los relés ISO) mientras la bobina está desenergizada.',e:'Relé conmutado de 5 bornes (30, 85, 86, 87, 87a): p. ej., para conmutar entre dos velocidades de un ventilador.'},
+ {b:'88',g:'Relé',s:'Relé: contacto de trabajo (NA) según DIN 72552',f:'DIN 72552: entrada del contacto de trabajo (normalmente abierto); sus salidas son 88a, 88b… Se usa poco: la mayoría de relés automotrices marcan el contacto NA como 30/87.',e:'Aparece en relés de doble contacto y en algunos esquemas europeos antiguos.'},
+ {b:'B+',g:'Alternador',s:'Positivo de batería / salida principal del alternador',f:'Positivo de batería; en el alternador, borne de salida de la corriente de carga (equivale a 30).',e:'Cable grueso del alternador (B+) al borne + de la batería o al motor de arranque.'},
+ {b:'B−',g:'Alternador',s:'Negativo de batería / masa del alternador',f:'Negativo de batería; en el alternador, borne de masa (equivale a 31).',e:'Carcasa del alternador unida a masa del motor.'},
+ {b:'D+',g:'Alternador',s:'Alternador: positivo de los diodos de excitación',f:'Salida de los diodos de excitación: alimenta el regulador y el testigo de carga (borne 61).',e:'D+ del alternador ↔ testigo de carga del cuadro; con el motor en marcha D+ ≈ B+ y el testigo se apaga.'},
+ {b:'DF',g:'Alternador',s:'Alternador: campo (excitación del rotor)',f:'Conexión del devanado de excitación (rotor) con el regulador de tensión (DF, DF1, DF2).',e:'Regulador → escobilla DF → rotor.'},
+ {b:'L',g:'Alternador',s:'Alternador con regulador multifunción: lámpara testigo (convención de fabricante)',f:'En alternadores con regulador multifunción (Bosch, Denso, Mitsubishi…), «L» es el borne de la lámpara testigo de carga. Ojo: en DIN 72552 la letra L designa el intermitente izquierdo (y R el derecho).',e:'Borne L del alternador ↔ testigo de carga del cuadro de instrumentos.'}
+];
+let bSel=null,bView='t';
+function buildBornes(){
+  const gs=uniq(BORNES.map(b=>b.g));
+  $('bG').innerHTML='<option value="">Todos los grupos</option>'+gs.map(g=>`<option>${g}</option>`).join('');
+  $('bQ').oninput=drawBornes;$('bG').onchange=drawBornes;
+  $('bVt').onclick=()=>{bView='t';$('bVt').classList.add('on');$('bVc').classList.remove('on');drawBornes();};
+  $('bVc').onclick=()=>{bView='c';$('bVc').classList.add('on');$('bVt').classList.remove('on');drawBornes();};
+  drawBornes();
+}
+function drawBornes(){
+  const q=$('bQ').value.trim().toLowerCase(),g=$('bG').value;
+  const L=BORNES.filter(b=>(!g||b.g===g)&&(!q||(b.b+' '+b.s+' '+b.f+' '+b.e).toLowerCase().includes(q)));
+  if(bView==='t')$('bList').innerHTML=`<div class="tblwrap"><table><tr><th>Borne</th><th class="l">Función</th><th class="l">Grupo</th></tr>${L.map(b=>`<tr class="clk${bSel===b.b?' on':''}" data-b="${b.b}"><td><b style="font-family:Consolas,monospace;font-size:1rem">${b.b}</b></td><td class="l">${b.s}</td><td class="l">${b.g}</td></tr>`).join('')}</table></div>`;
+  else $('bList').innerHTML=`<div class="bgrid">${L.map(b=>`<div class="bcard${bSel===b.b?' on':''}" data-b="${b.b}"><div class="bgrp">${b.g}</div><div class="bnum">${b.b}</div><div style="font-size:.84rem">${b.s}</div></div>`).join('')}</div>`;
+  if(!L.length)$('bList').innerHTML='<p class="muted">Ningún borne coincide con la búsqueda.</p>';
+  $('bList').querySelectorAll('[data-b]').forEach(r=>r.onclick=()=>{bSel=r.dataset.b;drawBornes();});
+  const b=BORNES.find(x=>x.b===bSel);
+  $('bDet').innerHTML=b?`<div class="bdet"><div class="bgrp">${b.g} · DIN 72552</div><div class="bnum">${b.b}</div><p><b>Función:</b> ${b.f}</p><p><b>Ejemplo:</b> ${b.e}</p>${b.pl?`<button class="btn small" id="bSee">Ver en el plano</button>`:''}</div>`:'<p class="muted">Haga clic en un borne para ver su función y un ejemplo.</p>';
+  if(b&&b.pl)$('bSee').onclick=()=>{ST.flashTerm=b.t||b.b;setTab('plano');setTimeout(()=>{ST.flashTerm=null;render();},5000);};
+}
+
+/* ======================= SIMBOLOGÍA ======================= */
+const L_=(x1,y1,x2,y2,c)=>`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"${c?` class="${c}"`:''}/>`;
+const SYMS=[
+ {id:'fus',n:'Fusible',d:'Elemento de protección: se funde y abre el circuito cuando la corriente supera su valor nominal durante un tiempo determinado. Protege el cable, no al consumidor.',s:L_(8,40,36,40)+'<rect x="36" y="30" width="48" height="20"/>'+L_(36,40,84,40)+L_(84,40,112,40)},
+ {id:'rna',n:'Relé con contacto normalmente abierto (NA)',d:'Interruptor electromagnético: la bobina (86–85) atrae la armadura y cierra el contacto de trabajo (30–87). Permite mandar una corriente grande con una corriente de mando pequeña.',
+  s:'<rect x="14" y="26" width="26" height="28"/>'+L_(27,6,27,26)+L_(27,54,27,74)+L_(92,74,92,56)+L_(92,56,80,30)+L_(92,6,92,26)+L_(86,26,92,26)+L_(40,40,84,40,'dsh')+'<text class="s" x="31" y="14">86</text><text class="s" x="31" y="72">85</text><text class="s" x="96" y="14">30</text><text class="s" x="96" y="72">87</text>'},
+ {id:'rnc',n:'Relé con contacto normalmente cerrado (NC)',d:'Con la bobina sin corriente el contacto de reposo (30–87a) está cerrado; al excitarse la bobina se abre.',
+  s:'<rect x="14" y="26" width="26" height="28"/>'+L_(27,6,27,26)+L_(27,54,27,74)+L_(92,74,92,56)+L_(92,56,100,27)+L_(92,6,92,24)+L_(92,24,104,24)+L_(40,40,96,40,'dsh')+'<text class="s" x="31" y="14">86</text><text class="s" x="31" y="72">85</text><text class="s" x="74" y="14">30</text><text class="s" x="96" y="72">87a</text>'},
+ {id:'dio',n:'Diodo',d:'Deja pasar la corriente en un solo sentido (de ánodo a cátodo, en el sentido de la flecha). Se usa en rectificadores, en la extinción de bobinas de relé y como protección contra inversión de polaridad.',s:L_(8,40,46,40)+'<path d="M46 27 L46 53 L70 40 Z"/>'+L_(70,26,70,54)+L_(70,40,112,40)},
+ {id:'led',n:'Diodo LED',d:'Diodo emisor de luz: se ilumina al conducir en sentido directo. Necesita resistencia limitadora de corriente. Testigos y pilotos.',s:L_(8,40,46,40)+'<path d="M46 27 L46 53 L70 40 Z"/>'+L_(70,26,70,54)+L_(70,40,112,40)+L_(62,22,74,10)+'<path class="fl" d="M76 8 L69 10 L74 15 Z"/>'+L_(70,26,82,14)+'<path class="fl" d="M84 12 L77 14 L82 19 Z"/>'},
+ {id:'zen',n:'Diodo Zener',d:'Diodo que conduce en sentido inverso a partir de su tensión Zener; se usa como referencia o limitador de tensión (reguladores, protección).',s:L_(8,40,46,40)+'<path d="M46 27 L46 53 L70 40 Z"/>'+'<path d="M64 23 L70 26 L70 54 L76 57"/>'+L_(70,40,112,40)},
+ {id:'lam',n:'Lámpara',d:'Lámpara incandescente (faro, piloto, testigo). Su resistencia en caliente es unas 10 veces mayor que en frío.',s:L_(8,40,44,40)+'<circle cx="60" cy="40" r="16"/>'+L_(48.7,28.7,71.3,51.3)+L_(48.7,51.3,71.3,28.7)+L_(76,40,112,40)},
+ {id:'mot',n:'Motor eléctrico',d:'Motor de corriente continua (electroventilador, limpiaparabrisas, elevalunas, bomba de combustible).',s:L_(8,40,42,40)+'<circle cx="60" cy="40" r="18"/><text x="60" y="45" text-anchor="middle" style="font-size:15px">M</text>'+L_(78,40,112,40)},
+ {id:'res',n:'Resistencia',d:'Limita la corriente o provoca una caída de tensión definida (U = I · R).',s:L_(8,40,34,40)+'<rect x="34" y="31" width="52" height="18"/>'+L_(86,40,112,40)},
+ {id:'rva',n:'Resistencia variable (reóstato)',d:'Resistencia cuyo valor se ajusta (flecha oblicua). Ej.: reóstato de iluminación del tablero.',s:L_(8,40,34,40)+'<rect x="34" y="31" width="52" height="18"/>'+L_(86,40,112,40)+L_(38,60,82,20)+'<path class="fl" d="M85 17 L77 20 L81 25 Z"/>'},
+ {id:'pot',n:'Potenciómetro',d:'Resistencia con cursor (tercer borne) que entrega una tensión proporcional a la posición. Ej.: sensor de posición de la mariposa (TPS), pedal del acelerador, aforador de combustible.',s:L_(8,40,34,40)+'<rect x="34" y="31" width="52" height="18"/>'+L_(86,40,112,40)+L_(60,6,60,28)+'<path class="fl" d="M55 22 L65 22 L60 30 Z"/>'},
+ {id:'ntc',n:'Termistor NTC',d:'Resistencia de coeficiente de temperatura negativo: su resistencia disminuye al aumentar la temperatura. Sensores de temperatura del refrigerante (ECT) y del aire (IAT).',s:L_(8,40,34,40)+'<rect x="34" y="31" width="52" height="18"/>'+L_(86,40,112,40)+'<path d="M26 62 L38 62 L84 18"/><text x="88" y="70">−ϑ</text>'},
+ {id:'ptc',n:'Termistor PTC',d:'Resistencia de coeficiente de temperatura positivo: su resistencia aumenta con la temperatura. Protección térmica de motores, calefactores autorregulados.',s:L_(8,40,34,40)+'<rect x="34" y="31" width="52" height="18"/>'+L_(86,40,112,40)+'<path d="M26 62 L38 62 L84 18"/><text x="88" y="70">+ϑ</text>'},
+ {id:'bob',n:'Bobina de encendido',d:'Transformador elevador: primario (bornes 15 y 1) y secundario de alta tensión (borne 4). Al cortar la corriente del primario se induce la alta tensión en el secundario.',
+  s:'<path d="M44 12 a5 5 0 0 0 0 10 a5 5 0 0 0 0 10 a5 5 0 0 0 0 10 a5 5 0 0 0 0 10 a5 5 0 0 0 0 10"/>'+L_(56,10,56,66)+L_(60,10,60,66)+'<path d="M72 12 a3 3 0 0 1 0 6 a3 3 0 0 1 0 6 a3 3 0 0 1 0 6 a3 3 0 0 1 0 6 a3 3 0 0 1 0 6 a3 3 0 0 1 0 6 a3 3 0 0 1 0 6 a3 3 0 0 1 0 6 a3 3 0 0 1 0 6"/>'+L_(44,12,22,12)+L_(44,62,22,62)+L_(72,12,100,12)+L_(72,66,72,72)+L_(44,62,44,72)+L_(44,72,72,72)+'<text class="s" x="10" y="16">15</text><text class="s" x="12" y="66">1</text><text class="s" x="103" y="16">4</text>'},
+ {id:'buj',n:'Bujía',d:'Produce la chispa entre el electrodo central (alta tensión) y el de masa para encender la mezcla.',s:L_(60,4,60,32)+'<path class="fl" d="M54 30 L66 30 L60 40 Z"/>'+L_(46,50,74,50)+L_(60,50,60,58)+L_(48,58,72,58)+L_(52,64,68,64)+L_(56,70,64,70)},
+ {id:'mas',n:'Masa',d:'Conexión a masa (carrocería o bloque motor), equivalente al borne 31. Algunos fabricantes la dibujan como triángulo o peine.',s:L_(60,8,60,42)+L_(38,42,82,42)+L_(45,51,75,51)+L_(52,60,68,60)},
+ {id:'con',n:'Conector (enchufe y clavija)',d:'Unión desmontable entre mazos o con un componente. En VW se designa T + número de vías + letra / contacto (p. ej., T3b/2).',s:L_(8,40,48,40)+'<path d="M62 27 A13 13 0 0 0 62 53"/>'+'<rect class="fl" x="56" y="37" width="14" height="6"/>'+L_(70,40,112,40)+'<text class="s" x="52" y="68">T2/1</text>'},
+ {id:'int',n:'Interruptor (contacto NA)',d:'Abre o cierra el circuito y se queda en la posición elegida. Ej.: interruptor de luces E1.',s:L_(8,40,40,40)+'<circle cx="40" cy="40" r="2.5" class="fl"/>'+L_(40,40,77,24)+'<circle cx="80" cy="40" r="2.5" class="fl"/>'+L_(80,40,112,40)},
+ {id:'pul',n:'Pulsador',d:'Interruptor con retorno por muelle: solo cierra mientras se presiona. Ej.: pulsador de bocina, interruptor de luz de freno.',s:L_(8,40,40,40)+'<circle cx="40" cy="40" r="2.5" class="fl"/>'+L_(40,40,77,24)+'<circle cx="80" cy="40" r="2.5" class="fl"/>'+L_(80,40,112,40)+L_(58,32,58,12,'dsh')+L_(50,12,66,12)+L_(50,12,50,16)+L_(66,12,66,16)},
+ {id:'boc',n:'Bocina',d:'Avisador acústico electromagnético: una membrana vibra al abrirse y cerrarse un contacto interno.',s:L_(8,30,40,30)+'<rect x="40" y="24" width="12" height="18"/><path d="M52 24 L76 10 L76 56 L52 42"/>'+L_(46,42,46,72)},
+ {id:'bat',n:'Batería',d:'Acumulador de 12 V (6 celdas de ≈ 2,1 V). La placa larga es el polo positivo.',s:L_(8,40,40,40)+L_(40,20,40,60)+'<line x1="50" y1="30" x2="50" y2="50" style="stroke-width:5"/>'+L_(66,20,66,60)+'<line x1="76" y1="30" x2="76" y2="50" style="stroke-width:5"/>'+L_(76,40,112,40)+'<text x="26" y="20">+</text><text x="86" y="20">−</text>'},
+ {id:'alt',n:'Alternador',d:'Generador trifásico con rectificador de diodos y regulador: carga la batería (B+) y alimenta la instalación con el motor en marcha.',s:L_(8,40,40,40)+'<circle cx="60" cy="40" r="20"/><text x="60" y="41" text-anchor="middle" style="font-size:15px">G</text><text x="60" y="54" text-anchor="middle" style="font-size:9px">3~</text>'+L_(80,40,90,40)+'<path d="M90 33 L90 47 L100 40 Z"/>'+L_(100,33,100,47)+L_(100,40,112,40)+'<text class="s" x="98" y="30">B+</text>'},
+ {id:'arr',n:'Motor de arranque',d:'Motor de CC de alta corriente con relé solenoide (automático): el borne 50 excita el solenoide y el borne 30 recibe la corriente principal desde la batería.',s:'<circle cx="60" cy="52" r="16"/><text x="60" y="57" text-anchor="middle" style="font-size:14px">M</text><rect x="44" y="12" width="32" height="16"/>'+L_(60,28,60,36,'dsh')+L_(8,20,44,20)+L_(76,20,112,20)+'<text class="s" x="10" y="15">30</text><text class="s" x="98" y="15">50</text>'},
+ {id:'cap',n:'Condensador',d:'Almacena carga eléctrica; filtra interferencias y picos de tensión (antiparasitario, filtros de alimentación).',s:L_(8,40,54,40)+L_(54,20,54,60)+L_(66,20,66,60)+L_(66,40,112,40)},
+ {id:'tra',n:'Transistor NPN',d:'Interruptor o amplificador electrónico: una pequeña corriente de base (B) controla la corriente colector–emisor (C–E). Etapas de potencia de las unidades de control y encendido.',s:'<circle cx="62" cy="40" r="22"/>'+'<line x1="54" y1="27" x2="54" y2="53" style="stroke-width:3.2"/>'+L_(12,40,54,40)+L_(54,33,72,21)+L_(72,21,72,4)+L_(54,47,72,59)+L_(72,59,72,76)+'<path class="fl" d="M72 59 L63 58 L68 52 Z"/><text class="s" x="14" y="34">B</text><text class="s" x="78" y="12">C</text><text class="s" x="78" y="74">E</text>'},
+ {id:'ind',n:'Sensor inductivo',d:'Bobina con imán permanente frente a una rueda dentada: genera una tensión alterna cuya frecuencia depende de la velocidad. Sensores de régimen (CKP) y de velocidad de rueda (ABS pasivos).',s:L_(30,6,30,22)+L_(90,6,90,22)+'<path d="M30 22 a7.5 7.5 0 0 0 15 0 a7.5 7.5 0 0 0 15 0 a7.5 7.5 0 0 0 15 0 a7.5 7.5 0 0 0 15 0"/><rect class="gy" x="30" y="36" width="60" height="7"/><path d="M16 66 h10 v-9 h10 v9 h10 v-9 h10 v9 h10 v-9 h10 v9 h10 v-9 h10 v9"/>'},
+ {id:'hal',n:'Sensor de efecto Hall',d:'Sensor electrónico de 3 bornes (alimentación, señal, masa) que entrega una señal cuadrada al variar el campo magnético. Sensores de fase (CMP), de régimen y distribuidores Hall.',s:'<rect x="36" y="18" width="48" height="44"/>'+L_(42,24,78,56)+'<text x="60" y="45" text-anchor="middle" style="font-size:14px">H</text>'+L_(60,4,60,18)+L_(84,40,112,40)+L_(60,62,60,76)+'<text class="s" x="64" y="12">+</text><text class="s" x="92" y="34">señal</text><text class="s" x="64" y="76">−</text>'},
+ {id:'ter',n:'Termocontacto',d:'Interruptor accionado por temperatura (ϑ). Ej.: termocontacto del electroventilador F18, que cierra a ≈ 95 °C (orientativo).',s:L_(8,40,40,40)+'<circle cx="40" cy="40" r="2.5" class="fl"/>'+L_(40,40,77,24)+'<circle cx="80" cy="40" r="2.5" class="fl"/>'+L_(80,40,112,40)+L_(58,32,58,60,'dsh')+'<rect x="50" y="60" width="16" height="14"/><text x="58" y="71" text-anchor="middle" style="font-size:10px">ϑ</text>'}
+];
+function symSVG(s,w){return `<svg class="gs" viewBox="0 0 120 80" ${w?`width="${w}"`:''} role="img" aria-label="${s.n}"><title>${s.n}</title>${s.s}</svg>`;}
+function buildSym(){
+  $('sGrid').innerHTML=SYMS.map(s=>`<div class="tile" data-s="${s.id}" title="${s.n}">${symSVG(s)}<div class="nm">${s.n}</div></div>`).join('');
+  $('sGrid').querySelectorAll('.tile').forEach(t=>t.onclick=()=>{$('sGrid').querySelectorAll('.tile').forEach(x=>x.classList.toggle('on',x===t));const s=SYMS.find(x=>x.id===t.dataset.s);
+    $('sDet').innerHTML=`<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><div style="width:150px">${symSVG(s)}</div><div style="flex:1;min-width:200px"><b style="color:var(--brand)">${s.n}</b><p style="margin:4px 0">${s.d}</p></div></div>`;});
+  $('sNames').onchange=e=>$('sGrid').classList.toggle('names',e.target.checked);
+}
+
+/* ======================= SIGUE LA CORRIENTE ======================= */
+function buildEx(){
+  $('exSel').innerHTML='<option value="rand">Caso aleatorio</option>'+SCEN.map(s=>`<option value="${s.id}">${s.t}</option>`).join('');
+  $('exStart').onclick=startEx;$('exQuit').onclick=quitEx;
+  drawEx();
+}
+function startEx(){
+  const v=$('exSel').value;const sc=v==='rand'?pick(SCEN):SCEN.find(s=>s.id===v);
+  Object.assign(ST,{D:sc.set.D,E1:sc.set.E1,E4:sc.set.E4,F:sc.set.F,T:sc.set.T,Ub:12.6});updF18();
+  ST.fault=pick(sc.faults);ST.blown.clear();ST.events=[];ST.hidden=true;ST.sel=null;ST.hl.clear();
+  ST.ex={sc,step:1,idx:0,done:[],err:0,errStep:0,msg:null,res:null};
+  ST.click='id';ST.meter.red=null;ST.meter.black='bus31';
+  syncControls();render();
+}
+function quitEx(){ST.ex=null;ST.hidden=false;ST.fault='none';ST.blown.clear();ST.hl.clear();ST.events=[];syncControls();render();}
+function expNext(){const ex=ST.ex,p=ex.sc.path;return p[ex.idx];}
+function exClick(c){
+  const ex=ST.ex;if(!ex||ex.step!==1)return false;
+  const p=ex.sc.path;let e=p[ex.idx];
+  const match=(tok,c)=>tok.replace('?','').split('|').includes(c);
+  if(match(e,c)){ex.done.push(c);ex.idx++;ex.errStep=0;ex.msg=['o',`Correcto: ${stepName(c)}.`];}
+  else if(e.endsWith('?')&&p[ex.idx+1]&&match(p[ex.idx+1],c)){ex.idx+=2;ex.done.push(c);ex.errStep=0;ex.msg=['o',`Correcto: ${stepName(c)}.`];}
+  else{
+    ex.err++;ex.errStep++;
+    const inP=PATHS.filter(pp=>pp.els.some(x=>(byId[x]?byId[x].c:x)===c)).map(pp=>pp.n);
+    const prev=ex.done.length?stepName(ex.done[ex.done.length-1]):'la línea de potencial';
+    let m=`«${stepName(c)}» no es el siguiente elemento del recorrido. `;
+    if(ex.done.includes(c))m+='Ya lo marcó. ';
+    else if(inP.length)m+=`Pertenece a: ${inP.join(', ')}. `;
+    m+=ex.idx===0?'Empiece por la línea de potencial de la que se alimenta el circuito (arriba del plano).':`Siga el cable que sale de ${prev}.`;
+    if(ex.errStep>=3){const nx=e.replace('?','').split('|')[0];m+=` Solución de este paso: ${stepName(nx)}.`;ex.done.push(nx);ex.idx++;ex.errStep=0;}
+    ex.msg=['e',m];
+  }
+  if(ex.idx>=p.length||(ex.idx===p.length-1&&p[ex.idx].endsWith('?'))){finishStep1();}
+  render();return true;
+}
+function stepName(c){const n=COMP[c].n;return BUS[c]||n.includes(c+' ')?n:`${c} (${n.charAt(0).toLowerCase()+n.slice(1)})`;}
+function finishStep1(){
+  const ex=ST.ex;ex.step=2;
+  const els=new Set();
+  const comps=ex.done;for(const c of comps){if(BUS[c])els.add(c);else EL.filter(e=>e.c===c).forEach(e=>els.add(e.id));}
+  // resaltar el recorrido completo correspondiente
+  const pth=PATHS.filter(p=>comps.every(c=>BUS[c]?p.els.includes(c):p.els.some(x=>byId[x]&&byId[x].c===c)));
+  if(pth.length)pth[0].els.forEach(x=>els.add(x));
+  ST.hl=els;ex.pathName=pth.length?pth[0].n:'';
+  const pts=Math.max(0,5-ex.err);ex.pts1=pts;
+  ex.msg=['o',`Recorrido completo${ex.err?` con ${ex.err} error(es)`:' sin errores'}: ${pth.length?pathText(pth[0]):comps.map(stepName).join(' → ')}. Puntaje del paso 1: ${pts} / 5. Ahora mida con el multímetro para localizar la avería.`];
+  ST.click='med';
+  addLog('Ejercicio',`${ex.sc.t} · recorrido`,comps.map(c=>BUS[c]?COMP[c].n:c).join(' → '),`${ex.err} errores · ${pts}/5`);
+}
+function hintEx(){
+  const ex=ST.ex;const cands=ex.sc.faults;
+  const tps=uniq(cands.flatMap(k=>FAULTS[k].tps||[])).map(r=>ref(r).l);
+  ex.msg=['i',`Mida respecto a masa (punta negra en 31) en: ${tps.join(' · ')}. Compare la tensión antes y después de cada elemento: donde la tensión «desaparece» está la interrupción. Si en ambos lados de un consumidor hay tensión de batería, el fallo está en su masa.`];
+  render();
+}
+function checkEx(){
+  const ex=ST.ex,sel=$('exDiag').value;if(!sel)return;
+  const f=FAULTS[ST.fault],ok=sel===ST.fault;
+  const base={Ub:ST.Ub,D:ex.sc.set.D,E1:ex.sc.set.E1,E4:ex.sc.set.E4,F:ex.sc.set.F,f18:ex.sc.set.T>=F18_ON,blown:new Set()};
+  const S1=solve({...base,fault:ST.fault});
+  const rd=(S,rs)=>rs.map(r=>{const q=ref(r);return `${q.l} = ${nf(S.V(q.n),2)} V`;}).join(' · ');
+  let h=`<b>${ok?'¡Diagnóstico correcto!':'Diagnóstico incorrecto.'}</b> La avería era: <b>${f.n}</b>.<br>${f.ex}<br><i>Lecturas respecto a masa con esta avería:</i> ${rd(S1,f.tps)}.`;
+  if(!ok&&FAULTS[sel]){const S2=solve({...base,fault:sel});h+=`<br><i>Si la avería fuera «${FAULTS[sel].n}», en esos mismos puntos mediría:</i> ${rd(S2,f.tps)}. Por eso sus mediciones descartan esa opción.`;}
+  const pts2=ok?5:0;ex.res={ok,html:h,score:ex.pts1+pts2};ex.step=3;
+  addLog('Ejercicio',`${ex.sc.t} · diagnóstico`,FAULTS[sel].n,`${ok?'Correcto':'Incorrecto (era: '+f.n+')'} · ${ex.pts1+pts2}/10`);
+  ST.hidden=false;render();
+}
+function drawEx(){
+  const ex=ST.ex;let h='';
+  if(!ex){$('exBody').innerHTML='<p class="muted" style="margin:0">Elija un caso (o «Caso aleatorio») y pulse «Iniciar caso». El simulador pondrá una avería oculta coherente con el síntoma. <b>Paso 1:</b> haga clic en orden sobre los componentes del recorrido de la corriente, desde la línea de potencial hasta masa (puede hacer clic sobre las líneas 30, 15, X y 31). <b>Paso 2:</b> mida con el multímetro y elija el diagnóstico.</p>';return;}
+  h+=`<p style="margin:0 0 6px"><span class="sym">Síntoma:</span> ${ex.sc.t}</p>`;
+  if(ex.step===1){h+=`<p style="margin:0 0 6px"><b>Paso 1 · Recorrido.</b> ${ex.sc.ask}</p>`;}
+  h+=`<div class="steps">${ex.done.map((c,i)=>`<span class="chip ok">${i+1}. ${BUS[c]?COMP[c].n:c}</span>`).join('')}${ex.step===1?'<span class="chip">…</span>':''}</div>`;
+  if(ex.msg)h+=`<div class="msgs"><div class="${ex.msg[0]}">${ex.msg[1]}</div></div>`;
+  if(ex.step===2){
+    const opts=Object.keys(FAULTS).filter(k=>FAULTS[k].g===ex.sc.g);
+    h+=`<p style="margin:6px 0"><b>Paso 2 · Diagnóstico.</b> Use el multímetro (botón «Medir» activado): coloque la punta roja en los puntos de prueba y compare. Luego elija la causa.</p>
+      <div class="bar"><select class="w" id="exDiag"><option value="">— Elija el diagnóstico —</option>${shuffle(opts.slice()).map(k=>`<option value="${k}">${FAULTS[k].n}</option>`).join('')}</select>
+      <button class="btn primary" id="exChk">Comprobar</button><button class="btn small" id="exHint">Pista: dónde medir</button></div>`;
+  }
+  if(ex.step===3&&ex.res){h+=`<div class="msgs"><div class="${ex.res.ok?'o':'e'}">${ex.res.html}</div></div><p><b>Puntaje del caso: ${ex.res.score} / 10</b> (recorrido ${ex.pts1}/5 · diagnóstico ${ex.res.ok?5:0}/5). La avería ya se muestra en el plano. Pulse «Iniciar caso» para otro.</p>`;}
+  $('exBody').innerHTML=h;
+  if(ex.step===2){$('exChk').onclick=checkEx;$('exHint').onclick=hintEx;}
+}
+
+/* ======================= CUESTIONARIO ======================= */
+const ALLON=(E4)=>({Ub:12.6,D:1,E1:1,E4,F:1,f18:true,fault:'none',blown:new Set()});
+function offList(cfg,openId){
+  const S0=solve(cfg);const f={...cfg,fault:'__tmp'};FAULTS.__tmp={n:'',g:'',mod:{[openId]:{open:1}}};
+  const S1=solve(f);delete FAULTS.__tmp;
+  return CONS.filter(c=>consP(c.id,S0)>0.3*c.Pn&&consP(c.id,S1)<0.3*consP(c.id,S0)).map(c=>c.n);
+}
+function feedOf(fid){
+  const e=byId[fid];const seen=new Set([e.n1]),st=[e.n1];
+  while(st.length){const n=st.pop();for(const w of EL.filter(x=>x.k==='w'&&(x.n1===n||x.n2===n))){const o=w.n1===n?w.n2:w.n1;if(!seen.has(o)){seen.add(o);if(!BUSN(o))st.push(o);}}}
+  if(seen.has('30'))return 'Línea 30';if(seen.has('15'))return 'Línea 15';if(seen.has('X'))return 'Línea X';
+  if(seen.has('j1_87'))return 'Borne 87 del relé J1';if(seen.has('j2_87'))return 'Borne 87 del relé J2';return '?';
+}
+const FEEDEX={'Línea 30':'positivo directo de batería: tiene tensión aunque el encendido esté desconectado','Línea 15':'positivo tras el encendido: solo con el conmutador D en contacto','Línea X':'consumidores desconectables (≈ 75): con encendido conectado y sin tensión durante el arranque','Borne 87 del relé J1':'salida del contacto del relé de luz de cruce: solo tiene tensión cuando J1 está excitado','Borne 87 del relé J2':'salida del contacto del relé de luz de carretera: solo tiene tensión cuando J2 está excitado'};
+const REL_T={J1:{'30':'Línea 30 (positivo directo de batería)','87':'Fusibles S2 y S3 (filamentos de cruce)','86':'Conmutador E4, salida 56b','85':'Masa directa (línea 31)'},
+  J2:{'30':'Línea 30 (positivo directo de batería)','87':'Fusibles S4 y S5 (filamentos de carretera)','86':'Conmutador E4, salida 56a','85':'Masa directa (línea 31)'},
+  J3:{'30':'Fusible S7 (desde la línea 30)','87':'Electroventilador V7 (conector T2c/1)','86':'Fusible S6 (desde la línea 15)','85':'Termocontacto F18 (masa conmutada)'}};
+function mk(type,text,correct,dist,ex,extra){
+  const d=uniq(dist.filter(x=>x!==correct));shuffle(d);
+  const opts=shuffle([correct,...d.slice(0,3)]);
+  return {type,text,opts,ok:opts.indexOf(correct),ex,extra:extra||'',ans:null};
+}
+const QGEN={
+  sym(used){const s=pick(SYMS.filter(x=>!used.has(x.id)));used.add(s.id);
+    return mk('Simbología','¿Qué representa este símbolo (DIN / IEC 60617)?',s.n,SYMS.filter(x=>x!==s).map(x=>x.n),`Es: ${s.n}. ${s.d}`,`<div class="qsym">${symSVG(s)}</div>`);},
+  borne(used){const b=pick(BORNES.filter(x=>!used.has(x.b)));used.add(b.b);
+    return mk('Bornes',`Según DIN 72552, ¿qué designa el borne ${b.b}?`,b.s,BORNES.filter(x=>x!==b).map(x=>x.s),`${b.b}: ${b.f} Ejemplo: ${b.e}`);},
+  borneInv(used){const b=pick(BORNES.filter(x=>!used.has(x.b)&&x.b!=='L'&&x.b!=='88'));used.add(b.b);
+    return mk('Bornes',`¿Qué borne designa: «${b.s}»?`,b.b,BORNES.filter(x=>x!==b).map(x=>x.b),`Corresponde al borne ${b.b}. ${b.f}`);},
+  fuseLine(){const id=pick(['S1','S2','S3','S4','S5','S6','S7','S8']);const a=feedOf(id);
+    return mk('Plano',`En el plano de corriente, ¿desde dónde se alimenta el fusible ${id}?`,a,Object.keys(FEEDEX),`${id} se alimenta desde ${a}: ${FEEDEX[a]}. ${COMP[id].d}`);},
+  open(){
+    const E4=pick(['b','a']);const cfg=ALLON(E4);
+    const cands=['S1','S2','S3','S4','S5','S6','S7','S8','J1c','J2c','J3c','wL1g','wL2g','wbsM9','wbsM10','wFbs','wDX','wD15','wJ3F18','wE4J1','wE4J2'];
+    const id=pick(cands);const off=offList(cfg,id);
+    const txt=l=>l.length?l.join(', '):'Ningún consumidor deja de funcionar';
+    const corr=txt(off);const dist=[];
+    for(const c of shuffle(cands.slice())){if(c===id)continue;const t=txt(offList(cfg,c));if(t!==corr&&!dist.includes(t))dist.push(t);if(dist.length>=3)break;}
+    if(dist.length<3)dist.push('Todos los consumidores del plano');
+    const nm=byId[id].k==='w'?`el cable ${byId[id].col} ${nf(byId[id].sec,1)} (${byId[id].fr} → ${byId[id].to})`:byId[id].k==='coil'?`la bobina del relé ${byId[id].c}`:`el fusible ${id}`;
+    const ps=PATHS.filter(p=>p.els.includes(id)&&p.id!=='alim').map(p=>p.n);
+    const ex=off.length?`${capit(nm)} forma parte de: ${ps.join('; ')||'la alimentación de las líneas 15 o X'}. Al abrirse se interrumpe ese recorrido y dejan de funcionar: ${off.join(', ')}.`
+      :`${capit(nm)} forma parte de: ${ps.join('; ')}. En el estado planteado ese circuito no está activo (luz de ${E4==='b'?'cruce':'carretera'} seleccionada), por lo que ningún consumidor que estaba funcionando se apaga.`;
+    return mk('Plano',`Estado: encendido conectado, luz de ${E4==='b'?'cruce':'carretera'} encendida, pedal de freno pisado y motor a 100 °C (ventilador funcionando). ¿Qué consumidores dejan de funcionar si se interrumpe ${nm}?`,corr,dist,ex);},
+  cable(){const w=pick(EL.filter(e=>e.k==='w'&&!e.int&&e.col.includes('/'))),[b,tr]=w.col.split('/');
+    const sec=nf(w.sec,w.sec<10?1:0);
+    const corr=`${capit(COLS[b][0])} con traza ${COLS[tr][0]}; sección ${sec} mm²`;
+    const dist=[`${capit(COLS[tr][0])} con traza ${COLS[b][0]}; sección ${sec} mm²`,`${capit(COLS[b][0])} con traza ${COLS[tr][0]}; corriente máxima ${sec} A`,`${capit(COLS[b][0])} con traza ${COLS[tr][0]}; longitud ${sec} m`,
+      `${capit(COLS[b==='ge'?'gn':b==='gn'?'ge':b==='ro'?'rs':b==='br'?'bl':'gr'][0])} con traza ${COLS[tr][0]}; sección ${sec} mm²`];
+    return mk('Colores de cable',`El cable que une ${w.fr} con ${w.to} está marcado «${w.col} ${sec}» (nomenclatura VW). ¿Qué significa?`,corr,dist,`${w.col}: el primer código es el color base (${b} = ${COLS[b][2]} = ${COLS[b][0]}) y el segundo la traza (${tr} = ${COLS[tr][0]}); el número es la sección en mm². En otros fabricantes cambia la abreviatura (IEC ${COLS[b][3]}/${COLS[tr][3]}).`);},
+  via(){const c=pick(['S1','S2','S3','S4','S5','S6','S7','S8','E1','F','F18','V7','M9','M10','A']);const e=EL.find(x=>x.c===c);const x=c==='A'?66:e.p1[0];const tr=Math.round((x-22)/44);
+    const dist=[tr-1,tr+1,tr+2,tr-2,tr+3].filter(v=>v>=1&&v<=16).map(String);
+    return mk('Plano',`¿En qué vía (pista) del plano de corriente se encuentra ${c} (${COMP[c].n.toLowerCase()})?`,String(tr),dist,`${c} está en la vía ${tr}. Los números del pie del plano sirven para localizar un componente o continuar un circuito que sigue en otra hoja.`);},
+  rele(){const j=pick(['J1','J2','J3']),tt=pick(['30','87','86','85']);const corr=REL_T[j][tt];
+    const pool=uniq(Object.values(REL_T).flatMap(o=>Object.values(o)));
+    return mk('Relés',`En el plano, ¿con qué está conectado el borne ${tt} del relé ${j} (${COMP[j].n.toLowerCase()})?`,corr,pool,`${j}/${tt} → ${corr}. En un relé ISO: 86 y 85 son la bobina (mando), 30 la entrada del contacto de potencia y 87 su salida normalmente abierta.`);},
+  rec(){const p=pick(PATHS.filter(x=>x.id!=='alim'));const st=stepsOf(p);const corr=st.join(' → ');
+    const dist=[];
+    const sw=st.slice();if(sw.length>4){[sw[1],sw[2]]=[sw[2],sw[1]];dist.push(sw.join(' → '));}
+    const sib={cruceL:'cruceR',cruceR:'cruceL',carrL:'carrR',carrR:'carrL',frenoL:'frenoR',frenoR:'frenoL',ctrlA:'ctrlB',ctrlB:'ctrlA',ventC:'ventP',ventP:'ventC'}[p.id];
+    const mix=st.slice();const sp=stepsOf(PATHS.find(x=>x.id===sib));mix[Math.floor(mix.length/2)]=sp[Math.floor(sp.length/2)];if(mix.join()!==st.join())dist.push(mix.join(' → '));
+    const wb=st.slice();wb[0]=wb[0]==='Línea 30'?'Línea 15':'Línea 30';dist.push(wb.join(' → '));
+    dist.push(st.slice().reverse().join(' → '));
+    return mk('Recorrido',`¿Cuál es el recorrido correcto de la corriente para «${p.n}» (sentido convencional, de + a −)?`,corr,dist,`Recorrido: ${corr}. La corriente parte de la línea de potencial (arriba), atraviesa protecciones, mandos y el consumidor, y retorna por masa (31).`);},
+  med(){
+    for(let k=0;k<20;k++){
+      const sc=pick(SCEN),fid=pick(sc.faults),f=FAULTS[fid];
+      const base={Ub:12.6,D:sc.set.D,E1:sc.set.E1,E4:sc.set.E4,F:sc.set.F,f18:sc.set.T>=F18_ON,blown:new Set()};
+      const S=solve({...base,fault:fid});const rd=f.tps.map(r=>S.V(ref(r).n));
+      const others=Object.keys(FAULTS).filter(x=>FAULTS[x].g===sc.g&&x!==fid).filter(x=>{const S2=solve({...base,fault:x});return f.tps.some((r,i)=>Math.abs(S2.V(ref(r).n)-rd[i])>0.5);});
+      if(others.length<3)continue;
+      const txt=f.tps.map((r,i)=>`${ref(r).l} = ${nf(rd[i],2)} V`).join('; ');
+      return mk('Diagnóstico',`Síntoma: ${sc.t} Mediciones respecto a masa (31): ${txt}. ¿Cuál es la causa más probable?`,f.n,others.map(x=>FAULTS[x].n),f.ex);
+    }
+    return QGEN.rec();}
+};
+function newQuiz(){
+  const used=new Set();
+  const types=shuffle(['sym','sym','borne','borneInv','fuseLine','open','cable',pick(['via','rele']),'rec','med']);
+  ST.quiz={qs:types.map(t=>QGEN[t](used)),checked:false};
+  drawQuiz();
+}
+function drawQuiz(){
+  const Q=ST.quiz;
+  $('qList').innerHTML=Q.qs.map((q,i)=>`<div class="q" data-i="${i}"><div class="qt">${i+1}. <span class="chip">${q.type}</span> ${q.text}</div>${q.extra}
+    ${q.opts.map((o,j)=>`<label class="${Q.checked?(j===q.ok?'ok':(q.ans===j?'bad':'')):''}"><input type="radio" name="q${i}" value="${j}" ${q.ans===j?'checked':''} ${Q.checked?'disabled':''}> ${o}</label>`).join('')}
+    <div class="fb ${Q.checked?(q.ans===q.ok?'ok':'bad'):''}">${Q.checked?`<b>${q.ans===q.ok?'Correcto.':q.ans===null?'Sin responder.':'Incorrecto.'}</b> ${q.ex}`:''}</div></div>`).join('');
+  $('qList').querySelectorAll('input[type=radio]').forEach(r=>r.onchange=()=>{ST.quiz.qs[+r.name.slice(1)].ans=+r.value;});
+  $('qScore').textContent=Q.checked?`${Q.qs.filter(q=>q.ans===q.ok).length} / ${Q.qs.length} correctas`:'';
+}
+function checkQuiz(){
+  const Q=ST.quiz;if(Q.checked)return;
+  const miss=Q.qs.filter(q=>q.ans===null).length;
+  if(miss&&!Q.warned){Q.warned=true;$('qScore').textContent=`Quedan ${miss} pregunta(s) sin responder. Pulse «Comprobar» de nuevo para corregir de todos modos.`;return;}
+  Q.checked=true;
+  Q.qs.forEach((q,i)=>addLog('Cuestionario',`P${i+1} (${q.type}): ${q.text.replace(/<[^>]+>/g,'').slice(0,110)}`,q.ans===null?'(sin respuesta)':q.opts[q.ans],q.ans===q.ok?'Correcta':'Incorrecta (correcta: '+q.opts[q.ok]+')'));
+  const sc=Q.qs.filter(q=>q.ans===q.ok).length;
+  addLog('Cuestionario','Puntaje total','',`${sc} / ${Q.qs.length}`);
+  drawQuiz();
+}
+
+/* ======================= REGISTRO ======================= */
+function addLog(tipo,det,val,res){ST.log.push({n:ST.log.length+1,tipo,det,val,res});drawLog();}
+function drawLog(){
+  $('logTbl').innerHTML=ST.log.length?`<table><tr><th>N.º</th><th class="l">Tipo</th><th class="l">Detalle</th><th class="l">Valor / respuesta</th><th class="l">Resultado</th></tr>${ST.log.slice(-40).map(r=>`<tr><td>${r.n}</td><td class="l">${r.tipo}</td><td class="l">${r.det}</td><td class="l">${r.val}</td><td class="l">${r.res}</td></tr>`).join('')}</table>${ST.log.length>40?'<p class="muted">Se muestran las últimas 40 filas; el CSV contiene todas.</p>':''}`:'<p class="muted">Aún no hay registros.</p>';
+}
+function csv(){
+  const q=s=>String(s).replace(/;/g,',').replace(/[\r\n]+/g,' ');
+  const lines=['N;Tipo;Detalle;Valor/Respuesta;Resultado',...ST.log.map(r=>[r.n,r.tipo,r.det,r.val,r.res].map(q).join(';'))];
+  const blob=new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='registro_esquemas_electricos.csv';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+function logReading(){
+  const m=updateMeter();if(!m.v||m.v==='- - -'||m.v==='LOCK')return;
+  const ctx=ST.hidden?'Caso oculto: '+ST.ex.sc.t:(ST.fault==='none'?'Sin avería':'Avería: '+FAULTS[ST.fault].n);
+  addLog('Medición',`Roja: ${TPS[ST.meter.red].l} · Negra: ${TPS[ST.meter.black].l}`,m.v+' '+m.u,ctx);
+}
+
+/* ======================= EVENTOS ======================= */
+function toggleComp(c){
+  if(c==='D')ST.D=ST.D?0:1;else if(c==='E1')ST.E1=ST.E1?0:1;else if(c==='E4')ST.E4=ST.E4==='b'?'a':'b';else if(c==='F')ST.F=ST.F?0:1;else return false;
+  syncControls();return true;
+}
+svg.addEventListener('click',ev=>{
+  const tp=ev.target.closest('[data-tp]');
+  if(tp&&ST.click==='med'){
+    if(ST.meter.mode==='OFF')return;
+    if(ST.meter.place==='red')ST.meter.red=tp.dataset.tp;else ST.meter.black=tp.dataset.tp;
+    render();return;
+  }
+  const w=ev.target.closest('[data-w]');const c=ev.target.closest('[data-c]');
+  if(ST.ex&&ST.ex.step===1&&ST.tab==='sigue'){
+    if(c){exClick(c.dataset.c);}else if(w){ST.ex.msg=['i','Haga clic sobre los componentes (o las líneas 30, 15, X y 31), no sobre los cables.'];render();}
+    return;
+  }
+  if(w){ST.sel={t:'w',id:w.dataset.w};ST.hl.clear();render();return;}
+  if(c){const id=c.dataset.c;const was=ST.sel&&ST.sel.id===id;
+    if(COMP[id].sw)toggleComp(id);
+    if(!(ST.ex&&ST.ex.step>=2))ST.hl.clear();
+    ST.sel=was&&!COMP[id].sw?null:{t:'c',id};render();return;}
+});
+$('mId').onclick=()=>{ST.click='id';render();};
+$('mMed').onclick=()=>{ST.click='med';if(ST.meter.mode==='OFF')ST.meter.mode='V';render();};
+$('btnClrSel').onclick=()=>{ST.sel=null;ST.hl.clear();ST.flashTerm=null;render();};
+document.querySelectorAll('#modes button').forEach(b=>b.onclick=()=>{ST.meter.mode=b.dataset.m;render();});
+$('pRed').onclick=()=>{ST.meter.place='red';ST.click='med';render();};
+$('pBlk').onclick=()=>{ST.meter.place='black';ST.click='med';render();};
+$('btnLog').onclick=logReading;
+$('btnCsv').onclick=csv;
+$('btnClr').onclick=()=>{ST.log=[];drawLog();};
+$('btnReset').onclick=()=>{Object.assign(ST,DEF);updF18();if(!ST.hidden){ST.fault='none';}ST.blown.clear();ST.events=[];ST.sel=null;if(!ST.ex)ST.hl.clear();buildControls();render();};
+$('btnFuses').onclick=()=>{ST.blown.clear();ST.events=[];render();};
+$('qNew').onclick=newQuiz;$('qChk').onclick=checkQuiz;
+
+const TABS=[['plano','Plano de corriente'],['bornes','Bornes DIN 72552'],['simb','Simbología'],['sigue','Sigue la corriente'],['eval','Evaluación']];
+function setTab(k){ST.tab=k;
+  $('tabs').innerHTML=TABS.map(([id,n])=>`<button data-t="${id}" class="${id===k?'on':''}">${n}</button>`).join('');
+  $('tabs').querySelectorAll('button').forEach(b=>b.onclick=()=>setTab(b.dataset.t));
+  $('planoView').classList.toggle('hidden',!(k==='plano'||k==='sigue'));
+  $('exView').classList.toggle('hidden',k!=='sigue');
+  $('bornesView').classList.toggle('hidden',k!=='bornes');
+  $('simbView').classList.toggle('hidden',k!=='simb');
+  $('evalView').classList.toggle('hidden',k!=='eval');
+  $('paramCard').classList.toggle('hidden',!(k==='plano'||k==='sigue'));
+  if(k==='eval'&&!ST.quiz)newQuiz();
+  render();
+}
+function render(){
+  compute();drawPlano();updateMeter();updateInfo();updateResults();updateMsgs();
+  $('mId').classList.toggle('on',ST.click==='id');$('mMed').classList.toggle('on',ST.click==='med');
+  if(ST.tab==='sigue')drawEx();
+}
+updF18();buildControls();buildEqs();buildBornes();buildSym();buildEx();drawLog();setTab('plano');
+</script>
+</body>
+</html>

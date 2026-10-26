@@ -1,0 +1,910 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Simulador Método V4</title>
+<style>
+:root{--bg:#f3f5f8;--card:#fff;--ink:#1c2533;--muted:#5b6778;--line:#d9dfe7;--brand:#12355b;--brand2:#1f5a94;--accent:#e07b00;--ok:#1d8a4e;--okbg:#e6f4ec;--bad:#c62828;--badbg:#fdecea;--warnbg:#fff4e0;--wire:#2b3440;--flow:#ffb300}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.45}
+header{background:linear-gradient(90deg,var(--brand),var(--brand2));color:#fff;padding:14px 22px}
+header h1{margin:0;font-size:1.35rem;font-weight:600}
+header p{margin:3px 0 0;opacity:.85;font-size:.9rem}
+main{max-width:1320px;margin:0 auto;padding:16px;display:grid;grid-template-columns:minmax(0,1.75fr) minmax(320px,1fr);gap:16px}
+@media(max-width:980px){main{grid-template-columns:1fr}}
+section,aside{min-width:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:16px}
+.card h2{font-size:1.02rem;margin:0 0 10px;color:var(--brand)}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.tabs button,.btn{border:1px solid var(--line);background:#fff;color:var(--ink);padding:7px 13px;border-radius:7px;cursor:pointer;font-size:.9rem}
+.tabs button.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+.btn:hover,.tabs button:hover{border-color:var(--brand2)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.small{padding:4px 9px;font-size:.82rem}
+svg#circ{width:100%;height:auto;background:#fbfcfe;border:1px solid var(--line);border-radius:8px;user-select:none;display:block}
+.wire{stroke:var(--wire);stroke-width:3;stroke-linecap:round;stroke-linejoin:round;fill:none}
+.wire.sc{stroke:var(--bad);stroke-dasharray:8 5}
+.wire.ctl{stroke-width:2}
+.hit{stroke:transparent;stroke-width:20;cursor:pointer;fill:none}
+.el.sel .wire{stroke:var(--accent)}
+.flow{fill:none;stroke:var(--flow);stroke-width:4;stroke-dasharray:3 15;stroke-linecap:round;pointer-events:none}
+.sym{stroke:var(--wire);stroke-width:2.4;fill:#fff}
+.lbl{font-size:13px;fill:var(--ink);font-weight:600}
+.lbl2{font-size:12px;fill:var(--muted)}
+.node circle{fill:#fff;stroke:var(--brand);stroke-width:2.5;cursor:pointer}
+.node:hover circle{fill:#dbe9f7}
+.node text{font-size:13px;font-weight:700;fill:var(--brand);pointer-events:none}
+.clk{cursor:pointer}
+.ctl{margin-bottom:10px}
+.ctl label{display:block;font-size:.86rem;color:var(--muted);margin-bottom:3px}
+.ctl .row{display:flex;gap:8px;align-items:center}
+.ctl input[type=range]{flex:1;min-width:0}
+.ctl input[type=number]{width:90px;padding:4px 6px;border:1px solid var(--line);border-radius:6px}
+.ctl select{padding:5px 6px;border:1px solid var(--line);border-radius:6px;min-width:130px;max-width:100%}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:4px 18px}
+@media(max-width:620px){.grid2{grid-template-columns:1fr}}
+.eq{background:#f7f9fc;border-left:4px solid var(--brand2);padding:10px 14px;border-radius:6px;font-size:.92rem}
+.eq p{margin:5px 0}
+.f{font-family:"Cambria Math","Times New Roman",serif;font-size:1.05rem}
+/* multímetro */
+.meter{background:#39414d;border-radius:14px;padding:14px;color:#fff;box-shadow:inset 0 0 0 3px #e0a100}
+.lcd{background:#b9c9a4;color:#1d2616;border-radius:6px;padding:10px 12px;font-family:"Consolas","Courier New",monospace;display:flex;justify-content:space-between;align-items:flex-end;min-height:66px;box-shadow:inset 0 2px 6px rgba(0,0,0,.35)}
+.lcd .val{font-size:2.2rem;font-weight:700;letter-spacing:1px}
+.lcd .unit{font-size:1.2rem;font-weight:700}
+.lcd .fn{font-size:.8rem;align-self:flex-start}
+.lcd .beep{font-size:.8rem;align-self:flex-start;margin-left:8px;font-weight:700}
+.modes{display:flex;gap:6px;margin:12px 0 8px}
+.modes button{flex:1;padding:9px 0;border-radius:8px;border:0;background:#555f6d;color:#fff;font-weight:700;cursor:pointer;font-size:.95rem}
+.modes button.on{background:#e0a100;color:#1c1c1c}
+.probes{display:flex;gap:6px;align-items:center;font-size:.85rem;flex-wrap:wrap}
+.probes button{border:0;border-radius:6px;padding:5px 10px;cursor:pointer;font-weight:600}
+.pr{background:#e53935;color:#fff;opacity:.55}.pb{background:#111;color:#fff;opacity:.55;border:1px solid #888!important}
+.probes button.on{opacity:1;outline:2px solid #fff}
+.quick{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;font-size:.85rem;align-items:center}
+.quick button{border:0;border-radius:6px;padding:5px 9px;cursor:pointer;font-weight:700;background:#dfe6ee;color:#12355b}
+.mnote{font-size:.83rem;color:#e7ecf2;margin-top:8px;min-height:2.4em}
+.mstat{font-size:.8rem;color:#c6cfda;margin-top:6px}
+table{border-collapse:collapse;width:100%;font-size:.88rem}
+th,td{border-bottom:1px solid var(--line);padding:5px 6px;text-align:right}
+th:first-child,td:first-child{text-align:left}
+th{background:#eef2f7;color:var(--brand);font-weight:600}
+tr.tot td{font-weight:700;background:#f7f9fc}
+td input{width:74px;padding:3px 5px;border:1px solid var(--line);border-radius:5px;text-align:right}
+td input.ok{background:var(--okbg);border-color:var(--ok)}
+td input.bad{background:var(--badbg);border-color:var(--bad)}
+.st-ok{color:var(--ok);font-weight:700}.st-bad{color:var(--bad);font-weight:700}
+.msgs div{padding:7px 10px;border-radius:6px;margin-bottom:6px;font-size:.87rem}
+.msgs .w{background:var(--warnbg);border-left:4px solid var(--accent)}
+.msgs .e{background:var(--badbg);border-left:4px solid var(--bad)}
+.msgs .i{background:#e8f1fb;border-left:4px solid var(--brand2)}
+.msgs .o{background:var(--okbg);border-left:4px solid var(--ok)}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center}
+.switch{display:flex;align-items:center;gap:8px;font-size:.9rem;margin:6px 0}
+details summary{cursor:pointer;font-weight:600;color:var(--brand)}
+details ol{padding-left:20px;margin:8px 0}
+details li{margin-bottom:4px}
+.score{font-weight:700;margin-left:6px}
+.muted{color:var(--muted);font-size:.85rem}
+.sympt{margin-top:8px;padding:8px 10px;border-radius:7px;background:#f7f9fc;border:1px solid var(--line);font-size:.9rem}
+.sympt b{color:var(--brand)}
+.dx{display:grid;grid-template-columns:1fr;gap:6px;margin-top:10px}
+.dx label{font-size:.86rem;color:var(--muted)}
+.dx select{width:100%;padding:5px 6px;border:1px solid var(--line);border-radius:6px}
+.fb{margin-top:10px;font-size:.88rem}
+.fb p{margin:6px 0}
+.counter{display:inline-block;background:#12355b;color:#fff;border-radius:12px;padding:2px 10px;font-size:.82rem;font-weight:700}
+.reftbl td,.reftbl th{font-size:.84rem}
+footer{text-align:center;color:var(--muted);font-size:.8rem;padding:10px 0 24px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Simulador 3 · Localización de averías por caída de tensión (método V4)</h1>
+  <p>Electricidad Automotriz · Práctica 3: Localización de averías por caída de tensión · Tecnología Superior en Mecánica Automotriz · ISTS</p>
+</header>
+
+<main>
+<section>
+  <div class="card">
+    <div class="tabs" id="tabs"></div>
+    <svg id="circ" viewBox="0 0 800 450" aria-label="Esquema del circuito"></svg>
+    <div class="muted" style="margin-top:6px">Los puntos amarillos en movimiento representan el sentido convencional de la corriente (de + a −); su velocidad aumenta con la intensidad. Haga clic en el interruptor o pulsador <b>S</b> para accionarlo. Los círculos (B+, A, B, 30, 87, D, E, H, G1, B−, K, 86, 85) son los puntos de prueba.</div>
+    <div class="sympt" id="sympt"></div>
+  </div>
+
+  <div class="card">
+    <h2>Parámetros del circuito</h2>
+    <div class="grid2" id="controls"></div>
+    <div class="grid2" id="faultCtl"></div>
+    <div class="bar">
+      <button class="btn" id="btnReset">Restablecer circuito</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Ecuaciones de trabajo y valores de referencia</h2>
+    <div class="eq" id="eqs"></div>
+    <div id="refTbl" style="margin-top:10px"></div>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>¿Cómo usar el simulador?</summary>
+      <ol>
+        <li>Elija el circuito en las pestañas: faro de cruce, electroventilador del radiador o bocinas. Todos tienen relé, fusible, conector C1 y punto de masa G1.</li>
+        <li>Encienda el circuito (interruptor o pulsador <b>S</b>). El método V4 se aplica <b>siempre con el circuito cargado y funcionando</b>: sin corriente, una resistencia alta no produce caída de tensión (ΔU = I · R = 0).</li>
+        <li><b>Voltímetro (V⎓):</b> elija la punta roja o negra y haga clic en un punto de prueba para colocarla. Si hace clic sobre un componente o un tramo de cable, las dos puntas se colocan en sus extremos y se mide su caída de tensión. Los botones V1…V4 colocan las puntas en la posición de cada medición.</li>
+        <li>Mida <b>V1</b> (bornes de la batería), <b>V2</b> (entrada + a salida − del receptor), <b>V3</b> (borne + de la batería → entrada + del receptor) y <b>V4</b> (salida − del receptor → borne − de la batería). Compruebe que V1 = V2 + V3 + V4.</li>
+        <li>Si V3 o V4 superan el valor orientativo, mida la caída <b>tramo por tramo</b> en ese lado (cable, fusible, relé, conector, masa) hasta encontrar dónde se concentra.</li>
+        <li><b>Óhmetro (Ω):</b> solo mide sin tensión en los puntos de prueba. Apague el circuito y, si hace falta, desconecte la batería o el conector C1. Observe que una conexión de 0,5 Ω pasa la prueba de continuidad, pero con carga produce una caída importante.</li>
+        <li><b>Amperímetro (A⎓):</b> haga clic sobre un componente o cable para intercalarlo <b>en serie</b> (rango 20 A).</li>
+        <li><b>Modo evaluación:</b> el simulador oculta una avería aleatoria. Anote V1–V4 en las casillas, localice la falla con el menor número de mediciones posible, elija el tramo y el tipo de avería y pulse «Comprobar». «Nuevo caso» genera otra avería.</li>
+        <li>Use «Registrar lectura» para llenar la tabla de mediciones y descárguela en formato CSV (se abre con Excel).</li>
+      </ol>
+    </details>
+  </div>
+</section>
+
+<aside>
+  <div class="card">
+    <h2>Multímetro digital</h2>
+    <div class="meter">
+      <div class="lcd"><span><span class="fn" id="lcdFn">V⎓</span><span class="beep" id="lcdBeep"></span></span><span><span class="val" id="lcdVal">- - -</span> <span class="unit" id="lcdUnit">V</span></span></div>
+      <div class="modes" id="modes">
+        <button data-m="V" class="on">V⎓</button><button data-m="A">A⎓</button><button data-m="R">Ω</button><button data-m="OFF">OFF</button>
+      </div>
+      <div class="probes">Colocar punta:
+        <button class="pr on" id="pRed">● Roja (V/Ω/A)</button>
+        <button class="pb" id="pBlk">● Negra (COM)</button>
+      </div>
+      <div class="quick" id="quick">Puntas para:
+        <button data-q="V1">V1</button><button data-q="V2">V2</button><button data-q="V3">V3</button><button data-q="V4">V4</button>
+      </div>
+      <div class="mstat" id="mstat"></div>
+      <div class="mnote" id="mnote"></div>
+      <div class="bar">
+        <button class="btn small" id="btnLog">Registrar lectura</button>
+        <button class="btn small" id="btnFuse" style="display:none">Reponer fusible del multímetro</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Avisos</h2>
+    <div class="msgs" id="msgs"></div>
+  </div>
+
+  <div class="card">
+    <h2>Método V4 · resultados y evaluación</h2>
+    <label class="switch"><input type="checkbox" id="evalMode"> Modo evaluación (avería oculta aleatoria)</label>
+    <div id="results"></div>
+    <div id="evalBox" style="display:none">
+      <div class="bar" style="margin-top:0"><button class="btn" id="btnNew">Nuevo caso</button><span>Mediciones realizadas: <span class="counter" id="measCnt">0</span></span></div>
+      <table style="margin-top:10px" id="evalTbl"></table>
+      <div class="dx">
+        <label for="dxEl">Componente o tramo averiado</label><select id="dxEl"></select>
+        <label for="dxType">Tipo de avería</label><select id="dxType"></select>
+      </div>
+      <div class="bar"><button class="btn primary" id="btnCheck">Comprobar</button><span id="score" class="score"></span></div>
+      <div class="fb" id="fb"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Registro de mediciones</h2>
+    <div id="logTbl"></div>
+    <div class="bar">
+      <button class="btn small" id="btnCsv">Descargar CSV</button>
+      <button class="btn small" id="btnClr">Limpiar registro</button>
+    </div>
+  </div>
+</aside>
+</main>
+<footer>Simulador didáctico · Carrera de Mecánica Automotriz · Instituto Superior Tecnológico Sudamericano · Resolución por análisis nodal modificado (MNA)</footer>
+
+<script>
+"use strict";
+const GMIN=1e-9, REF='B−', INF=Infinity;
+const RCOIL=80, PULL_V=7, PULL_I=PULL_V/RCOIL;   // relé: bobina ≈ 80 Ω, cierra con ≥ 7 V (orientativo)
+const FUSE_K=1.35;                                   // el fusible se funde si I > 1,35 · In (modelo simplificado)
+const LIM={V3:0.5,V4:0.2,conn:0.2,V2:0.7};             // valores orientativos
+
+/* ---------- definición de los circuitos ---------- */
+function commonEls(r,o){
+  // r: resistencias sanas (Ω) de cada tramo; o: particularidades
+  const E=o.E||[660,100],H=o.H||[660,320];
+  const L=[
+    {id:'wBA',type:'W',n1:'B+',n2:'A',R:r.bat,grp:'pos',name:'Cable batería → caja de fusibles (B+–A)'},
+    {id:'F',type:'F',n1:'A',n2:'B',R:r.fuse,grp:'pos',name:`Fusible F1 ${o.rating} A (A–B)`,lb:[217,74,'middle']},
+    {id:'w30',type:'W',n1:'B',n2:'30',R:r.w30,grp:'pos',name:'Cable fusible → borne 30 del relé (B–30)'},
+    {id:'K',type:'RC',n1:'30',n2:'87',R:r.K,grp:'pos',name:'Contactos 30–87 del relé'},
+    {id:'w87',type:'W',n1:'87',n2:'D',R:r.w87,grp:'pos',name:'Cable borne 87 → conector C1 (87–D)'},
+    {id:'C1',type:'CON',n1:'D',n2:'E',R:r.C1,grp:'pos',name:'Conector C1 (D–E)'},
+    {id:'wM',type:'W',n1:'H',n2:'G1',R:r.wM,grp:'neg',pts:[H,[H[0],400],[500,400]],name:'Cable de masa del receptor → punto G1 (H–G1)'},
+    {id:'wG',type:'W',n1:'G1',n2:'B−',R:r.wG,grp:'neg',name:'Masa carrocería G1 → borne − batería (G1–B−)'},
+    {id:'COIL',type:'COIL',n1:'86',n2:'85',R:RCOIL,grp:'ctl',name:'Bobina del relé (86–85)'},
+    {id:'SC',type:'SC',n1:'D',n2:'G1',R:0.01,grp:'fault',pts:[[o.D[0],100],[o.D[0],158]]}
+  ];
+  return L;
+}
+const TABS={
+  faro:{name:'Faro de cruce 55 W',kind:'LAMP',rating:15,loadName:'faro',swName:'Interruptor de luces',
+    nodes:{'B+':[70,100],A:[165,100],B:[270,100],'30':[370,100],'87':[500,100],D:[575,100],E:[660,100],H:[660,320],G1:[500,400],'B−':[70,400],K:[270,210],'86':[370,210],'85':[500,210]},
+    r:{bat:0.005,fuse:0.006,w30:0.005,K:0.015,w87:0.012,C1:0.005,wM:0.008,wG:0.006},
+    p:{V0:12.6,ri:0.02,P:55}},
+  vent:{name:'Electroventilador ≈ 15 A',kind:'MOTOR',rating:30,loadName:'electroventilador',swName:'Mando (termocontacto)',
+    nodes:{'B+':[70,100],A:[165,100],B:[270,100],'30':[370,100],'87':[500,100],D:[575,100],E:[660,100],H:[660,320],G1:[500,400],'B−':[70,400],K:[270,210],'86':[370,210],'85':[500,210]},
+    r:{bat:0.005,fuse:0.0025,w30:0.005,K:0.010,w87:0.006,C1:0.003,wM:0.005,wG:0.005},
+    p:{V0:12.6,ri:0.02,Rm:0.8}},
+  bocina:{name:'Bocinas 2 × 3,5 A',kind:'HORN',rating:15,loadName:'bocinas',swName:'Pulsador de bocina',
+    nodes:{'B+':[70,100],A:[165,100],B:[270,100],'30':[370,100],'87':[500,100],D:[560,100],E:[630,100],H:[630,320],G1:[500,400],'B−':[70,400],'86':[370,210],'85':[500,210],K:[500,300]},
+    r:{bat:0.005,fuse:0.006,w30:0.005,K:0.015,w87:0.010,C1:0.005,wM:0.008,wG:0.006},
+    p:{V0:12.6,ri:0.02}}
+};
+for(const k in TABS){
+  const T=TABS[k],N=T.nodes;
+  T.el=commonEls(T.r,{rating:T.rating,D:N.D,E:N.E,H:N.H});
+  if(k==='bocina'){
+    T.el.push({id:'LD',type:'HORN',n1:'E',n2:'H',grp:'load',name:'Bocina 1 (E–H)'});
+    T.el.push({id:'wE2',type:'W',n1:'E',n2:'E2',R:0.004,grp:'load',pts:[N.E,[745,100]]});
+    T.el.push({id:'LD2',type:'HORN',n1:'E2',n2:'H2',grp:'load',name:'Bocina 2',pts:[[745,100],[745,320]]});
+    T.el.push({id:'wH2',type:'W',n1:'H2',n2:'H',R:0.004,grp:'load',pts:[[745,320],N.H]});
+    T.el.push({id:'w86',type:'W',n1:'B',n2:'86',R:0.010,grp:'ctl',pts:[N.B,[270,210],N['86']]});
+    T.el.push({id:'w85',type:'W',n1:'85',n2:'K',R:0.010,grp:'ctl'});
+    T.el.push({id:'S',type:'S',n1:'K',n2:'G1',R:0.02,grp:'ctl',name:'Pulsador de bocina (K–G1)',push:true});
+  }else{
+    T.el.push({id:'LD',type:T.kind,n1:'E',n2:'H',grp:'load',name:k==='faro'?'Lámpara del faro (E–H)':'Motor del electroventilador (E–H)'});
+    T.el.push({id:'wK',type:'W',n1:'B',n2:'K',R:0.010,grp:'ctl'});
+    T.el.push({id:'S',type:'S',n1:'K',n2:'86',R:0.02,grp:'ctl',name:(k==='faro'?'Interruptor de luces':'Mando del electroventilador')+' (K–86)'});
+    T.el.push({id:'w85',type:'W',n1:'85',n2:'G1',R:0.010,grp:'ctl'});
+  }
+}
+const ORDER=['faro','vent','bocina'];
+const HID={E2:[745,100],H2:[745,320]};
+
+/* ---------- averías ---------- */
+const FAULTS={
+  none:{name:'Sin avería'},
+  conn_hr:{name:'Conector C1 con resistencia alta (corrosión)',el:'C1',kind:'hr',rmin:0.3,rmax:1.0},
+  gnd_hr:{name:'Masa deficiente',el:'wM',kind:'hr',rmin:0.2,rmax:1.0},
+  relay_hr:{name:'Contactos del relé quemados (0,3 Ω)',el:'K',kind:'hr',rmin:0.3,rmax:0.3},
+  fuse_open:{name:'Fusible fundido',el:'F',kind:'open'},
+  wire_open:{name:'Cable abierto',el:'w87',kind:'open'},
+  load_open:{name:'Receptor abierto',el:'LD',kind:'open'},
+  coil_open:{name:'Bobina del relé abierta (el relé no conmuta)',el:'COIL',kind:'open'},
+  short:{name:'Cortocircuito a masa en el cable 87–D (funde el fusible)',el:'w87',kind:'short'}
+};
+const PRACT=[['none'],['conn_hr','C1'],['gnd_hr','wM'],['gnd_hr','wG'],['relay_hr','K'],['fuse_open','F'],['wire_open','w87'],['wire_open','wM'],['load_open','LD'],['coil_open','COIL'],['short','w87']];
+const TYPES=[['hr','Resistencia alta (corrosión, contacto quemado, masa deficiente)'],['open','Circuito abierto (fusible fundido, cable cortado, bobina o receptor abierto)'],['short','Cortocircuito a masa']];
+const DXEL=['wBA','F','w30','K','w87','C1','LD','wM','wG','COIL','S'];
+
+function faultLabel(id,el){
+  const T=TABS[st.tab];
+  switch(id){
+    case 'gnd_hr':return el==='wG'?'Masa deficiente: cable/trenza G1 → borne − (G1–B−)':'Masa deficiente: cable de masa del receptor / punto G1 (H–G1)';
+    case 'wire_open':return el==='wM'?'Cable abierto en el lado de masa (H–G1)':'Cable abierto en el lado positivo (87–D)';
+    case 'load_open':return {faro:'Lámpara del faro abierta (filamento cortado)',vent:'Motor del electroventilador abierto (escobillas/bobinado)',bocina:'Bocina 1 abierta (bobina cortada)'}[st.tab];
+    default:return FAULTS[id].name;
+  }
+}
+
+/* ---------- estado ---------- */
+const st={tab:'faro',mode:'V',place:'red',red:null,black:'B−',ampEl:null,meterFuse:true,sw:true,c1Off:false,batOff:false,fuseBlown:false,
+  fault:{id:'none'},sev:0.6,evalOn:false,evalChecked:false,meas:0,measKeys:new Set(),pend:null,log:[],events:[],P:{}};
+for(const k of ORDER)st.P[k]={...TABS[k].p};
+let SOL=null;
+const flowOff={};let flows=[];let fanG=null,fanAng=0,fanSpeed=0,snd=[];
+const $=id=>document.getElementById(id);
+const svg=$('circ');
+const T=()=>TABS[st.tab];
+const PP=()=>st.P[st.tab];
+const elOf=id=>T().el.find(e=>e.id===id);
+
+/* ---------- formato ---------- */
+function nf(x,d){return x.toLocaleString('es-EC',{minimumFractionDigits:d,maximumFractionDigits:d,useGrouping:false});}
+function dec(x){const a=Math.abs(x);return a<1?3:a<100?2:1;}
+function fmtV(v){if(Math.abs(v)<0.0005)v=0;return nf(v,dec(v));}
+function fmtA(i){const a=Math.abs(i);return a<1?nf(i*1000,1)+' mA':nf(i,2)+' A';}
+function fmtR(r){if(!isFinite(r))return 'OL';if(r>=1000)return nf(r/1000,3)+' kΩ';return nf(r,r<1?3:r<100?2:1)+' Ω';}
+function parseNum(s){if(s==null)return NaN;s=String(s).trim().replace(',','.');return s===''?NaN:Number(s);}
+
+/* ---------- solucionador (MNA) ---------- */
+function gauss(A,b){
+  const n=b.length;
+  for(let c=0;c<n;c++){
+    let p=c;for(let r=c+1;r<n;r++)if(Math.abs(A[r][c])>Math.abs(A[p][c]))p=r;
+    [A[c],A[p]]=[A[p],A[c]];[b[c],b[p]]=[b[p],b[c]];
+    const d=A[c][c];if(Math.abs(d)<1e-300)continue;
+    for(let r=c+1;r<n;r++){const f=A[r][c]/d;if(f===0)continue;for(let k=c;k<n;k++)A[r][k]-=f*A[c][k];b[r]-=f*b[c];}
+  }
+  const x=new Float64Array(n);
+  for(let r=n-1;r>=0;r--){let s=b[r];for(let k=r+1;k<n;k++)s-=A[r][k]*x[k];x[r]=Math.abs(A[r][r])<1e-300?0:s/A[r][r];}
+  return x;
+}
+function mna(list,src,inj){
+  const names=new Set();
+  list.forEach(x=>{names.add(x.n1);names.add(x.n2);});
+  if(src){names.add(src.np);names.add(src.nn);}
+  if(inj){names.add(inj.a);names.add(inj.b);}
+  names.delete(REF);
+  const idx={};let n=0;for(const k of names)idx[k]=n++;
+  const m=n+(src?1:0);
+  const A=Array.from({length:m},()=>new Float64Array(m)),b=new Float64Array(m);
+  for(let i=0;i<n;i++)A[i][i]+=GMIN;
+  for(const x of list){
+    const g=1/x.R,i=idx[x.n1],j=idx[x.n2];
+    if(i!==undefined)A[i][i]+=g;if(j!==undefined)A[j][j]+=g;
+    if(i!==undefined&&j!==undefined){A[i][j]-=g;A[j][i]-=g;}
+  }
+  if(src){const k=n,i=idx[src.np],j=idx[src.nn];
+    if(i!==undefined){A[i][k]+=1;A[k][i]+=1;} if(j!==undefined){A[j][k]-=1;A[k][j]-=1;} b[k]=src.V;}
+  if(inj){const i=idx[inj.a],j=idx[inj.b];if(i!==undefined)b[i]+=inj.I;if(j!==undefined)b[j]-=inj.I;}
+  const x=gauss(A,b);
+  const V={};V[REF]=0;for(const k in idx)V[k]=x[idx[k]];
+  return {V,Is:src?x[n]:0};
+}
+function loadR(e,ohm){
+  const p=PP();
+  switch(e.type){
+    case 'LAMP':{const Rh=144/p.P;return ohm?Rh/10:Rh;}      // filamento caliente U²/P; frío ≈ 1/10
+    case 'MOTOR':return ohm?0.25:p.Rm;                          // en giro (incluye f.c.e.m.) / inducido parado
+    case 'HORN':return ohm?2.0:12/3.5;                          // 3,5 A a 12 V (valor medio) / bobina en reposo
+    default:return e.R;
+  }
+}
+function elR(e,o){
+  const f=o.fault||st.fault,hit=f.id!=='none'&&f.el===e.id;
+  switch(e.type){
+    case 'S':if(!o.sw)return INF;break;
+    case 'F':if(o.fuseBlown)return INF;break;
+    case 'RC':if(!o.relay)return INF;break;
+    case 'CON':if(o.c1Off)return INF;break;
+    case 'SC':return f.id==='short'?e.R:INF;
+  }
+  const base=loadR(e,o.ohm);
+  if(hit){const k=FAULTS[f.id].kind;
+    if(k==='hr')return base+f.R;
+    if(k==='open'&&e.type!=='F')return INF;}
+  return base;
+}
+function buildList(o){
+  const L=[];
+  for(const e of T().el){const R=elR(e,o);if(!isFinite(R))continue;L.push({e,n1:e.n1,n2:e.n2,R:Math.max(R,1e-5)});}
+  if(!o.ohm&&!o.batOff)L.push({e:{id:'_ri'},n1:'_Bi',n2:'B+',R:PP().ri});
+  return L;
+}
+function solveState(o){
+  let blown=o.fuseBlown,relay=false,list,r,Iblow=0;
+  const cur=(id)=>{const x=list.find(y=>y.e.id===id);return x?((r.V[x.n1]||0)-(r.V[x.n2]||0))/x.R:0;};
+  for(let pass=0;pass<3;pass++){
+    relay=false;
+    for(let it=0;it<6;it++){
+      list=buildList({...o,fuseBlown:blown,relay,ohm:false});
+      r=o.batOff?{V:{[REF]:0},Is:0}:mna(list,{np:'_Bi',nn:REF,V:PP().V0});
+      const nr=cur('COIL')>=PULL_I;
+      if(nr===relay)break;relay=nr;
+    }
+    const IF=Math.abs(cur('F'));
+    if(!blown&&IF>FUSE_K*T().rating){blown=true;Iblow=IF;continue;}
+    break;
+  }
+  const I={};for(const x of list)I[x.e.id]=((r.V[x.n1]||0)-(r.V[x.n2]||0))/x.R;
+  const V={...r.V};
+  for(const k in T().nodes)if(V[k]===undefined)V[k]=0;
+  for(const k in HID)if(V[k]===undefined)V[k]=0;
+  const Iload=Math.abs(I.LD||0)+Math.abs(I.LD2||0);
+  const d=(a,b)=>V[a]-V[b];
+  return {V,I,It:-r.Is,relay,blown,Iblow,Iload,Icoil:cur('COIL'),
+    V1:d('B+','B−'),V2:d('E','H'),V3:d('B+','E'),V4:d('H','B−')};
+}
+function compute(){
+  SOL=solveState({sw:st.sw,c1Off:st.c1Off,batOff:st.batOff,fuseBlown:st.fuseBlown});
+  if(SOL.blown&&!st.fuseBlown){
+    st.fuseBlown=true;
+    event('e',`Fusible F1 de ${T().rating} A fundido: al conmutar el relé la corriente llegó a ${nf(SOL.Iblow,0)} A. Haga clic sobre el fusible para reponerlo (si la causa persiste, volverá a fundirse).`);
+  }
+}
+function refState(){ // estado de referencia del método V4: circuito encendido y conectado
+  return solveState({sw:true,c1Off:false,batOff:false,fuseBlown:st.fault.id==='fuse_open'});
+}
+function ohmMeasure(a,b){
+  if(a===b)return {R:0};
+  if(!st.batOff&&(Math.abs(SOL.It)>1e-3||Math.abs(SOL.V[a]||0)>0.05||Math.abs(SOL.V[b]||0)>0.05))return {err:'energ'};
+  const L=buildList({sw:st.sw,c1Off:st.c1Off,fuseBlown:st.fuseBlown,relay:false,ohm:true});
+  const adj={};L.forEach(x=>{(adj[x.n1]??=[]).push(x.n2);(adj[x.n2]??=[]).push(x.n1);});
+  const seen=new Set([a]),stack=[a];
+  while(stack.length){const u=stack.pop();for(const v of adj[u]||[])if(!seen.has(v)){seen.add(v);stack.push(v);}}
+  if(!seen.has(b))return {R:INF};
+  const r=mna(L,null,{a,b,I:1});
+  const R=r.V[a]-r.V[b];
+  return {R:R>2e7?INF:R};
+}
+
+/* ---------- dibujo ---------- */
+const nodePos=n=>T().nodes[n]||HID[n];
+function ptsOf(e){return e.pts||[nodePos(e.n1),nodePos(e.n2)];}
+function speedOf(I){return 14+22*Math.log10(1+Math.abs(I)*1000);}
+function symbol(e,G){
+  const f=st.fault,shown=!st.evalOn||st.evalChecked,hit=shown&&f.id!=='none'&&f.el===e.id;
+  switch(e.type){
+    case 'F':return st.fuseBlown
+      ?`<g class="clk"><rect x="-18" y="-8" width="36" height="16" rx="3" class="sym" style="stroke:#c62828"/><polyline points="-18,0 -5,0 -1,-5 3,5 6,0" fill="none" stroke="#c62828" stroke-width="2"/><line x1="10" y1="0" x2="18" y2="0" stroke="#c62828" stroke-width="2"/></g>`
+      :`<rect x="-18" y="-8" width="36" height="16" rx="3" class="sym"/><line x1="-18" y1="0" x2="18" y2="0" class="sym"/>`;
+    case 'S':case 'RC':{const c=e.type==='S'?st.sw:SOL.relay;const col=(e.type==='RC'&&hit)?'#8d4a00':'#2b3440';
+      return `<g class="${e.type==='S'?'clk':''}"><rect x="-22" y="-22" width="44" height="32" fill="transparent"/><circle cx="-18" cy="0" r="3.5" fill="${col}"/><circle cx="18" cy="0" r="3.5" fill="${col}"/>
+      <line x1="-18" y1="0" x2="${c?18:13}" y2="${c?0:-15}" stroke="${col}" stroke-width="3" stroke-linecap="round"/>${e.push?'<line x1="0" y1="-4" x2="0" y2="-20" stroke="#2b3440" stroke-width="2"/><line x1="-6" y1="-20" x2="6" y2="-20" stroke="#2b3440" stroke-width="2"/>':''}</g>`;}
+    case 'COIL':{const on=Math.abs(SOL.Icoil)>1e-3;
+      return `<rect x="-20" y="-11" width="40" height="22" class="sym" style="fill:${on?'#dbe9f7':'#fff'};${hit?'stroke:#c62828':''}"/><line x1="-20" y1="11" x2="20" y2="-11" class="sym" style="${hit?'stroke:#c62828':''}"/>`;}
+    case 'CON':{const cor=hit?'#9ccc65':'#fff';
+      return st.c1Off
+      ?`<rect x="-24" y="-9" width="14" height="18" rx="2" class="sym"/><rect x="10" y="-9" width="14" height="18" rx="2" class="sym"/>`
+      :`<rect x="-15" y="-9" width="14" height="18" rx="2" class="sym"/><rect x="1" y="-9" width="14" height="18" rx="2" class="sym" style="fill:${cor}"/>`;}
+    case 'LAMP':{const g=Math.max(0,Math.min(1,G));
+      return `<circle r="30" fill="#ffd54f" opacity="${(g*0.5).toFixed(2)}"/><circle r="15" class="sym" style="fill:rgba(255,213,0,${g.toFixed(2)});${hit?'stroke:#c62828':''}"/>
+        <line x1="-10.6" y1="-10.6" x2="10.6" y2="10.6" class="sym"/><line x1="-10.6" y1="10.6" x2="10.6" y2="-10.6" class="sym"/>`;}
+    case 'MOTOR':return `<circle r="18" class="sym" style="${hit?'stroke:#c62828':''}"/>`;
+    case 'HORN':return `<rect x="-12" y="-9" width="24" height="18" class="sym" style="${hit&&e.id==='LD'?'stroke:#c62828':''}"/>`;
+    case 'B':return `<line x1="-6" y1="-9" x2="-6" y2="9" stroke="#2b3440" stroke-width="6"/><line x1="6" y1="-20" x2="6" y2="20" stroke="#2b3440" stroke-width="2.5"/>`;
+    default:return '';
+  }
+}
+const HALF={F:18,S:18,RC:18,COIL:20,CON:15,LAMP:15,MOTOR:18,HORN:12,B:8};
+function elemSVG(e,I,G){
+  const P=ptsOf(e);
+  const sel=(st.mode==='A'&&st.ampEl===e.id)?' sel':'';
+  let g=`<g class="el${sel}" data-id="${e.id}">`;
+  const pl=P.map(p=>p.join(',')).join(' ');
+  g+=`<polyline class="hit" points="${pl}"/>`;
+  const half=HALF[e.type]||0;
+  const cls='wire'+(e.type==='SC'?' sc':'')+(e.grp==='ctl'?' ctl':'');
+  if(half){
+    const [x1,y1]=P[0],[x2,y2]=P[P.length-1],dx=x2-x1,dy=y2-y1,L=Math.hypot(dx,dy),ux=dx/L,uy=dy/L,mx=(x1+x2)/2,my=(y1+y2)/2,ang=Math.atan2(dy,dx)*180/Math.PI;
+    const h2=e.type==='CON'&&st.c1Off?24:half;
+    g+=`<line class="${cls}" x1="${x1}" y1="${y1}" x2="${mx-ux*h2}" y2="${my-uy*h2}"/><line class="${cls}" x1="${mx+ux*h2}" y1="${my+uy*h2}" x2="${x2}" y2="${y2}"/>`;
+    if(Math.abs(I)>1e-6)g+=`<path class="flow" data-id="${e.id}" data-dir="${I>0?1:-1}" data-speed="${speedOf(I).toFixed(1)}" d="M${x1} ${y1}L${x2} ${y2}"/>`;
+    g+=`<g transform="translate(${mx} ${my}) rotate(${ang})">${symbol(e,G)}</g>`;
+    if(e.type==='MOTOR')g+=`<text x="${mx}" y="${my+6}" text-anchor="middle" font-weight="700" font-size="17" fill="#2b3440" pointer-events="none">M</text>`;
+    if(e.type==='HORN'){g+=`<polygon points="${mx+12},${my-6} ${mx+30},${my-16} ${mx+30},${my+16} ${mx+12},${my+6}" class="sym"/>`;
+      if(G>0.05)g+=`<g class="snd" data-g="${G.toFixed(2)}" pointer-events="none"><path d="M${mx+38} ${my-12}Q${mx+46} ${my} ${mx+38} ${my+12}" stroke="#1f5a94" stroke-width="2.4" fill="none"/><path d="M${mx+46} ${my-18}Q${mx+57} ${my} ${mx+46} ${my+18}" stroke="#1f5a94" stroke-width="2.4" fill="none"/></g>`;}
+  }else{
+    g+=`<polyline class="${cls}" points="${pl}"/>`;
+    if(Math.abs(I)>1e-6)g+=`<path class="flow" data-id="${e.id}" data-dir="${I>0?1:-1}" data-speed="${speedOf(I).toFixed(1)}" d="M${P.map(p=>p.join(' ')).join('L')}"/>`;
+    if(e.type==='SC'){const [x,y]=P[P.length-1];g+=groundSym(x,y,'#c62828')+`<text class="lbl" x="${x+14}" y="${y-4}" style="fill:#c62828">Corto a masa</text>`;}
+  }
+  g+='</g>';
+  return g;
+}
+function groundSym(x,y,col){col=col||'#2b3440';return `<g pointer-events="none"><line x1="${x}" y1="${y}" x2="${x}" y2="${y+8}" stroke="${col}" stroke-width="2.5"/><line x1="${x-14}" y1="${y+8}" x2="${x+14}" y2="${y+8}" stroke="${col}" stroke-width="2.5"/><line x1="${x-9}" y1="${y+13}" x2="${x+9}" y2="${y+13}" stroke="${col}" stroke-width="2.5"/><line x1="${x-4}" y1="${y+18}" x2="${x+4}" y2="${y+18}" stroke="${col}" stroke-width="2.5"/></g>`;}
+function txt(x,y,s,cls,anchor){return `<text class="${cls||'lbl'}" x="${x}" y="${y}"${anchor?` text-anchor="${anchor}"`:''}>${s}</text>`;}
+function loadGlow(){
+  const p=PP(),V=SOL.V;
+  if(st.tab==='faro'){const P=Math.abs((V.E-V.H)*(SOL.I.LD||0));return P/p.P;}
+  if(st.tab==='vent')return Math.abs(SOL.I.LD||0)>0.05?Math.max(0,(V.E-V.H)/12):0;
+  return 0;
+}
+function drawSVG(){
+  const Tb=T(),N=Tb.nodes,shown=!st.evalOn||st.evalChecked;let s='';
+  // caja del relé y rótulos fijos
+  s+=`<rect x="345" y="72" width="180" height="178" rx="8" fill="#f3f7fc" stroke="#9fb3c8" stroke-dasharray="6 4"/>`;
+  s+=txt(435,140,'Relé K1','lbl','middle')+txt(435,157,SOL.relay?'contacto 30–87 cerrado':'contacto 30–87 abierto','lbl2','middle');
+  s+=txt(435,243,`bobina ${RCOIL} Ω`,'lbl2','middle');
+  for(const e of Tb.el){
+    if(e.type==='SC'&&!(st.fault.id==='short'&&shown))continue;
+    const I=SOL.I[e.id]??0;
+    let G=0;
+    if(e.id==='LD'||e.id==='LD2'){
+      if(Tb.kind==='HORN'){const U=SOL.V[e.n1]-SOL.V[e.n2];G=Math.abs(I)>0.05?Math.max(0,Math.min(1,U/12)):0;}
+      else G=loadGlow();
+    }
+    s+=elemSVG(e,I,G);
+  }
+  // batería
+  s+=elemSVG({id:'BAT',type:'B',n1:'B−',n2:'B+'},SOL.It,0);
+  const p=PP();
+  s+=txt(92,238,'Batería')+txt(92,255,`${nf(p.V0,1)} V · rᵢ ${nf(p.ri,3)} Ω`,'lbl2')+txt(82,142,'+','lbl')+(st.batOff?txt(92,272,'borne − desconectado','lbl2'):'');
+  // rótulos de componentes
+  s+=txt(217,76,'F1','lbl','middle')+txt(217,128,st.fuseBlown?`${Tb.rating} A · FUNDIDO`:`${Tb.rating} A`,'lbl2','middle');
+  const Dx=N.D[0],Ex=N.E[0];
+  s+=txt((Dx+Ex)/2,76,'C1','lbl','middle')+txt((Dx+Ex)/2,128,st.c1Off?'desconectado':'conector','lbl2','middle');
+  if(st.tab==='bocina'){
+    s+=txt(518,256,Tb.swName.replace(' de bocina',''),'lbl')+txt(518,272,st.sw?'pulsado':'suelto','lbl2');
+    s+=txt(Ex-10,158,'Bocina 1','lbl','end')+txt(Ex-10,174,'3,5 A','lbl2','end');
+    s+=txt(745-10,158,'Bocina 2','lbl','end')+txt(745-10,174,'3,5 A','lbl2','end');
+  }else{
+    s+=txt(320,186,st.tab==='faro'?'Interruptor':'Mando','lbl','middle')+txt(300,236,st.sw?'cerrado':'abierto','lbl2','middle');
+    if(st.tab==='faro')s+=txt(Ex+36,205,'Faro')+txt(Ex+36,222,`${nf(p.P,0)} W · ${nf(144/p.P,2)} Ω`,'lbl2');
+    else{
+      s+=txt(Ex+28,286,'Electroventilador','lbl')+txt(Ex+28,303,`R ≈ ${nf(p.Rm,2)} Ω en giro`,'lbl2');
+      s+=`<g id="fan" transform="translate(${Ex+80} 210)" pointer-events="none"><circle r="44" fill="none" stroke="#9fb3c8" stroke-width="1.5" stroke-dasharray="4 4"/>${[0,90,180,270].map(a=>`<path transform="rotate(${a})" d="M0 0 C8 -10 30 -14 38 -4 C30 2 12 4 0 0Z" fill="#8fa8c2" stroke="#2b3440" stroke-width="1.4"/>`).join('')}<circle r="6" fill="#2b3440"/></g>`;
+      s+=`<line x1="${Ex+18}" y1="210" x2="${Ex+74}" y2="210" stroke="#2b3440" stroke-width="3" pointer-events="none"/>`;
+    }
+  }
+  s+=groundSym(500,400)+txt(512,440,'G1 · masa en carrocería','lbl2');
+  s+=groundSym(70,400)+txt(84,440,'borne −','lbl2');
+  // amperímetro intercalado
+  if(st.mode==='A'&&st.ampEl){
+    const e=Tb.el.find(x=>x.id===st.ampEl);
+    if(e){const P=ptsOf(e);const [x1,y1]=P[0],[x2,y2]=P[1];const t=HALF[e.type]?0.2:0.5;const ax=x1+(x2-x1)*t,ay=y1+(y2-y1)*t;
+      s+=`<g pointer-events="none"><circle cx="${ax}" cy="${ay}" r="14" fill="#fff" stroke="#e07b00" stroke-width="3"/><text x="${ax}" y="${ay+5}" text-anchor="middle" font-weight="700" fill="#e07b00" font-size="15">A</text></g>`;}
+  }
+  // puntos de prueba
+  const LO={'B+':[-6,-14],'B−':[-30,-8],'30':[-14,-14],'87':[-4,-14],'86':[-30,22],'85':[8,22],G1:[8,-10],H:[10,18],E:[-4,-14],D:[-8,-14],A:[-6,-14],B:[-6,-14],K:[st.tab==='bocina'?10:-24,st.tab==='bocina'?4:4]};
+  for(const k in N){const [x,y]=N[k];const o=LO[k]||[-18,-11];
+    s+=`<g class="node" data-n="${k}"><circle cx="${x}" cy="${y}" r="7"/><text x="${x+o[0]}" y="${y+o[1]}">${k}</text></g>`;}
+  // puntas
+  if(!(st.mode==='A'&&st.ampEl)&&st.mode!=='OFF'){
+    const probe=(n,col,t,dy)=>{if(!n||!N[n])return '';const [x,y]=N[n];
+      return `<g pointer-events="none"><circle cx="${x}" cy="${y}" r="12" fill="none" stroke="${col}" stroke-width="3.5"/><rect x="${x+8}" y="${y+dy-9}" width="${t.length*8+8}" height="17" rx="4" fill="${col}"/><text x="${x+12}" y="${y+dy+4}" fill="#fff" font-size="11" font-weight="700">${t}</text></g>`;};
+    s+=probe(st.black,'#111','COM',st.red===st.black?22:14);
+    s+=probe(st.red,'#e53935',st.mode==='R'?'Ω':st.mode==='A'?'A':'V',-14);
+  }
+  svg.innerHTML=s;
+  flows=[...svg.querySelectorAll('path.flow')].map(p=>({p,id:p.dataset.id,dir:+p.dataset.dir,speed:+p.dataset.speed}));
+  fanG=svg.querySelector('#fan');
+  fanSpeed=st.tab==='vent'&&Math.abs(SOL.I.LD||0)>0.05?Math.max(0,SOL.V.E-SOL.V.H)*60:0; // °/s ∝ tensión
+  snd=[...svg.querySelectorAll('.snd')].map(g=>({g,G:+g.dataset.g}));
+}
+let last=performance.now();
+function tick(t){const dt=Math.min(0.05,(t-last)/1000);last=t;
+  for(const f of flows){let o=(flowOff[f.id]||0)-f.speed*dt*f.dir;o%=1800;flowOff[f.id]=o;f.p.style.strokeDashoffset=o;}
+  if(fanG&&fanSpeed>0){fanAng=(fanAng+fanSpeed*dt)%360;const tr=fanG.getAttribute('transform').replace(/ rotate\([^)]*\)/,'');fanG.setAttribute('transform',tr+` rotate(${fanAng.toFixed(1)})`);}
+  for(const s of snd){s.g.setAttribute('opacity',(0.25+0.75*s.G*(0.5+0.5*Math.sin(t/(60+60*(1-s.G))))).toFixed(2));}
+  requestAnimationFrame(tick);}
+requestAnimationFrame(tick);
+
+/* ---------- multímetro ---------- */
+function meter(){
+  switch(st.mode){
+    case 'OFF':return {v:'',u:'',note:'Instrumento apagado.'};
+    case 'V':{
+      if(!st.red||!st.black)return {v:'- - -',u:'V',note:'Coloque la punta roja y la negra sobre dos puntos de prueba.'};
+      const v=SOL.V[st.red]-SOL.V[st.black];
+      return {v:fmtV(v),u:'V',raw:v,ok:true,note:v<-0.0005?'Lectura negativa: las puntas están invertidas respecto a la polaridad.':''};}
+    case 'R':{
+      if(!st.red||!st.black)return {v:'- - -',u:'Ω',note:'Coloque las puntas sobre dos puntos sin tensión (circuito apagado).'};
+      const r=ohmMeasure(st.red,st.black);
+      if(r.err)return {v:'Err',u:'Ω',ok:true,note:'Hay tensión en los puntos de medición o circula corriente. Apague el circuito y, si el punto sigue alimentado por la batería, desconecte el borne − de la batería o el conector C1. Con tensión, la lectura del óhmetro es falsa y el instrumento puede dañarse.'};
+      if(!isFinite(r.R))return {v:'OL',u:'Ω',raw:INF,ok:true,note:'Circuito abierto entre las puntas (resistencia infinita): no hay continuidad.'};
+      let note='';
+      if(r.R<30&&r.R>=0.15){const In=nominalI();note=`Pasa la prueba de continuidad (pitido), pero ${nf(r.R,1)} Ω con ${nf(In,1)} A de carga provocarían una caída de ${nf(r.R*In,2)} V. El óhmetro prueba con pocos miliamperios; la caída de tensión con carga es la prueba decisiva.`;}
+      else if(r.R<0.15)note='Resistencia prácticamente nula (resolución del instrumento 0,1 Ω): continuidad correcta. Un defecto de pocas décimas de ohmio puede pasar desapercibido aquí.';
+      return {v:r.R<200?nf(r.R,1):r.R<2000?nf(r.R,0):nf(r.R/1000,2),u:r.R<2000?'Ω':'kΩ',raw:r.R,ok:true,beep:r.R<30,note};}
+    case 'A':{
+      if(!st.meterFuse)return {v:'FUSE',u:'',note:'Fusible interno del multímetro fundido: el amperímetro se conectó en paralelo con una tensión. Repóngalo y conéctelo en serie.'};
+      if(!st.ampEl)return {v:'- - -',u:'A',note:'Haga clic sobre un componente o un tramo de cable para abrir el circuito ahí e intercalar el amperímetro en serie.'};
+      const I=SOL.I[st.ampEl]??0;
+      if(Math.abs(I)>20)return {v:'OL',u:'A',ok:true,note:'La corriente supera el rango de 20 A del multímetro: use una pinza amperimétrica.'};
+      const t=fmtA(I).split(' ');return {v:t[0],u:t[1],raw:I,ok:true,note:Math.abs(I)<1e-6?'No circula corriente por este punto.':(Math.abs(I)>10?'Rango de 20 A: no mida más de 30 s seguidos.':'')};}
+  }
+}
+function nominalI(){const r=refStateHealthy();return r.Iload||1;}
+let _hc=null;
+function refStateHealthy(){const key=st.tab+JSON.stringify(PP());if(_hc&&_hc.k===key)return _hc.r;
+  const r=solveState({sw:true,c1Off:false,batOff:false,fuseBlown:false,fault:{id:'none'}});_hc={k:key,r};return r;}
+function updateMeter(){
+  const m=meter();
+  $('lcdVal').textContent=m.v;$('lcdUnit').textContent=m.u;
+  $('lcdFn').textContent={V:'V⎓',A:'A⎓',R:'Ω',OFF:''}[st.mode];
+  $('lcdBeep').textContent=m.beep?'♪ continuidad':'';
+  $('mnote').textContent=m.note||'';
+  document.querySelectorAll('#modes button').forEach(b=>b.classList.toggle('on',b.dataset.m===st.mode));
+  $('pRed').classList.toggle('on',st.place==='red');$('pBlk').classList.toggle('on',st.place==='black');
+  $('btnFuse').style.display=st.meterFuse?'none':'';
+  let s='';
+  if(st.mode==='A'&&st.ampEl)s=`Amperímetro intercalado en: ${elName(st.ampEl)}`;
+  else if(st.mode!=='OFF')s=`Punta roja: ${st.red||'—'} · Punta negra (COM): ${st.black||'—'}`;
+  $('mstat').textContent=s;
+  countMeas(m);
+  return m;
+}
+function elName(id){if(id==='BAT')return 'batería';const e=elOf(id);if(!e)return id;
+  if(e.name)return e.name;
+  return {wE2:'cable a la bocina 2',wH2:'cable de masa de la bocina 2',w86:'cable al borne 86',w85:'cable del borne 85',wK:'cable al interruptor'}[id]||`cable ${e.n1}–${e.n2}`;}
+/* contador de mediciones (evaluación): cuenta cada configuración nueva que se mantiene ≥ 0,6 s */
+function measKey(){
+  if(st.mode==='A')return st.ampEl?`A|${st.ampEl}|${st.sw}|${st.c1Off}`:null;
+  if(st.mode==='OFF'||!st.red||!st.black||st.red===st.black)return null;
+  return `${st.mode}|${[st.red,st.black].sort().join('-')}|${st.sw}|${st.c1Off}|${st.batOff}|${st.fuseBlown}`;
+}
+function countMeas(m){
+  if(!st.evalOn||st.evalChecked||!m.ok)return;
+  const k=measKey();if(!k||st.measKeys.has(k))return;
+  clearTimeout(st.pend);
+  st.pend=setTimeout(()=>{if(measKey()===k&&!st.measKeys.has(k)&&st.evalOn&&!st.evalChecked){st.measKeys.add(k);st.meas++;$('measCnt').textContent=st.meas;}},600);
+}
+
+/* ---------- síntomas ---------- */
+function symptom(){
+  const V=SOL.V,p=PP();let s='';
+  const U=V.E-V.H,I1=Math.abs(SOL.I.LD||0),I2=Math.abs(SOL.I.LD2||0);
+  if(!st.sw){s=st.tab==='bocina'?'Pulsador suelto: las bocinas no deben sonar.':'Circuito apagado: el receptor está desactivado.';}
+  else if(st.tab==='faro'){
+    const P=U*I1,fr=P/p.P;
+    s=I1<0.01?'El faro <b>no enciende</b>.':fr<0.9?`El faro enciende con <b>brillo reducido</b> (≈ ${nf(fr*100,0)} % de su potencia nominal).`:'El faro enciende con <b>brillo normal</b>.';
+  }else if(st.tab==='vent'){
+    const n=Math.max(0,2400*U/12);
+    s=I1<0.05?'El electroventilador <b>no gira</b>.':U<11?`El electroventilador <b>gira lento</b> (≈ ${nf(n,0)} rpm; normal ≈ 2400 rpm).`:`El electroventilador gira a <b>régimen normal</b> (≈ ${nf(n,0)} rpm).`;
+  }else{
+    const n=(I1>0.05)+(I2>0.05);
+    s=n===0?'Las bocinas <b>no suenan</b>.':n===1?'<b>Solo suena una bocina</b> (falta un tono).':U<10.5?'Ambas bocinas suenan con <b>sonido débil o ronco</b>.':'Ambas bocinas suenan con <b>tono normal</b>.';
+  }
+  if(st.sw&&!st.batOff)s+=SOL.relay?' · Relé: <b>conmuta</b> (se oye el clic).':' · Relé: <b>no conmuta</b> (no se oye el clic).';
+  if(st.batOff)s='Batería desconectada: el circuito no tiene alimentación.';
+  $('sympt').innerHTML='<b>Síntoma:</b> '+s;
+}
+
+/* ---------- resultados V4 ---------- */
+function segDrops(sol){
+  return T().el.filter(e=>e.grp==='pos'||e.grp==='neg').map(e=>({e,d:sol.V[e.n1]-sol.V[e.n2]}));
+}
+function updateResults(){
+  if(st.evalOn&&!st.evalChecked){$('results').innerHTML='<p class="muted" style="margin:4px 0">Resultados ocultos durante la evaluación. Mida con el multímetro.</p>';return;}
+  const r=SOL,ok=(c)=>c?'<span class="st-ok">correcto</span>':'<span class="st-bad">excesivo</span>';
+  const on=r.Iload>1e-3;
+  let h=`<table><tr><th>Medición (circuito ${on?'funcionando':'sin corriente'})</th><th>Valor</th><th>Referencia</th></tr>
+   <tr><td>V1 · bornes de la batería (B+ → B−)</td><td>${fmtV(r.V1)} V</td><td>—</td></tr>
+   <tr><td>V2 · receptor (E → H)</td><td>${fmtV(r.V2)} V</td><td>${on?ok(r.V1-r.V2<=LIM.V2):'—'}</td></tr>
+   <tr><td>V3 · lado positivo (B+ → E)</td><td>${fmtV(r.V3)} V</td><td>${on?ok(r.V3<=LIM.V3):'—'} ≤ 0,5 V</td></tr>
+   <tr><td>V4 · lado de masa (H → B−)</td><td>${fmtV(r.V4)} V</td><td>${on?ok(r.V4<=LIM.V4):'—'} ≤ 0,2 V</td></tr>
+   <tr class="tot"><td>V2 + V3 + V4</td><td>${fmtV(r.V2+r.V3+r.V4)} V</td><td>= V1</td></tr>
+   <tr><td>Corriente del receptor</td><td>${fmtA(r.Iload)}</td><td></td></tr></table>`;
+  h+=`<table style="margin-top:10px"><tr><th>Caída por tramo</th><th>ΔU</th></tr>${segDrops(r).map(x=>`<tr><td>${x.e.name}</td><td>${fmtV(x.d)} V${on&&Math.abs(x.d)>LIM.conn?' <span class="st-bad">▲</span>':''}</td></tr>`).join('')}</table>`;
+  h+=`<p class="muted" style="margin:6px 0 0">Valores orientativos; consulte el manual del fabricante. ▲ = caída mayor de 0,2 V en un solo tramo.</p>`;
+  $('results').innerHTML=h;
+}
+
+/* ---------- evaluación ---------- */
+function randFault(){
+  const pick=a=>a[Math.floor(Math.random()*a.length)];
+  const id=pick(['conn_hr','gnd_hr','relay_hr','fuse_open','wire_open','load_open','coil_open','short']);
+  const F=FAULTS[id];let el=F.el;
+  if(id==='gnd_hr')el=pick(['wM','wM','wG']);
+  if(id==='wire_open')el=pick(['w87','wM']);
+  const R=F.kind==='hr'?Math.round((F.rmin+Math.random()*(F.rmax-F.rmin))*20)/20:0;
+  return {id,el,R};
+}
+function applyFault(f){
+  st.fault=f;st.fuseBlown=f.id==='fuse_open';st.events=[];
+}
+function newCase(){
+  applyFault(randFault());
+  st.sw=true;st.c1Off=false;st.batOff=false;st.evalChecked=false;st.meas=0;st.measKeys=new Set();clearTimeout(st.pend);
+  st.red=null;st.black='B−';st.ampEl=null;
+  buildEvalBox();buildControls();render();
+}
+function buildEvalBox(){
+  $('evalTbl').innerHTML=`<tr><th>Registre (circuito funcionando)</th><th>Valor (V)</th></tr>`+
+    [['V1','V1 · batería (B+ → B−)'],['V2','V2 · receptor (E → H)'],['V3','V3 · lado positivo (B+ → E)'],['V4','V4 · lado de masa (H → B−)']]
+    .map(([k,t])=>`<tr><td>${t}</td><td><input data-k="${k}" inputmode="decimal" placeholder="0,000"></td></tr>`).join('');
+  $('dxEl').innerHTML='<option value="">— elija —</option>'+DXEL.map(id=>`<option value="${id}">${elName(id)}</option>`).join('');
+  $('dxType').innerHTML='<option value="">— elija —</option>'+TYPES.map(([k,t])=>`<option value="${k}">${t}</option>`).join('');
+  $('score').textContent='';$('fb').innerHTML='';$('measCnt').textContent='0';
+}
+function explain(ref){
+  const f=st.fault,F=FAULTS[f.id],Tb=T(),V=ref.V;
+  const segs=segDrops(ref),mx=segs.reduce((a,b)=>Math.abs(b.d)>Math.abs(a.d)?b:a);
+  const sum=`Con el circuito funcionando: V1 = ${fmtV(ref.V1)} V, V2 = ${fmtV(ref.V2)} V, V3 = ${fmtV(ref.V3)} V y V4 = ${fmtV(ref.V4)} V (V2 + V3 + V4 = ${fmtV(ref.V2+ref.V3+ref.V4)} V ≈ V1, 2.ª ley de Kirchhoff).`;
+  let why='';
+  const I=ref.Iload;
+  switch(f.id){
+    case 'conn_hr':case 'relay_hr':
+      why=`V3 = ${fmtV(ref.V3)} V supera el valor orientativo de 0,5 V: hay resistencia excesiva en el lado positivo. Al medir por tramos, la caída se concentró en ${mx.e.name}: ${fmtV(mx.d)} V; con I = ${fmtA(I)} equivale a R ≈ ${nf(mx.d/I,2)} Ω (sano ≈ ${nf(mx.e.R*1000,0)} mΩ).`+(f.id==='conn_hr'?` Con el óhmetro este conector marcaría solo ${nf(f.R,1)} Ω y pasaría la prueba de continuidad; por eso se diagnostica con el circuito cargado.`:` Los contactos quemados del relé (carbonizados por el arco) presentan resistencia alta; la bobina funciona (el relé hace clic), pero el contacto no conduce bien la corriente de carga.`);
+      break;
+    case 'gnd_hr':
+      why=`V4 = ${fmtV(ref.V4)} V (> 0,2 V) indica resistencia en el lado de masa; al medir por tramos la caída se concentró entre ${mx.e.n1} y ${mx.e.n2} (${fmtV(mx.d)} V), lo que equivale a R ≈ ${nf(mx.d/I,2)} Ω con ${fmtA(I)}. Limpie y apriete el punto de masa ${mx.e.n1==='G1'?'y el cable a la batería':'G1'}.`;
+      break;
+    case 'fuse_open':
+      why=`No circula corriente (I = 0) y el relé no hace clic. Con el circuito abierto, toda la tensión aparece en el punto de interrupción: en A hay ${fmtV(V.A)} V y en B ${fmtV(V.B)} V, es decir, ${fmtV(V.A-V.B)} V entre los extremos del fusible. El fusible está fundido; antes de reponerlo, investigue por qué se fundió (si vuelve a fundirse, busque un cortocircuito).`;
+      break;
+    case 'wire_open':
+      why=f.el==='w87'
+        ?`V2 = ${fmtV(ref.V2)} V y V3 ≈ V1 (${fmtV(ref.V3)} V): el lado positivo está interrumpido y no circula corriente. Por tramos, toda la tensión apareció entre 87 y D (${fmtV(V['87']-V.D)} V): cable abierto entre el relé y el conector C1.`
+        :`V2 = ${fmtV(ref.V2)} V y V4 ≈ V1 (${fmtV(ref.V4)} V): el lado de masa está interrumpido. Por tramos, toda la tensión apareció entre H y G1 (${fmtV(V.H-V.G1)} V): cable de masa abierto.`;
+      break;
+    case 'load_open':
+      why=Tb.kind==='HORN'
+        ?`V2 = ${fmtV(ref.V2)} V es normal, pero la corriente total es ${fmtA(I)} en lugar de ≈ 7 A y solo suena una bocina: una bocina está abierta. V3 y V4 son menores que en el circuito sano porque circula la mitad de corriente. Con el óhmetro (circuito apagado) la bocina 1 marca OL.`
+        :`V2 ≈ V1 (${fmtV(ref.V2)} V) con V3 ≈ 0 V y V4 ≈ 0 V: el receptor recibe toda la tensión, pero no circula corriente. Positivo y masa están bien; el receptor está abierto (${Tb.kind==='LAMP'?'filamento cortado':'escobillas o bobinado interrumpido'}). El óhmetro entre E y H marca OL.`;
+      break;
+    case 'coil_open':
+      why=`V3 ≈ V1 (${fmtV(ref.V3)} V) y V2 = ${fmtV(ref.V2)} V: el positivo no llega al receptor. Por tramos, toda la tensión aparece entre 30 y 87 (${fmtV(V['30']-V['87'])} V): el contacto del relé no cierra. Entre 86 y 85 hay ${fmtV(V['86']-V['85'])} V (la bobina recibe mando y masa) y aun así no conmuta: la bobina está abierta (el óhmetro entre 86 y 85 marca OL; sana ≈ ${RCOIL} Ω).`;
+      break;
+    case 'short':
+      why=`El fusible se funde cada vez que el relé conmuta. Con el fusible fundido V3 ≈ V1 y V2 = 0 V, igual que un circuito abierto; la diferencia es que el fusible nuevo vuelve a fundirse. Con el circuito apagado y el conector C1 desconectado, el óhmetro entre D y masa marca ≈ 0 Ω (debería marcar OL): el cable 87–D está en cortocircuito a masa. Repare el aislamiento antes de reponer el fusible.`;
+      break;
+  }
+  return {sum,why};
+}
+function checkEval(){
+  const ref=refState();
+  const want={V1:ref.V1,V2:ref.V2,V3:ref.V3,V4:ref.V4};
+  const alt=SOL.Iload>1e-3||!st.sw?null:SOL; // lectura con el estado actual (si difiere)
+  let pts=0;
+  $('evalTbl').querySelectorAll('input').forEach(inp=>{
+    const k=inp.dataset.k,w=want[k],g=parseNum(inp.value);
+    const near=(x)=>isFinite(g)&&Math.abs(g-x)<=Math.max(0.03*Math.abs(x),0.02);
+    const good=near(w)||(alt&&near(alt[k]));
+    inp.classList.toggle('ok',good);inp.classList.toggle('bad',!good);
+    inp.title=good?'Correcto':'Valor esperado ≈ '+fmtV(w)+' V';
+    if(good)pts+=10;
+  });
+  const f=st.fault,F=FAULTS[f.id];
+  const selEl=$('dxEl').value,selT=$('dxType').value;
+  const okEl=selEl===f.el,okT=selT===F.kind;
+  if(okEl)pts+=30;if(okT)pts+=20;
+  const eff=!okEl?0:st.meas<=8?10:Math.max(0,10-(st.meas-8));pts+=eff;
+  st.evalChecked=true;
+  const ex=explain(ref);
+  $('score').textContent=`Puntaje: ${pts} / 100`;
+  $('fb').innerHTML=`<div class="msgs">
+    <div class="${okEl&&okT?'o':'e'}"><b>Avería real:</b> ${faultLabel(f.id,f.el)}${F.kind==='hr'?` (+${nf(f.R,2)} Ω)`:''} → tramo «${elName(f.el)}», tipo «${TYPES.find(t=>t[0]===F.kind)[1]}».<br>
+    Su respuesta: tramo ${okEl?'<b>correcto</b>':'<b>incorrecto</b>'} (+${okEl?30:0}), tipo ${okT?'<b>correcto</b>':'<b>incorrecto</b>'} (+${okT?20:0}).</div>
+    <div class="i"><b>Razonamiento:</b> ${ex.sum} ${ex.why}</div>
+    <div class="${eff>=10?'o':'w'}">Mediciones realizadas: ${st.meas}. Eficiencia: +${eff} / 10 (solo si el tramo es correcto; ≤ 8 mediciones = puntaje completo: 4 del método V4 y pocas por tramos en el lado sospechoso).</div>
+    <div class="i">Casillas V1–V4: +${[...$('evalTbl').querySelectorAll('input.ok')].length*10} / 40 (tolerancia ±3 % o ±0,02 V). Pase el cursor sobre una casilla roja para ver el valor esperado.</div></div>`;
+  render();
+}
+
+/* ---------- avisos ---------- */
+function event(cls,t){st.events.unshift({cls,t});st.events=st.events.slice(0,3);}
+function updateMsgs(){
+  const w=[],r=SOL,hide=st.evalOn&&!st.evalChecked;
+  // aviso didáctico: caída medida sin corriente
+  if(st.mode==='V'&&st.red&&st.black&&st.red!==st.black){
+    const pair=[st.red,st.black].sort().join('-'),v=Math.abs(SOL.V[st.red]-SOL.V[st.black]);
+    const isV1=pair===['B+','B−'].sort().join('-');
+    if(!isV1&&r.Iload<1e-3&&(!st.sw||st.batOff))
+      w.push(['w','Está midiendo una caída de tensión con el circuito <b>apagado</b>: la lectura no sirve para el método V4. Sin corriente, una resistencia alta no produce caída (ΔU = I · R = 0) y el tramo parece sano; en cambio, el contacto abierto del interruptor o del relé muestra toda la tensión. Encienda el circuito (S) y repita la medición.']);
+    else if(!isV1&&r.Iload<1e-3&&v<0.05)
+      w.push(['w','No circula corriente por el receptor: con corriente nula los tramos sanos y los de resistencia alta marcan 0 V. En un circuito abierto, toda la tensión aparece solo en el punto de interrupción; búsquelo.']);
+  }
+  if(st.batOff)w.push(['i','Borne − de la batería desconectado: circuito sin tensión. Puede usar el óhmetro en cualquier punto.']);
+  else if(!st.sw)w.push(['i',`${T().swName} ${st.tab==='bocina'?'suelto':'abierto'}: no circula corriente por el receptor. Las caídas de tensión solo se revelan con el circuito funcionando.`]);
+  if(st.c1Off)w.push(['i','Conector C1 desconectado: el receptor queda aislado del mazo. Útil para buscar un cortocircuito a masa con el óhmetro (entre D y masa).']);
+  if(!hide&&!st.batOff&&st.sw){
+    if(r.Iload>1e-3){
+      if(r.V3>LIM.V3)w.push(['w',`Caída de tensión excesiva en el lado positivo: V3 = ${fmtV(r.V3)} V (orientativo ≤ 0,5 V). Mida por tramos: cable, fusible, relé y conector.`]);
+      if(r.V4>LIM.V4)w.push(['w',`Caída de tensión excesiva en el lado de masa: V4 = ${fmtV(r.V4)} V (orientativo ≤ 0,2 V). Revise el cable de masa y el punto G1.`]);
+      for(const x of segDrops(r))if(Math.abs(x.d)>LIM.conn)w.push(['w',`${x.e.name}: ${fmtV(x.d)} V en un solo tramo (orientativo ≤ 0,2 V por conexión, interruptor o relé).`]);
+      if(r.V3<=LIM.V3&&r.V4<=LIM.V4&&r.V1-r.V2<=LIM.V2&&!(st.tab==='bocina'&&Math.abs(SOL.I.LD2||0)>0&&Math.abs(SOL.I.LD||0)<0.05))w.push(['o',`Circuito correcto: V3 = ${fmtV(r.V3)} V y V4 = ${fmtV(r.V4)} V dentro de los valores orientativos; V1 = V2 + V3 + V4.`]);
+    }else w.push(['e','Con el mando activado no circula corriente por el receptor: hay un circuito abierto (fusible, cable, contacto del relé, conector, receptor o masa). Busque el tramo donde aparece toda la tensión.']);
+    if(!r.relay&&!st.fuseBlown)w.push(['w','El relé no conmuta aunque el mando está activado: compruebe la tensión entre 86 y 85 y la resistencia de la bobina.']);
+  }
+  const all=[...st.events.map(e=>[e.cls,e.t]),...w];
+  $('msgs').innerHTML=all.length?all.map(([c,t])=>`<div class="${c}">${t}</div>`).join(''):'<div class="i">Sin avisos.</div>';
+}
+
+/* ---------- controles ---------- */
+function ctlRange(k,label,val,min,max,step){
+  return `<div class="ctl"><label>${label}</label><div class="row"><input type="range" data-k="${k}" min="${min}" max="${max}" step="${step}" value="${val}"><input type="number" data-k="${k}" min="${min}" max="${max}" step="${step}" value="${val}"></div></div>`;}
+function ctlSelect(k,label,opts,val){
+  return `<div class="ctl"><label>${label}</label><select data-k="${k}">${opts.map(o=>`<option value="${o[0]}" ${String(o[0])===String(val)?'selected':''}>${o[1]}</option>`).join('')}</select></div>`;}
+function ctlCheck(k,label,val){return `<div class="ctl"><label class="switch" style="color:var(--ink)"><input type="checkbox" data-k="${k}" ${val?'checked':''}> ${label}</label></div>`;}
+function buildControls(){
+  const p=PP();let h='';
+  h+=ctlRange('V0','Tensión en vacío de la batería U₀ (V)',p.V0,11.8,12.8,0.1);
+  h+=ctlRange('ri','Resistencia interna de la batería rᵢ (Ω)',p.ri,0.005,0.06,0.005);
+  if(st.tab==='faro')h+=ctlSelect('P','Lámpara de cruce · potencia nominal a 12 V',[[55,'55 W (H4/H7)'],[60,'60 W'],[65,'65 W']],p.P);
+  if(st.tab==='vent')h+=ctlRange('Rm','Resistencia equivalente del motor en giro (Ω)',p.Rm,0.6,1.2,0.05);
+  h+=ctlCheck('sw',st.tab==='bocina'?'Pulsador de bocina accionado':`${T().swName} activado`,st.sw);
+  h+=ctlCheck('c1Off','Conector C1 desconectado',st.c1Off);
+  h+=ctlCheck('batOff','Borne − de la batería desconectado',st.batOff);
+  $('controls').innerHTML=h;
+  let g='';
+  if(!st.evalOn){
+    const cur=st.fault.id==='none'?'none':st.fault.id+'@'+st.fault.el;
+    g+=ctlSelect('fault','Avería simulada',PRACT.map(([id,el])=>[el?id+'@'+el:id,el?faultLabel(id,el):FAULTS[id].name]),cur);
+    if(st.fault.id!=='none'&&FAULTS[st.fault.id].kind==='hr')g+=ctlRange('sev','Resistencia añadida por la avería (Ω)',st.fault.R,0.1,1.5,0.05);
+  }else g='<p class="muted" style="grid-column:1/-1;margin:0 0 8px">Modo evaluación: la avería está oculta. Mida para localizarla.</p>';
+  $('faultCtl').innerHTML=g;
+  document.querySelectorAll('#controls [data-k],#faultCtl [data-k]').forEach(inp=>inp.addEventListener(inp.type==='checkbox'||inp.tagName==='SELECT'?'change':'input',()=>{
+    const k=inp.dataset.k;
+    if(inp.type==='checkbox'){st[k]=inp.checked;if(k==='sw'&&!st.sw){} render();return;}
+    if(k==='fault'){const [id,el]=inp.value.split('@');const F=FAULTS[id];
+      applyFault(id==='none'?{id:'none'}:{id,el,R:F.kind==='hr'?(id==='relay_hr'?0.3:st.sev):0});buildControls();render();return;}
+    const v=parseNum(inp.value);if(!isFinite(v))return;
+    if(k==='sev'){st.fault.R=v;st.sev=v;}else if(k==='P')p.P=v;else p[k]=v;
+    document.querySelectorAll(`[data-k="${k}"]`).forEach(o=>{if(o!==inp)o.value=v;});
+    render();
+  }));
+}
+function syncChecks(){['sw','c1Off','batOff'].forEach(k=>{const c=document.querySelector(`#controls input[data-k="${k}"]`);if(c)c.checked=st[k];});}
+
+/* ---------- ecuaciones y referencias ---------- */
+function buildEq(){
+  const Tb=T(),p=PP(),ld=({faro:()=>'R<sub>L</sub> = U<sub>nom</sub>² / P<sub>nom</sub> = 12² / '+nf(p.P,0)+' = '+nf(144/p.P,3)+' Ω (filamento caliente)',vent:()=>'R<sub>M</sub> ≈ '+nf(p.Rm,2)+' Ω (motor en giro; incluye el efecto de la fuerza contraelectromotriz)',bocina:()=>'R<sub>bocina</sub> = 12 V / 3,5 A = 3,429 Ω (valor medio); dos en paralelo: 1,714 Ω'})[st.tab]();
+  $('eqs').innerHTML=`<p class="f">V1 = V2 + V3 + V4 &nbsp;(2.ª ley de Kirchhoff en la malla batería–receptor)</p>
+   <p class="f">V3 = I · ΣR<sub>positivo</sub> &nbsp;&nbsp;·&nbsp;&nbsp; V4 = I · ΣR<sub>masa</sub> &nbsp;&nbsp;·&nbsp;&nbsp; ΔU<sub>tramo</sub> = I · R<sub>tramo</sub> → R<sub>tramo</sub> = ΔU / I</p>
+   <p class="f">V1 = U<sub>0</sub> − I<sub>t</sub> · r<sub>i</sub> &nbsp;&nbsp;·&nbsp;&nbsp; P<sub>receptor</sub> = V2 · I</p>
+   <p class="f">${ld}</p>
+   <p class="muted"><b>¿Por qué con el circuito funcionando?</b> La caída en una resistencia es ΔU = I · R. Si el circuito está apagado, I = 0 y ΔU = 0 aunque el conector esté corroído: el tramo parece sano. Solo con la corriente de trabajo la resistencia defectuosa «aparece» como caída de tensión.</p>
+   <p class="muted"><b>¿Por qué el óhmetro no basta?</b> El óhmetro prueba con unos pocos miliamperios y su resolución suele ser 0,1 Ω; la prueba de continuidad pita por debajo de unos 30 Ω. Una conexión de 0,5 Ω «tiene continuidad», pero con ${nf(nominalI(),1)} A produce ${nf(0.5*nominalI(),2)} V de caída. Además, un cable con pocos hilos sanos o un terminal flojo pueden conducir los mA del óhmetro y fallar con la corriente de carga.</p>
+   <p class="muted"><b>Circuito abierto:</b> sin corriente, toda la tensión de la batería aparece entre los extremos del punto abierto y los tramos sanos marcan 0 V.</p>`;
+  const rows=Tb.el.filter(e=>e.grp==='pos'||e.grp==='neg').map(e=>`<tr><td>${e.name}</td><td>${nf(e.R*1000,1)} mΩ</td></tr>`).join('');
+  $('refTbl').innerHTML=`<table class="reftbl"><tr><th>Valores de referencia (orientativos; consulte el manual del fabricante)</th><th>Valor</th></tr>
+   <tr><td>V3 · caída total del lado positivo</td><td>≤ 0,5 V</td></tr>
+   <tr><td>Caída en cada conexión, interruptor, fusible o relé</td><td>≤ 0,2 V</td></tr>
+   <tr><td>V4 · caída total del lado de masa</td><td>≤ 0,2 V</td></tr>
+   <tr><td>V2 · tensión en el receptor</td><td>≥ V1 − 0,7 V</td></tr>
+   <tr><td>Batería: U<sub>0</sub> / r<sub>i</sub></td><td>12,6 V / 0,020 Ω</td></tr>
+   <tr><td>Bobina del relé / tensión mínima de conexión</td><td>${RCOIL} Ω / 7 V</td></tr>
+   <tr><td>Fusible F1 (se funde si I &gt; 1,35 · I<sub>n</sub>, modelo simplificado)</td><td>${Tb.rating} A</td></tr>
+   <tr><th>Resistencias sanas usadas en este circuito</th><th>R</th></tr>${rows}</table>`;
+}
+
+/* ---------- registro ---------- */
+function addLog(){
+  const m=updateMeter();if(!m.v||m.v==='- - -')return;
+  const pts=st.mode==='A'?elName(st.ampEl):`${st.red} → ${st.black}`;
+  st.log.push({n:st.log.length+1,c:T().name,e:(st.sw?'encendido':'apagado')+(st.c1Off?', C1 desc.':'')+(st.batOff?', bat. desc.':''),f:{V:'Tensión',A:'Corriente',R:'Resistencia'}[st.mode],p:pts,l:m.v+' '+m.u});
+  drawLog();
+}
+function drawLog(){
+  $('logTbl').innerHTML=st.log.length?`<div style="overflow-x:auto"><table><tr><th>N.º</th><th>Circuito</th><th>Estado</th><th>Magnitud</th><th>Puntos</th><th>Lectura</th></tr>${st.log.map(r=>`<tr><td>${r.n}</td><td>${r.c}</td><td>${r.e}</td><td>${r.f}</td><td>${r.p}</td><td>${r.l}</td></tr>`).join('')}</table></div>`:'<p class="muted">Aún no hay lecturas registradas.</p>';
+}
+function csv(){
+  const lines=['N;Circuito;Estado;Magnitud;Puntos;Lectura',...st.log.map(r=>[r.n,r.c,r.e,r.f,r.p,r.l].join(';'))];
+  const blob=new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='registro_metodo_V4.csv';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+
+/* ---------- eventos ---------- */
+svg.addEventListener('click',ev=>{
+  const nd=ev.target.closest('.node');
+  if(nd){
+    const n=nd.dataset.n;
+    if(st.mode==='A'){
+      st.ampEl=null;
+      if(st.place==='red')st.red=n;else st.black=n;
+      if(st.red&&st.black&&st.meterFuse&&Math.abs(SOL.V[st.red]-SOL.V[st.black])>0.05){
+        st.meterFuse=false;event('e',`¡Cortocircuito! El amperímetro se conectó en paralelo entre ${st.red} y ${st.black} (${fmtV(SOL.V[st.red]-SOL.V[st.black])} V). Su resistencia interna es casi nula y se fundió su fusible interno.`);
+      }
+    }else if(st.mode!=='OFF'){if(st.place==='red')st.red=n;else st.black=n;}
+    render();return;
+  }
+  const el=ev.target.closest('.el');
+  if(!el)return;
+  const id=el.dataset.id,e=elOf(id);
+  if(e&&e.type==='S'){st.sw=!st.sw;syncChecks();render();return;}
+  if(e&&e.type==='F'&&st.fuseBlown){st.fuseBlown=false;st.events=st.events.filter(x=>!x.t.startsWith('Fusible'));
+    render();if(st.fuseBlown)event('e','El fusible nuevo se fundió de inmediato al conmutar el relé: existe un cortocircuito a masa aguas abajo.');render();return;}
+  if(st.mode==='A'){st.ampEl=id;render();return;}
+  if(st.mode==='V'||st.mode==='R'){
+    if(id==='BAT'){st.red='B+';st.black='B−';}
+    else{const a=nodePos(e.n1)&&T().nodes[e.n1]?e.n1:null,b=T().nodes[e.n2]?e.n2:null;if(a&&b){st.red=a;st.black=b;}}
+    render();
+  }
+});
+document.querySelectorAll('#modes button').forEach(b=>b.addEventListener('click',()=>{st.mode=b.dataset.m;st.ampEl=null;render();}));
+document.querySelectorAll('#quick button').forEach(b=>b.addEventListener('click',()=>{
+  const q={V1:['B+','B−'],V2:['E','H'],V3:['B+','E'],V4:['H','B−']}[b.dataset.q];
+  if(st.mode!=='V'){st.mode='V';st.ampEl=null;}
+  st.red=q[0];st.black=q[1];render();}));
+$('pRed').onclick=()=>{st.place='red';updateMeter();};
+$('pBlk').onclick=()=>{st.place='black';updateMeter();};
+$('btnFuse').onclick=()=>{st.meterFuse=true;st.red=null;st.black='B−';st.events=st.events.filter(x=>!x.t.startsWith('¡Cortocircuito'));render();};
+$('btnLog').onclick=addLog;
+$('btnCsv').onclick=csv;
+$('btnClr').onclick=()=>{st.log=[];drawLog();};
+$('btnReset').onclick=()=>{st.P[st.tab]={...TABS[st.tab].p};st.sw=true;st.c1Off=false;st.batOff=false;
+  if(st.evalOn){st.fuseBlown=st.fault.id==='fuse_open';}else{applyFault({id:'none'});}
+  st.events=[];buildControls();buildEq();render();};
+$('evalMode').onchange=e=>{st.evalOn=e.target.checked;$('evalBox').style.display=st.evalOn?'':'none';
+  if(st.evalOn)newCase();else{applyFault({id:'none'});st.evalChecked=false;buildControls();render();}};
+$('btnNew').onclick=newCase;
+$('btnCheck').onclick=checkEval;
+
+function buildTabs(){
+  $('tabs').innerHTML=ORDER.map(k=>`<button data-k="${k}" class="${k===st.tab?'on':''}">${TABS[k].name}</button>`).join('');
+  $('tabs').querySelectorAll('button').forEach(b=>b.onclick=()=>{
+    st.tab=b.dataset.k;st.red=null;st.black='B−';st.ampEl=null;st.events=[];st.sw=true;st.c1Off=false;st.batOff=false;
+    buildTabs();buildEq();
+    if(st.evalOn)newCase();else{applyFault({id:'none'});buildControls();render();}
+  });
+}
+function render(){compute();drawSVG();updateMeter();updateResults();updateMsgs();symptom();syncChecks();}
+buildTabs();buildControls();buildEq();render();drawLog();
+</script>
+</body>
+</html>

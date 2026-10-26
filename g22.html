@@ -1,0 +1,723 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cilindrada y Compresión</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* Layout: banco de instrumentos — panel de mandos a la izquierda, dos diagramas como lectura principal, cilindro y datos debajo */
+:root{
+  --bg:#eef1f4; --surface:#ffffff; --sunk:#e3e8ee; --fg:#17202b; --muted:#5b6778; --line:#cfd6df; --grid:#e6eaef;
+  --hot:#d9480f; --cold:#1864ab; --adi:#6b7686;
+  --accent:#6741d9;
+  --f-display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e1217; --surface:#151b23; --sunk:#1c242e; --fg:#e3e8ee; --muted:#95a1b0; --line:#29323d; --grid:#1f2731;
+    --hot:#ff7b45; --cold:#4dabf7; --adi:#8d99a8; --accent:#b197fc; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e1217; --surface:#151b23; --sunk:#1c242e; --fg:#e3e8ee; --muted:#95a1b0; --line:#29323d; --grid:#1f2731;
+  --hot:#ff7b45; --cold:#4dabf7; --adi:#8d99a8; --accent:#b197fc; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.5;margin:0}
+.page{max-width:1440px;margin:0 auto;padding-inline:clamp(16px,3vw,32px);padding-block:24px 40px}
+.top{display:grid;gap:10px;padding-bottom:18px;border-bottom:1px solid var(--line);margin-bottom:20px}
+.eyebrow{font-family:var(--f-mono);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(36px,5.2vw,56px);line-height:1;margin:0;letter-spacing:-.005em;text-wrap:balance}
+h1 .acc{color:var(--accent)}
+.lede{max-width:72ch;margin:0;color:var(--muted)}
+.chips{list-style:none;display:flex;flex-wrap:wrap;gap:6px;padding:0;margin:4px 0 0}
+.chips li{font-size:13px;padding:4px 11px;border:1px solid var(--line);border-radius:999px;background:var(--surface);display:flex;gap:7px;align-items:center;cursor:pointer;transition:border-color .15s}
+.chips li b{font-family:var(--f-mono);font-weight:500;font-size:12px}
+.chips li.on{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.dot{width:9px;height:9px;border-radius:50%;flex:none}
+.layout{display:grid;grid-template-columns:310px minmax(0,1fr);gap:22px;align-items:start}
+.panel{position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px);display:grid;gap:16px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;max-height:calc(100vh - 24px);overflow:auto}
+@media (max-width:980px){.layout{grid-template-columns:minmax(0,1fr)}.panel{position:static;max-height:none}}
+.panel h2,.sec-h{font-family:var(--f-display);font-size:14.5px;font-weight:600;text-transform:uppercase;letter-spacing:.09em;margin:0 0 4px;color:var(--muted)}
+.prm{display:grid;gap:3px;padding-block:5px}
+.prm-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.prm label{font-size:14px;font-weight:500}
+.sym{font-family:var(--f-mono);font-size:12px;color:var(--accent);white-space:nowrap}
+.prm-in{display:grid;grid-template-columns:minmax(0,1fr) 84px 58px;gap:8px;align-items:center}
+.prm-in.sel{grid-template-columns:minmax(0,1fr)}
+input[type=range]{width:100%;accent-color:var(--accent);margin:0}
+input[type=number],select{width:100%;font-family:var(--f-mono);font-size:13px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--fg)}
+input:focus-visible,select:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.unit{font-family:var(--f-mono);font-size:11px;color:var(--muted);line-height:1.2}
+.hint{font-size:12.5px;color:var(--muted);min-height:1.1em}
+.hint b{color:var(--fg);font-weight:600;font-family:var(--f-mono);font-size:12px}
+details.adv summary{cursor:pointer;font-family:var(--f-display);font-size:14.5px;font-weight:600;text-transform:uppercase;letter-spacing:.09em;color:var(--muted)}
+.btns{display:flex;flex-wrap:wrap;gap:8px}
+button{font-family:var(--f-body);font-size:14px;font-weight:600;padding:7px 12px;border-radius:7px;border:1px solid var(--line);background:var(--sunk);color:var(--fg);cursor:pointer}
+button:hover{border-color:var(--accent)}
+button.pri{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.msgs{display:grid;gap:8px}
+.msg{font-size:13px;padding:8px 10px;border-radius:7px;border:1px solid var(--line);border-left:4px solid var(--adi);background:var(--bg)}
+.msg.err{border-left-color:var(--hot)}
+.msg.warn{border-left-color:#e8a317}
+.work{display:grid;gap:18px;min-width:0}
+.plots{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media (max-width:760px){.plots{grid-template-columns:minmax(0,1fr)}}
+.plot{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 10px 8px;min-width:0;position:relative}
+.plot figcaption{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:0 4px 6px}
+.plot figcaption span{font-family:var(--f-display);font-weight:700;font-size:20px}
+.plot figcaption small{font-size:12.5px;color:var(--muted)}
+.plot figcaption label{font-size:12.5px;color:var(--muted);display:flex;gap:5px;align-items:center;cursor:pointer}
+.plot canvas{width:100%;aspect-ratio:4/3.3;display:block;touch-action:pan-y;cursor:crosshair}
+body.invalid .plots,body.invalid .anim,body.invalid .kpis,body.invalid .tables{opacity:.35;filter:grayscale(.6)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:var(--muted);padding-inline:4px}
+.legend span{display:flex;align-items:center;gap:7px}
+.legend i{display:inline-block;width:22px;height:3px;border-radius:2px}
+.legend i.area{height:11px;opacity:.35;background:var(--accent)}
+.legend i.ref{height:0;border-top:2px dashed var(--muted)}
+.anim{display:grid;grid-template-columns:260px minmax(0,1fr);gap:18px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px}
+@media (max-width:640px){.anim{grid-template-columns:minmax(0,1fr)}}
+.anim canvas{width:100%;height:400px;display:block;background:var(--bg);border-radius:8px}
+.anim-info{display:grid;gap:12px;align-content:start;min-width:0}
+.ctl{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.ctl select{width:auto}
+.scrub{display:grid;gap:2px}
+.scrub label{font-size:12.5px;color:var(--muted)}
+.pn-head{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.pn-id{font-family:var(--f-mono);font-size:13px;padding:2px 8px;border-radius:5px;background:var(--accent);color:var(--surface)}
+.pn-type{font-size:13px;color:var(--muted)}
+.pn h3{font-family:var(--f-display);font-size:26px;font-weight:600;margin:6px 0 4px;line-height:1.1}
+.pn p{margin:0 0 10px;max-width:66ch}
+.pn-vals{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0}
+.pn-vals div{background:var(--bg);border-radius:7px;padding:6px 10px}
+.pn-vals dt{font-size:12px;color:var(--muted)}
+.pn-vals dd{margin:0;font-family:var(--f-mono);font-size:15px;font-variant-numeric:tabular-nums}
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:10px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:10px 12px;display:grid;gap:2px;align-content:start}
+.kpi.main{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.kpi .l{font-size:12.5px;color:var(--muted);line-height:1.25}
+.kpi .v{font-family:var(--f-mono);font-size:22px;font-weight:500;font-variant-numeric:tabular-nums;line-height:1.2}
+.kpi.main .v{color:var(--accent);font-size:28px}
+.kpi .v small{font-size:12px;color:var(--muted);font-weight:400;margin-left:4px}
+.kpi .s{font-size:12px;color:var(--muted);font-family:var(--f-mono)}
+.kpi-group{grid-column:1/-1;font-family:var(--f-display);font-size:14.5px;font-weight:600;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin-top:4px}
+.tables{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media (max-width:1100px){.tables{grid-template-columns:minmax(0,1fr)}}
+.tbl{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px;min-width:0}
+.tbl-scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{padding:6px 8px;text-align:right;white-space:nowrap}
+th{font-weight:600;color:var(--muted);font-size:12px;border-bottom:1px solid var(--line)}
+th:first-child,td:first-child{text-align:left}
+td{font-family:var(--f-mono);font-variant-numeric:tabular-nums;border-bottom:1px solid var(--grid)}
+td.txt{font-family:var(--f-body)}
+tr.on td{background:var(--sunk)}
+tr.tot td{font-weight:600;border-top:1px solid var(--line);border-bottom:0}
+.pos{color:var(--hot)} .neg{color:var(--cold)}
+.theory{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media (max-width:900px){.theory{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;min-width:0}
+.card h3{font-family:var(--f-display);font-size:22px;font-weight:600;margin:0 0 8px}
+.card p,.card li{max-width:68ch}
+.card ol,.card ul{padding-left:20px;margin:6px 0}
+.card li{margin-bottom:6px}
+.eq{font-family:var(--f-mono);font-size:13.5px;background:var(--bg);border-radius:6px;padding:7px 10px;margin:6px 0;overflow-x:auto;white-space:nowrap}
+.eq-note{font-size:13px;color:var(--muted);margin:0 0 4px}
+.live{font-family:var(--f-mono);font-size:13px;color:var(--accent)}
+footer{margin-top:26px;padding-top:14px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted);max-width:110ch}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+/* --- propio del simulador de cilindrada --- */
+.seg{display:flex;gap:0;border:1px solid var(--line);border-radius:7px;overflow:hidden;max-width:100%}
+.seg button{flex:1 1 auto;min-width:0;white-space:normal;line-height:1.2}
+.seg button{border:0;border-radius:0;background:var(--surface);font-weight:500;padding:6px 11px;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--surface)}
+.chk{display:flex;gap:7px;align-items:center;font-size:13px;color:var(--muted);cursor:pointer}
+.prm.off{opacity:.45}
+.prm.off input{pointer-events:none}
+.cut{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:16px}
+@media (max-width:1100px){.cut{grid-template-columns:minmax(0,1fr)}}
+.cut canvas{width:100%;height:470px;display:block;background:var(--bg);border-radius:8px}
+.bur canvas{height:470px}
+.cut .card{display:grid;gap:10px;align-content:start}
+.cut .card h3{margin:0}
+.mini{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.mini label{font-size:12.5px;color:var(--muted);display:grid;gap:3px}
+.sum{font-family:var(--f-mono);font-size:12.5px;background:var(--bg);border-radius:7px;padding:8px 10px;line-height:1.6;overflow-x:auto}
+.sum b{color:var(--accent);font-weight:600}
+.note{font-size:12.5px;color:var(--muted);margin:0}
+.lg{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12.5px;color:var(--muted)}
+.lg span{display:flex;gap:6px;align-items:center}
+.lg i{width:14px;height:11px;border-radius:3px;display:inline-block}
+.steps td.f{font-family:var(--f-mono);text-align:left;color:var(--muted)}
+.steps td.n{text-align:left;font-family:var(--f-body)}
+.steps td.r{font-weight:600}
+.steps tr.grp td{font-family:var(--f-display);font-weight:600;letter-spacing:.06em;text-transform:uppercase;font-size:12.5px;color:var(--muted);background:var(--bg);text-align:left}
+.plot canvas.fx{aspect-ratio:4/2.9}
+details.ans summary{cursor:pointer;font-size:13px;color:var(--accent);font-weight:600}
+details.ans p{font-size:13px;margin:6px 0 0}
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="top">
+    <div class="eyebrow">Simulador · Introducción a Motores · Unidad 4 — Parámetros geométricos del MCIA</div>
+    <h1>Cilindrada y <span class="acc">relación de compresión</span></h1>
+    <p class="lede">Calcule los parámetros geométricos del motor con las fórmulas de la Práctica 4: área del pistón, volumen del cilindro, cámara de combustión, relación de compresión y efecto de la junta de culata. Mida la cámara con la bureta y compruebe cómo el planeado de la culata, el rectificado y el espesor de la junta cambian la relación de compresión.</p>
+  </header>
+  <div class="layout">
+    <aside class="panel" aria-label="Datos del motor">
+      <section><h2>Datos del motor</h2><div id="pMotor"></div></section>
+      <section><h2>Cámara de combustión</h2>
+        <div class="prm"><div class="prm-h"><label>Origen de V<sub>CC</sub></label></div>
+          <div class="seg" role="group" aria-label="Origen del volumen de la cámara"><button type="button" id="mFab" aria-pressed="true">R<sub>c</sub> del fabricante</button><button type="button" id="mBur" aria-pressed="false">V medido con bureta</button></div>
+          <div class="hint" id="hnMode"></div></div>
+        <div id="pCam"></div></section>
+      <section><h2>Junta de culata (empaque)</h2><div id="pJunta"></div>
+        <label class="chk"><input type="checkbox" id="djAuto" checked> D<sub>j</sub> automático = D + 1 mm</label>
+        <div class="prm"><div class="prm-h"><label for="vjSel">V<sub>j</sub> que se usa en R<sub>cj</sub></label></div>
+          <div class="prm-in sel"><select id="vjSel"><option value="guia">Fórmula de la guía: (V_u/S)·E_j</option><option value="geo">Geométrica: π·D_j²/4·E_j</option></select></div></div>
+      </section>
+      <section><h2>Trabajos de taller</h2><div id="pTaller"></div></section>
+      <label class="chk"><input type="checkbox" id="pi314"> Usar π = 3.14 (como la hoja de la guía)</label>
+      <div class="btns"><button type="button" id="resetBtn">Restablecer valores</button></div>
+      <div class="msgs" id="msgs" aria-live="polite"></div>
+    </aside>
+    <main class="work">
+      <section class="cut">
+        <figure class="plot" style="margin:0">
+          <figcaption><span>Corte del cilindro</span>
+            <div class="ctl"><div class="seg" role="group" aria-label="Posición del pistón"><button type="button" id="bPMS" aria-pressed="true">PMS</button><button type="button" id="bPMI" aria-pressed="false">PMI</button></div><button type="button" id="playBtn">▶ Animar</button></div></figcaption>
+          <canvas id="cCut" aria-label="Corte del cilindro a escala con culata, junta y pistón"></canvas>
+          <div class="lg" style="padding:6px 4px 0"><span><i style="background:var(--accent);opacity:.35"></i>V<sub>C</sub> cilindrada unitaria</span><span><i style="background:var(--hot);opacity:.45"></i>V<sub>CC</sub> cámara de combustión</span><span><i style="background:var(--cold);opacity:.55"></i>V<sub>j</sub> junta</span><span>Dibujo a escala (la cámara se representa con su altura equivalente)</span></div>
+        </figure>
+        <div class="card bur">
+          <h3>Medición de V<sub>CC</sub> con bureta</h3>
+          <canvas id="cBur" aria-label="Bureta de 50 mL vertiendo líquido en la cámara de la culata"></canvas>
+          <div class="btns"><button type="button" id="bNew">Nueva culata</button><button type="button" id="bFill">Llenar bureta</button><button type="button" class="pri" id="bPour">Verter</button></div>
+          <div class="mini">
+            <label>Lectura inicial (mL)<input type="number" id="rdI" step="0.1" placeholder="0.0"></label>
+            <label>Lectura final (mL)<input type="number" id="rdF" step="0.1" placeholder="0.0"></label>
+          </div>
+          <div class="btns"><button type="button" id="bCalc">Calcular V culata</button><button type="button" id="bUse">Usar como V culata</button><button type="button" id="bShow">Ver lecturas</button></div>
+          <div class="msgs" id="burMsg" aria-live="polite"></div>
+          <div class="sum" id="burSum"></div>
+          <p class="note">Antes de medir: culata limpia, bujía y válvulas montadas, culata <b>nivelada</b> con el plano de junta hacia arriba y una <b>placa de vidrio o acrílico engrasada</b> sobre la cámara (el orificio de la placa en el punto más alto). Lea siempre el fondo del menisco a la altura de los ojos. 1 mL = 1 cm³.</p>
+        </div>
+      </section>
+      <section class="kpis" id="kpis" aria-label="Resultados"></section>
+      <div class="tbl"><div class="sec-h">Paso a paso — hoja de cálculo de la Práctica 4</div><div class="tbl-scroll"><table class="steps" id="tSteps"></table></div></div>
+      <div class="plots">
+        <figure class="plot"><figcaption><span>R<sub>cj</sub> vs espesor de junta</span><small>Punto = junta actual</small></figcaption><canvas class="fx" id="cEj" aria-label="Relación de compresión en función del espesor de la junta"></canvas></figure>
+        <figure class="plot"><figcaption><span>R<sub>c</sub> vs planeado de culata</span><small>Continua: con junta · discontinua: sin junta</small></figcaption><canvas class="fx" id="cPl" aria-label="Relación de compresión en función del planeado de la culata"></canvas></figure>
+      </div>
+      <section class="kpis" id="kpisFx" aria-label="Efectos de taller"></section>
+      <section class="theory">
+        <div class="card">
+          <h3>Ecuaciones (Práctica 4)</h3>
+          <p class="eq-note">Área del pistón y volumen del cilindro (cilindrada unitaria)</p>
+          <div class="eq">A<sub>P</sub> = π·D²/4 &nbsp;·&nbsp; V<sub>C</sub> = A<sub>P</sub>·S</div>
+          <p class="eq-note">Cámara de combustión y relación de compresión</p>
+          <div class="eq">V<sub>CC</sub> = V<sub>C</sub>/(R<sub>c</sub> − 1) &nbsp;·&nbsp; R<sub>c</sub> = (V<sub>C</sub> + V<sub>CC</sub>)/V<sub>CC</sub></div>
+          <p class="eq-note">Volumen unitario y volumen total según la guía</p>
+          <div class="eq">V<sub>u</sub> = V<sub>C</sub> + V<sub>CC</sub> &nbsp;·&nbsp; V<sub>T</sub> = V<sub>u</sub>·Z</div>
+          <p class="eq-note">Cilindrada comercial (la que aparece en el catálogo): solo volumen barrido</p>
+          <div class="eq">Cilindrada = Z·V<sub>C</sub></div>
+          <p class="eq-note">Junta de culata (empaque)</p>
+          <div class="eq">V<sub>j</sub> = (V<sub>u</sub>/S)·E<sub>j</sub> &nbsp;·&nbsp; comparación: V<sub>j</sub> = π·D<sub>j</sub>²/4·E<sub>j</sub></div>
+          <div class="eq">R<sub>cj</sub> = (V<sub>C</sub> + V<sub>CC</sub> + V<sub>j</sub>)/(V<sub>CC</sub> + V<sub>j</sub>) &nbsp;·&nbsp; V<sub>u</sub> = V<sub>C</sub> + V<sub>CC</sub> + V<sub>j</sub></div>
+          <p class="eq-note">Trabajos de taller (aproximación: el área de la cámara ≈ A<sub>P</sub>)</p>
+          <div class="eq">Planeado: V<sub>CC</sub>' = V<sub>CC</sub> − A<sub>P</sub>·h<sub>p</sub> &nbsp;·&nbsp; Rectificado: D' = D + sobremedida</div>
+          <p class="live" id="liveEq"></p>
+        </div>
+        <div class="card">
+          <h3>Experimentos guiados</h3>
+          <ol>
+            <li>Con los valores por defecto compare <b>V<sub>T</sub></b> de la guía con la <b>cilindrada comercial Z·V<sub>C</sub></b>. ¿Cuál coincide con el «1.3 L» del catálogo? ¿Qué volumen está sumando V<sub>T</sub> que no es barrido por el pistón?</li>
+            <li>Planee la culata 0.30 mm. Anote cuánto sube R<sub>cj</sub>. Luego busque con el deslizador E<sub>j</sub> la junta que recupera la R<sub>cj</sub> original.
+              <details class="ans"><summary>Ver respuesta</summary><p id="ansJunta"></p></details></li>
+            <li>Rectifique a +0.50 mm. ¿Cuántos cm³ gana cada cilindro y el motor? ¿Por qué sube R<sub>c</sub> aunque la cámara no cambie?</li>
+            <li>Cambie el selector de V<sub>j</sub> entre la fórmula de la guía y la geométrica. ¿Cuál da un V<sub>j</sub> mayor y por qué? (Pista: V<sub>u</sub>/S = A<sub>P</sub> + V<sub>CC</sub>/S es mayor que A<sub>P</sub>.)</li>
+            <li>Mida con la bureta tres culatas nuevas y use una de ellas. Con pistón de cavidad 2.4 cm³ y pistón hundido 0.5 mm, ¿cuánto V<sub>CC</sub> total obtiene y qué R<sub>c</sub> resulta? ¿Cuándo pasa de 11:1?</li>
+          </ol>
+        </div>
+      </section>
+    </main>
+  </div>
+  <footer>Modelo geométrico: cilindro recto de diámetro D (más la sobremedida de rectificado) y carrera S; volúmenes en cm³ (1 mL = 1 cm³). Se usan las fórmulas y la notación de la Práctica 4 de la guía del curso: en ella V<sub>CC</sub> se obtiene con la R<sub>c</sub> del fabricante y el volumen de la junta se suma aparte, por eso R<sub>cj</sub> sale algo menor que R<sub>c</sub>. El planeado se aproxima como un rebaje de área A<sub>P</sub> (el área real de la cámara es algo menor). En modo bureta V<sub>CC</sub> = V culata − A<sub>P</sub>·planeado + V cabeza del pistón − A<sub>P</sub>·(altura del pistón), con la altura positiva cuando el pistón sobresale del plano del bloque. Material de apoyo para prácticas de Mecánica Automotriz.</footer>
+</div>
+
+<script>
+(function(){
+'use strict';
+const $=s=>document.querySelector(s);
+const fx=(x,d)=>Number.isFinite(x)?x.toFixed(d):'—';
+const sg=(x,d)=>(x>=0.5*Math.pow(10,-d)?'+':'')+fx(Math.abs(x)<0.5*Math.pow(10,-d)?0:x,d);
+function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+function pal(){return {bg:css('--surface'),page:css('--bg'),sunk:css('--sunk'),fg:css('--fg'),muted:css('--muted'),grid:css('--grid'),line:css('--line'),hot:css('--hot'),cold:css('--cold'),adi:css('--adi'),acc:css('--accent')};}
+const RM=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- parámetros ---------- */
+const DEF={
+  pMotor:[
+    {id:'D',label:'Diámetro del cilindro',sym:'D',unit:'mm',min:50,max:110,step:0.01,value:74,hint:()=>'Calibre o alexómetro · motor 1.3 L típico: 74.00 mm'},
+    {id:'S',label:'Carrera del pistón',sym:'S',unit:'mm',min:50,max:110,step:0.01,value:75.5,hint:()=>{const r=S.p.S/(S.p.D+S.p.os);return `S/D = <b>${fx(r,3)}</b> · ${sdClass(r)}`;}},
+    {id:'Z',label:'Número de cilindros',sym:'Z',unit:'—',min:1,max:12,step:1,value:4,hint:()=>''}
+  ],
+  pCam:[
+    {id:'Rc',label:'Relación de compresión del fabricante',sym:'R_c',unit:': 1',min:6,max:22,step:0.1,value:9.5,mode:'fab',hint:()=>'Gasolina 8.5–11 · diésel 16–22'},
+    {id:'Vcam',label:'Volumen medido en la culata',sym:'V culata',unit:'cm³',min:10,max:80,step:0.1,value:33.6,mode:'bur',hint:()=>'Resultado de la bureta (lectura final − inicial)'},
+    {id:'Vpis',label:'Volumen de la cabeza del pistón',sym:'V pistón',unit:'cm³',min:-10,max:15,step:0.1,value:2.4,mode:'bur',hint:v=>v>0?'Positivo = cavidad o rebajes de válvulas (suma volumen)':v<0?'Negativo = bóveda o cúpula (resta volumen)':'Pistón de cabeza plana'},
+    {id:'deck',label:'Altura del pistón en el PMS',sym:'h deck',unit:'mm',min:-2,max:1,step:0.05,value:-0.5,mode:'bur',hint:v=>v<0?`Pistón hundido ${fx(-v,2)} mm bajo el plano del bloque (suma volumen)`:v>0?`Pistón sobresale ${fx(v,2)} mm (resta volumen)`:'Pistón a ras del plano del bloque'}
+  ],
+  pJunta:[
+    {id:'Ej',label:'Espesor de la junta',sym:'E_j',unit:'mm',min:0.3,max:2.5,step:0.01,value:1.2,hint:()=>'Junta comprimida (medida de una junta usada o dato del fabricante)'},
+    {id:'Dj',label:'Diámetro del agujero de la junta',sym:'D_j',unit:'mm',min:50,max:115,step:0.1,value:75,hint:()=>''}
+  ],
+  pTaller:[
+    {id:'plan',label:'Planeado de la culata',sym:'h_p',unit:'mm',min:0,max:1,step:0.01,value:0,hint:v=>v>0?`Retira ≈ <b>${fx(S.res?S.res.AP0*v/10:0,2)} cm³</b> de la cámara`:'Material rebajado para corregir la planitud'},
+    {id:'os',label:'Sobremedida de rectificado',sym:'+ mm',unit:'mm',min:0,max:1,step:0.25,value:0,hint:v=>v>0?`Diámetro rectificado D' = <b>${fx(S.p.D+v,2)} mm</b>`:'Cilindros en medida estándar'}
+  ]
+};
+const S={p:{},mode:'fab',vjSel:'guia',djAuto:true,pi314:false,res:null,err:[],pos:0,playing:false,
+  bur:{vol:33.6,vi:0.4,level:0.4,poured:0,state:'lleno',calc:null}};
+
+function sdClass(r){return r<0.95?'supercuadrado (carrera corta)':r<=1.05?'cuadrado':'alargado (carrera larga)';}
+function allDefs(){return [].concat(DEF.pMotor,DEF.pCam,DEF.pJunta,DEF.pTaller);}
+function build(sel,defs){
+  const box=$('#'+sel); box.innerHTML='';
+  defs.forEach(d=>{
+    const row=document.createElement('div'); row.className='prm'; row.id='row_'+d.id;
+    row.innerHTML=`<div class="prm-h"><label for="in_${d.id}">${d.label}</label><span class="sym">${d.sym}</span></div>
+      <div class="prm-in"><input type="range" id="rg_${d.id}" min="${d.min}" max="${d.max}" step="${d.step}" aria-label="${d.label} (deslizador)">
+      <input type="number" id="in_${d.id}" step="${d.step}"><span class="unit">${d.unit}</span></div><div class="hint" id="hn_${d.id}"></div>`;
+    box.appendChild(row);
+    const rg=row.querySelector('input[type=range]'), nb=row.querySelector('input[type=number]');
+    rg.addEventListener('input',()=>{S.p[d.id]=+rg.value; nb.value=rg.value; if(d.id==='D') autoDj(); recompute();});
+    nb.addEventListener('input',()=>{const v=parseFloat(nb.value); if(Number.isFinite(v)){S.p[d.id]=v; rg.value=v; if(d.id==='D') autoDj(); recompute();}});
+  });
+}
+function sync(){allDefs().forEach(d=>{$('#in_'+d.id).value=S.p[d.id]; $('#rg_'+d.id).value=S.p[d.id];});}
+function autoDj(){ if(S.djAuto){ S.p.Dj=+(S.p.D+1).toFixed(2); $('#in_Dj').value=S.p.Dj; $('#rg_Dj').value=S.p.Dj; } }
+function defaults(){allDefs().forEach(d=>S.p[d.id]=d.value);}
+
+/* ---------- cálculo (Práctica 4) ---------- */
+function calc(p,o){
+  o=o||{}; const mode=o.mode||S.mode, sel=o.vjSel||S.vjSel, PI=S.pi314?3.14:Math.PI;
+  const e=[];
+  if(!(p.D>0)) e.push('El diámetro D debe ser mayor que 0 mm.');
+  if(!(p.S>0)) e.push('La carrera S debe ser mayor que 0 mm.');
+  if(!(p.Z>=1)||Math.round(p.Z)!==p.Z) e.push('Z debe ser un número entero de cilindros (1 o más).');
+  if(mode==='fab'&&!(p.Rc>1)) e.push('La relación de compresión R<sub>c</sub> debe ser mayor que 1 (p. ej. 9.5).');
+  if(!(p.Ej>=0)) e.push('El espesor de la junta E<sub>j</sub> no puede ser negativo.');
+  if(!(p.plan>=0)) e.push('El planeado no puede ser negativo: indique los mm rebajados (p. ej. 0.20).');
+  if(!(p.os>=0)) e.push('La sobremedida no puede ser negativa (0, 0.25, 0.50, 0.75 o 1.00 mm).');
+  if(e.length) return {errors:e};
+  const Dn=p.D/10, De=(p.D+p.os)/10, Sc=p.S/10, Ej=p.Ej/10;
+  const AP0=PI*Dn*Dn/4, AP=PI*De*De/4, VC0=AP0*Sc, VC=AP*Sc;
+  let VCC, VCCb, Vplan=AP0*p.plan/10, Vdeck=0, Vcam;
+  if(mode==='fab'){ VCCb=VC0/(p.Rc-1); Vcam=VCCb; VCC=VCCb-Vplan; }
+  else { Vcam=p.Vcam; Vdeck=-AP*p.deck/10; VCCb=Vcam+p.Vpis+Vdeck; VCC=VCCb-Vplan; }
+  if(!(VCC>0)) return {errors:['El volumen de la cámara V<sub>CC</sub> resulta nulo o negativo: reduzca el planeado o la altura del pistón, o revise el volumen medido.']};
+  const Rc=(VC+VCC)/VCC, Vu=VC+VCC, VT=Vu*p.Z, Vcom=VC*p.Z;
+  const DjU=(S.djAuto?p.D+1:p.Dj)/10;
+  const VjG=(Vu/Sc)*Ej, VjO=PI*DjU*DjU/4*Ej, Vj=sel==='geo'?VjO:VjG;
+  const Rcj=(VC+VCC+Vj)/(VCC+Vj), Vuj=VC+VCC+Vj, VTj=Vuj*p.Z;
+  return {PI,Dn,De,Sc,Ej,AP0,AP,VC0,VC,VCCb,VCC,Vplan,Vdeck,Vcam,Rc,Vu,VT,Vcom,DjU,VjG,VjO,Vj,Rcj,Vuj,VTj,SD:p.S/(p.D+p.os)};
+}
+function recompute(){
+  const r=calc(S.p);
+  S.err=r.errors||[];
+  if(S.err.length){ document.body.classList.add('invalid'); S.res=null; renderMsgs(); return; }
+  document.body.classList.remove('invalid');
+  S.res=r; renderAll();
+}
+/* junta que recupera la R_cj sin planear */
+function compJunta(){
+  const p=S.p; if(!(p.plan>0)) return null;
+  const tgt=calc(Object.assign({},p,{plan:0})).Rcj;
+  let lo=0, hi=12;
+  const f=E=>calc(Object.assign({},p,{Ej:E})).Rcj-tgt;
+  if(f(hi)>0) return null;
+  for(let k=0;k<60;k++){const m=(lo+hi)/2; if(f(m)>0) lo=m; else hi=m;}
+  return {E:(lo+hi)/2, tgt};
+}
+
+/* ---------- render de datos ---------- */
+function kpi(l,v,u,s,main){return `<div class="kpi${main?' main':''}"><div class="l">${l}</div><div class="v">${v}${u?`<small>${u}</small>`:''}</div>${s?`<div class="s">${s}</div>`:''}</div>`;}
+function renderKpis(){
+  const r=S.res, p=S.p;
+  let h='<div class="kpi-group">Parámetros de la Práctica 4</div>';
+  h+=kpi('Área del pistón A<sub>P</sub>',fx(r.AP,3),'cm²',`D = ${fx(p.D+p.os,2)} mm`);
+  h+=kpi('Volumen del cilindro V<sub>C</sub>',fx(r.VC,2),'cm³','Cilindrada unitaria');
+  h+=kpi('Cámara de combustión V<sub>CC</sub>',fx(r.VCC,2),'cm³',S.mode==='fab'?'Con R<sub>c</sub> del fabricante':'Medida con bureta');
+  h+=kpi('Relación de compresión R<sub>c</sub>',fx(r.Rc,2),': 1','Sin junta',true);
+  h+=kpi('Volumen unitario V<sub>u</sub>',fx(r.Vu,2),'cm³','V<sub>C</sub> + V<sub>CC</sub>');
+  h+=kpi('Volumen total V<sub>T</sub> (guía)',fx(r.VT,2),'cm³','V<sub>u</sub>·Z · incluye las cámaras');
+  h+=kpi('Cilindrada comercial Z·V<sub>C</sub>',fx(r.Vcom,2),'cm³',`≈ ${fx(r.Vcom/1000,1)} L · valor de catálogo`,true);
+  h+='<div class="kpi-group">Con junta de culata (empaque)</div>';
+  h+=kpi('Volumen de la junta V<sub>j</sub>',fx(r.Vj,2),'cm³',S.vjSel==='geo'?`Guía: ${fx(r.VjG,2)} cm³`:`Geométrica: ${fx(r.VjO,2)} cm³`);
+  h+=kpi('R<sub>cj</sub> con junta',fx(r.Rcj,2),': 1',`E<sub>j</sub> = ${fx(p.Ej,2)} mm`,true);
+  h+=kpi('V<sub>u</sub> con junta',fx(r.Vuj,2),'cm³','V<sub>C</sub> + V<sub>CC</sub> + V<sub>j</sub>');
+  h+=kpi('V<sub>T</sub> con junta',fx(r.VTj,2),'cm³','V<sub>u</sub>·Z');
+  h+=kpi('Relación carrera/diámetro S/D',fx(r.SD,3),'',sdClass(r.SD));
+  $('#kpis').innerHTML=h;
+  // efectos de taller
+  const a=calc(Object.assign({},p,{plan:p.plan+0.2})), b0=calc(Object.assign({},p,{os:0})), b5=calc(Object.assign({},p,{os:0.5}));
+  let g='<div class="kpi-group">Efectos de taller</div>';
+  g+=kpi('Planear 0.20 mm más',sg(a.Rc-r.Rc,2),'R<sub>c</sub>',`R<sub>c</sub> ${fx(r.Rc,2)} → ${fx(a.Rc,2)} · R<sub>cj</sub> ${sg(a.Rcj-r.Rcj,2)}`);
+  g+=kpi('Rectificar a +0.50 mm',sg(b5.Rc-b0.Rc,2),'R<sub>c</sub>',`vs. estándar · R<sub>cj</sub> ${sg(b5.Rcj-b0.Rcj,2)}`);
+  g+=kpi('Cilindrada ganada a +0.50 mm',sg(b5.Vcom-b0.Vcom,1),'cm³',`${sg(b5.VC-b0.VC,2)} cm³ por cilindro`);
+  const cj=compJunta();
+  g+=kpi('Junta que compensa el planeado',cj?fx(cj.E,2):'—','mm',cj?`Recupera R<sub>cj</sub> = ${fx(cj.tgt,2)}`:'Sin planeado: no hace falta');
+  $('#kpisFx').innerHTML=g;
+  $('#ansJunta').innerHTML=cj?`Con ${fx(p.plan,2)} mm de planeado se necesita una junta de <b>${fx(cj.E,2)} mm</b> (en lugar de ${fx(p.Ej,2)} mm) para volver a R<sub>cj</sub> = ${fx(cj.tgt,2)}. En la práctica se elige la junta de reparación de espesor comercial más próxima.`:'Primero planee la culata (p. ej. 0.30 mm) para que aparezca la respuesta.';
+}
+function renderSteps(){
+  const r=S.res, p=S.p, pi=S.pi314?'3.14':'π', D=p.D+p.os;
+  const rows=[]; const g=t=>rows.push(`<tr class="grp"><td colspan="5">${t}</td></tr>`);
+  const add=(n,m,f,s,v,u)=>rows.push(`<tr><td>${n}</td><td class="n">${m}</td><td class="f">${f}</td><td class="f">${s}</td><td class="r">${v} <span class="unit">${u}</span></td></tr>`);
+  g('Sin junta');
+  add(1,'Área del pistón','A<sub>P</sub> = π·D²/4',`${pi}·(${fx(D/10,4)} cm)²/4`,fx(r.AP,3),'cm²');
+  add(2,'Volumen del cilindro','V<sub>C</sub> = A<sub>P</sub>·S',`${fx(r.AP,3)}·${fx(r.Sc,3)} cm`,fx(r.VC,2),'cm³');
+  if(S.mode==='fab'){
+    const VC0=r.VC0;
+    add(3,'Volumen de la cámara','V<sub>CC</sub> = V<sub>C</sub>/(R<sub>c</sub> − 1)',`${fx(VC0,2)}/(${fx(p.Rc,2)} − 1)`,fx(r.VCCb,2),'cm³');
+    if(p.os>0) rows.push(`<tr><td></td><td class="n" colspan="4" style="color:var(--muted)">La cámara no cambia al rectificar: V<sub>CC</sub> se calcula con V<sub>C</sub> en medida estándar (${fx(VC0,2)} cm³).</td></tr>`);
+  } else {
+    add(3,'Volumen de la cámara','V<sub>CC</sub> = V culata + V pistón − A<sub>P</sub>·h',`${fx(r.Vcam,2)} + ${fx(p.Vpis,2)} + ${fx(r.Vdeck,2)}`,fx(r.VCCb,2),'cm³');
+  }
+  if(p.plan>0) add('3b','Corrección por planeado','V<sub>CC</sub>\' = V<sub>CC</sub> − A<sub>P</sub>·h<sub>p</sub>',`${fx(r.VCCb,2)} − ${fx(r.AP0,3)}·${fx(p.plan/10,3)}`,fx(r.VCC,2),'cm³');
+  add(4,'Relación de compresión','R<sub>c</sub> = (V<sub>C</sub> + V<sub>CC</sub>)/V<sub>CC</sub>',`(${fx(r.VC,2)} + ${fx(r.VCC,2)})/${fx(r.VCC,2)}`,fx(r.Rc,2),': 1');
+  add(5,'Volumen unitario','V<sub>u</sub> = V<sub>C</sub> + V<sub>CC</sub>',`${fx(r.VC,2)} + ${fx(r.VCC,2)}`,fx(r.Vu,2),'cm³');
+  add(6,'Volumen total (guía)','V<sub>T</sub> = V<sub>u</sub>·Z',`${fx(r.Vu,2)}·${p.Z}`,fx(r.VT,2),'cm³');
+  add(7,'Cilindrada comercial','Z·V<sub>C</sub>',`${p.Z}·${fx(r.VC,2)}`,fx(r.Vcom,2),'cm³');
+  g('Con junta de culata (empaque)');
+  add(8,'Volumen de la junta (guía)','V<sub>j</sub> = (V<sub>u</sub>/S)·E<sub>j</sub>',`(${fx(r.Vu,2)}/${fx(r.Sc,3)})·${fx(r.Ej,3)}`,fx(r.VjG,2),'cm³');
+  add('8b','Volumen de la junta (geométrico)','V<sub>j</sub> = π·D<sub>j</sub>²/4·E<sub>j</sub>',`${pi}·${fx(r.DjU,3)}²/4·${fx(r.Ej,3)}`,fx(r.VjO,2),'cm³');
+  add(9,'Relación de compresión con junta','R<sub>cj</sub> = (V<sub>C</sub> + V<sub>CC</sub> + V<sub>j</sub>)/(V<sub>CC</sub> + V<sub>j</sub>)',`(${fx(r.VC,2)} + ${fx(r.VCC,2)} + ${fx(r.Vj,2)})/(${fx(r.VCC,2)} + ${fx(r.Vj,2)})`,fx(r.Rcj,2),': 1');
+  add(10,'Volumen unitario con junta','V<sub>u</sub> = V<sub>C</sub> + V<sub>CC</sub> + V<sub>j</sub>',`${fx(r.VC,2)} + ${fx(r.VCC,2)} + ${fx(r.Vj,2)}`,fx(r.Vuj,2),'cm³');
+  add(11,'Volumen total con junta','V<sub>T</sub> = V<sub>u</sub>·Z',`${fx(r.Vuj,2)}·${p.Z}`,fx(r.VTj,2),'cm³');
+  add(12,'Relación carrera/diámetro','S/D',`${fx(p.S,2)}/${fx(D,2)}`,fx(r.SD,3),'');
+  $('#tSteps').innerHTML=`<thead><tr><th>N.º</th><th>Magnitud</th><th style="text-align:left">Fórmula</th><th style="text-align:left">Sustitución</th><th>Resultado</th></tr></thead><tbody>${rows.join('')}</tbody>`;
+}
+function renderMsgs(){
+  let h=''; S.err.forEach(e=>h+=`<div class="msg err">${e}</div>`);
+  const r=S.res, p=S.p;
+  if(r){
+    if(r.Rcj>11&&r.Rcj<=14) h+=`<div class="msg warn">R<sub>cj</sub> = ${fx(r.Rcj,2)}: por encima de ~11:1 un motor a gasolina corre riesgo de <b>detonación</b> con combustible de 87–92 octanos. Use una junta más gruesa o reduzca el planeado.</div>`;
+    if(r.Rcj>14) h+=`<div class="msg warn">R<sub>cj</sub> = ${fx(r.Rcj,2)} es propia de un motor diésel; en gasolina provocaría detonación severa.</div>`;
+    if(r.Rcj<8) h+=`<div class="msg warn">R<sub>cj</sub> = ${fx(r.Rcj,2)} es baja para un motor a gasolina: el motor pierde potencia y rendimiento. Revise el espesor de la junta o el volumen de la cámara.</div>`;
+    if(r.DjU*10<p.D+p.os) h+=`<div class="msg err">El agujero de la junta (D<sub>j</sub> = ${fx(r.DjU*10,2)} mm) es menor que el cilindro (${fx(p.D+p.os,2)} mm): la junta invadiría el cilindro. Use D<sub>j</sub> mayor que D.</div>`;
+    if(p.plan>0.5) h+=`<div class="msg warn">Un planeado de ${fx(p.plan,2)} mm supera el máximo que admiten muchos fabricantes (≈ 0.20–0.40 mm). Compruebe la altura mínima de la culata en el manual.</div>`;
+    if(p.os>0&&![0.25,0.5,0.75,1].some(x=>Math.abs(x-p.os)<1e-6)) h+=`<div class="msg warn">Sobremedida no comercial: los pistones se fabrican en +0.25, +0.50, +0.75 y +1.00 mm.</div>`;
+    if(S.mode==='bur'&&p.deck>0) h+=`<div class="msg">Pistón sobresaliente (${fx(p.deck,2)} mm): habitual en diésel; en gasolina compruebe que no toque la culata con la junta comprimida.</div>`;
+  }
+  $('#msgs').innerHTML=h;
+}
+function renderHints(){
+  allDefs().forEach(d=>{const h=$('#hn_'+d.id); try{h.innerHTML=d.hint?d.hint(S.p[d.id]):'';}catch(e){h.innerHTML='';}});
+  $('#hn_Dj').innerHTML=S.djAuto?'Automático: D + 1 mm (desmarque la casilla para escribirlo)':'Mídalo en la junta con el calibre';
+  $('#row_Dj').classList.toggle('off',S.djAuto);
+  ['Rc','Vcam','Vpis','deck'].forEach(id=>{const d=DEF.pCam.find(x=>x.id===id); $('#row_'+id).classList.toggle('off',d.mode!==S.mode);});
+  $('#hnMode').innerHTML=S.mode==='fab'?'V<sub>CC</sub> = V<sub>C</sub>/(R<sub>c</sub> − 1). La cabeza del pistón y su altura ya están incluidas en la R<sub>c</sub> del fabricante.':'V<sub>CC</sub> se compone con el volumen medido en la culata, la cabeza del pistón y su altura en el PMS.';
+}
+function renderLive(){
+  const r=S.res,p=S.p;
+  $('#liveEq').innerHTML=`Ahora: A<sub>P</sub> = ${fx(r.AP,3)} cm² · V<sub>C</sub> = ${fx(r.VC,2)} cm³ · V<sub>CC</sub> = ${fx(r.VCC,2)} cm³ · R<sub>c</sub> = ${fx(r.Rc,2)} · V<sub>j</sub> = ${fx(r.Vj,2)} cm³ · R<sub>cj</sub> = ${fx(r.Rcj,2)}`;
+}
+function renderAll(){renderHints(); renderKpis(); renderSteps(); renderMsgs(); renderLive(); drawAll(); renderBurSum();}
+
+/* ---------- canvas util ---------- */
+function setup(cv){
+  const dpr=window.devicePixelRatio||1, W=cv.clientWidth, H=cv.clientHeight;
+  if(cv.width!==Math.round(W*dpr)||cv.height!==Math.round(H*dpr)){cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr);}
+  const ctx=cv.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,W,H); return {ctx,W,H};
+}
+function arrow2(ctx,x0,y0,x1,y1,col){
+  ctx.strokeStyle=col; ctx.fillStyle=col; ctx.lineWidth=1.2;
+  ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke();
+  const a=Math.atan2(y1-y0,x1-x0), s=6;
+  [[x1,y1,a],[x0,y0,a+Math.PI]].forEach(([x,y,an])=>{ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x-s*Math.cos(an-0.4),y-s*Math.sin(an-0.4)); ctx.lineTo(x-s*Math.cos(an+0.4),y-s*Math.sin(an+0.4)); ctx.closePath(); ctx.fill();});
+}
+function label(ctx,t,x,y,col,al,bg){
+  ctx.font='600 12px "JetBrains Mono", ui-monospace, monospace'; ctx.textAlign=al||'left'; ctx.textBaseline='middle';
+  if(bg){const w=ctx.measureText(t).width, x0=al==='center'?x-w/2:al==='right'?x-w:x; ctx.fillStyle=bg; ctx.fillRect(x0-3,y-8,w+6,16);}
+  ctx.fillStyle=col; ctx.fillText(t,x,y);
+}
+
+/* ---------- corte del cilindro ---------- */
+function pistonTravel(th,Smm){ const r=Smm/2, L=1.65*Smm; return r*(1-Math.cos(th))+L-Math.sqrt(L*L-r*r*Math.sin(th)**2); }
+function drawCut(){
+  const cv=$('#cCut'), r=S.res; if(!r) return;
+  const {ctx,W,H}=setup(cv), P=pal(), p=S.p;
+  const D=p.D+p.os, Smm=p.S, Ej=p.Ej;
+  const hEq=Math.max(0.5,(S.mode==='fab'?r.VCC:(r.Vcam-r.Vplan))/r.AP*10); // mm, cámara de culata
+  const pisH=0.62*D, headT=hEq+16;
+  const totalH=headT+Ej+Smm+pisH+14, totalW=D+64;
+  const narrow=W<560, lw=narrow?8:Math.min(150,Math.max(112,W*0.26)), rw=narrow?96:108;
+  const sc=Math.min((W-lw-rw)/(D+30),(H-(narrow?112:50))/totalH);
+  const wall=Math.max(12,11*sc), cx=Math.round(lw+(W-lw-rw)/2), bw=D*sc, x0=cx-bw/2, x1=cx+bw/2;
+  const deckY=22+(headT+Ej)*sc;             // plano del bloque (cara superior)
+  const jTop=deckY-Ej*sc;                   // cara de la culata
+  // posición del pistón
+  const th=S.pos*Math.PI, trav=pistonTravel(th,Smm);
+  const crownPMS=deckY-p.deck*(S.mode==='bur'?sc:0);
+  const crown=crownPMS+trav*sc, crownPMI=crownPMS+Smm*sc;
+  // bloque
+  ctx.fillStyle=P.sunk; ctx.strokeStyle=P.fg; ctx.lineWidth=1.5;
+  const blkBot=Math.min(H-(narrow?96:30),crownPMI+pisH*sc+10);
+  ctx.fillRect(x0-wall,deckY,wall,blkBot-deckY); ctx.fillRect(x1,deckY,wall,blkBot-deckY);
+  ctx.strokeRect(x0-wall,deckY,wall,blkBot-deckY); ctx.strokeRect(x1,deckY,wall,blkBot-deckY);
+  // V_C (barrido)
+  ctx.fillStyle=P.acc; ctx.globalAlpha=0.16; ctx.fillRect(x0,crownPMS,bw,Smm*sc); ctx.globalAlpha=1;
+  ctx.setLineDash([5,4]); ctx.strokeStyle=P.acc; ctx.lineWidth=1.2; ctx.strokeRect(x0+0.5,crownPMS,bw-1,Smm*sc); ctx.setLineDash([]);
+  // junta
+  const DjPx=r.DjU*10*sc, jx0=cx-DjPx/2, jx1=cx+DjPx/2;
+  ctx.fillStyle=P.cold; ctx.globalAlpha=0.9; ctx.fillRect(x0-wall-6,jTop,jx0-(x0-wall-6),Math.max(1.5,Ej*sc)); ctx.fillRect(jx1,jTop,(x1+wall+6)-jx1,Math.max(1.5,Ej*sc)); ctx.globalAlpha=1;
+  ctx.fillStyle=P.cold; ctx.globalAlpha=0.35; ctx.fillRect(jx0,jTop,DjPx,Math.max(1.5,Ej*sc)); ctx.globalAlpha=1;
+  // culata con cámara (techo a cuatro aguas equivalente)
+  const cw=Math.min(DjPx,bw)*0.98, hRoof=hEq*sc*2/1.35, topW=cw*0.35;
+  const hx0=x0-wall-6, hx1=x1+wall+6, hTop=jTop-headT*sc;
+  ctx.fillStyle=P.sunk; ctx.strokeStyle=P.fg; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(hx0,hTop); ctx.lineTo(hx1,hTop); ctx.lineTo(hx1,jTop); ctx.lineTo(cx+cw/2,jTop); ctx.lineTo(cx+topW/2,jTop-hRoof); ctx.lineTo(cx-topW/2,jTop-hRoof); ctx.lineTo(cx-cw/2,jTop); ctx.lineTo(hx0,jTop); ctx.closePath(); ctx.fill(); ctx.stroke();
+  // V_CC en la culata
+  ctx.fillStyle=P.hot; ctx.globalAlpha=0.3;
+  ctx.beginPath(); ctx.moveTo(cx-cw/2,jTop); ctx.lineTo(cx-topW/2,jTop-hRoof); ctx.lineTo(cx+topW/2,jTop-hRoof); ctx.lineTo(cx+cw/2,jTop); ctx.closePath(); ctx.fill();
+  if(crownPMS>deckY) ctx.fillRect(x0,deckY,bw,crownPMS-deckY);
+  ctx.globalAlpha=1;
+  // bujía y válvulas
+  ctx.fillStyle=P.adi; ctx.fillRect(cx-4,hTop-6,8,(jTop-hRoof)-hTop+8);
+  const vs=[[cx-cw*0.33,-1],[cx+cw*0.33,1]];
+  vs.forEach(([vx,sgn])=>{const vy=jTop-hRoof*0.45; ctx.save(); ctx.translate(vx,vy); ctx.rotate(sgn*0.35); ctx.fillStyle=P.adi; ctx.fillRect(-2,-headT*sc*0.9,4,headT*sc*0.9); ctx.fillRect(-cw*0.12,-2,cw*0.24,4); ctx.restore();});
+  // planeado
+  if(p.plan>0){ ctx.setLineDash([3,3]); ctx.strokeStyle=P.hot; ctx.beginPath(); ctx.moveTo(hx0,jTop-p.plan*sc); ctx.lineTo(hx1,jTop-p.plan*sc); ctx.stroke(); ctx.setLineDash([]); }
+  // pistón
+  const pc=Math.min(bw*0.6,bw-10);
+  ctx.save(); ctx.beginPath(); ctx.rect(x0,0,bw,H); ctx.clip();
+  ctx.fillStyle=P.adi; ctx.strokeStyle=P.fg; ctx.lineWidth=1.5;
+  ctx.fillRect(x0+1.5,crown,bw-3,pisH*sc); ctx.strokeRect(x0+1.5,crown,bw-3,pisH*sc);
+  // cavidad/bóveda
+  const vp=S.mode==='bur'?p.Vpis:0;
+  if(Math.abs(vp)>0.05){ const dep=Math.min(pisH*0.25,Math.abs(vp)/(Math.PI*(pc/sc/10)**2/4)*10)*sc*1.5;
+    ctx.fillStyle=vp>0?P.hot:P.adi; ctx.globalAlpha=vp>0?0.3:1;
+    ctx.beginPath(); if(vp>0){ctx.ellipse(cx,crown,pc/2,dep,0,0,Math.PI);} else {ctx.ellipse(cx,crown,pc/2,dep,0,Math.PI,2*Math.PI);} ctx.fill(); ctx.globalAlpha=1;
+    if(vp>0){ctx.fillStyle=P.page; ctx.globalAlpha=.55; ctx.beginPath(); ctx.ellipse(cx,crown,pc/2,dep,0,0,Math.PI); ctx.fill(); ctx.globalAlpha=1; ctx.fillStyle=P.hot; ctx.globalAlpha=.3; ctx.beginPath(); ctx.ellipse(cx,crown,pc/2,dep,0,0,Math.PI); ctx.fill(); ctx.globalAlpha=1;}
+    ctx.strokeStyle=P.fg; ctx.beginPath(); if(vp>0) ctx.ellipse(cx,crown,pc/2,dep,0,0,Math.PI); else ctx.ellipse(cx,crown,pc/2,dep,0,Math.PI,2*Math.PI); ctx.stroke(); }
+  ctx.strokeStyle=P.bg; ctx.lineWidth=1.4; [4,8,12].forEach(o=>{ctx.beginPath(); ctx.moveTo(x0+2,crown+o*sc*0.9+4); ctx.lineTo(x1-2,crown+o*sc*0.9+4); ctx.stroke();});
+  const pinY=crown+pisH*sc*0.55; ctx.fillStyle=P.bg; ctx.beginPath(); ctx.arc(cx,pinY,Math.max(4,D*0.11*sc),0,Math.PI*2); ctx.fill(); ctx.strokeStyle=P.fg; ctx.stroke();
+  ctx.restore();
+  // biela (tramo)
+  ctx.strokeStyle=P.muted; ctx.lineWidth=Math.max(5,D*0.12*sc); ctx.lineCap='round';
+  const rodAng=Math.asin(Math.min(0.95,(Smm/2)*Math.sin(th)/(1.65*Smm)));
+  ctx.beginPath(); ctx.moveTo(cx,pinY); ctx.lineTo(cx+Math.sin(rodAng)*60,Math.min(H+30,pinY+Math.cos(rodAng)*60)); ctx.stroke(); ctx.lineCap='butt';
+  // líneas PMS / PMI y cotas
+  ctx.setLineDash([4,3]); ctx.strokeStyle=P.muted; ctx.lineWidth=1;
+  [crownPMS,crownPMI].forEach(y=>{ctx.beginPath(); ctx.moveTo(x1+wall+2,y); ctx.lineTo(x1+wall+36,y); ctx.stroke();});
+  ctx.setLineDash([]);
+  label(ctx,'PMS',x1+wall+40,crownPMS-9,P.muted); label(ctx,'PMI',x1+wall+40,crownPMI+9,P.muted);
+  const ax=x1+wall+24; arrow2(ctx,ax,crownPMS,ax,crownPMI,P.fg);
+  label(ctx,narrow?`S = ${fx(Smm,2)}`:`S = ${fx(Smm,2)} mm`,ax+8,(crownPMS+crownPMI)/2,P.fg,'left',P.page);
+  const dy=crownPMS+Smm*sc*0.78; arrow2(ctx,x0+2,dy,x1-2,dy,P.fg);
+  label(ctx,`D = ${fx(D,2)} mm`,cx,dy-12,P.fg,'center',P.page);
+  // etiquetas de volúmenes
+  label(ctx,`V_C = ${fx(r.VC,2)} cm³`,cx,crownPMS+Smm*sc*0.4,P.acc,'center',P.page);
+  if(narrow){
+    const by=H-78;
+    label(ctx,`V_CC = ${fx(r.VCC,2)} cm³`,8,by,P.hot); label(ctx,`E_j = ${fx(Ej,2)} mm`,8,by+17,P.cold); label(ctx,`V_j = ${fx(r.Vj,2)} cm³`,8,by+34,P.cold);
+  } else {
+  const lx=lw-6, lyC=Math.max(14,jTop-hRoof-headT*sc*0.2);
+  label(ctx,`V_CC = ${fx(r.VCC,2)} cm³`,lx,lyC,P.hot,'right');
+  ctx.strokeStyle=P.hot; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(lx+2,lyC); ctx.lineTo(cx-cw*0.25,jTop-hRoof*0.35); ctx.stroke();
+  const lyJ=jTop+Ej*sc/2+22;
+  label(ctx,`E_j = ${fx(Ej,2)} mm`,lx,lyJ,P.cold,'right');
+  label(ctx,`V_j = ${fx(r.Vj,2)} cm³`,lx,lyJ+16,P.cold,'right');
+  ctx.strokeStyle=P.cold; ctx.beginPath(); ctx.moveTo(lx+2,lyJ); ctx.lineTo(x0-wall-8,jTop+Ej*sc/2); ctx.stroke();
+  }
+  if(p.plan>0) label(ctx,`planeado ${fx(p.plan,2)} mm`,x1+wall+8,jTop-p.plan*sc-26,P.hot);
+  // estado
+  ctx.font='600 12px Barlow, system-ui, sans-serif'; ctx.textAlign='left'; ctx.textBaseline='top'; ctx.fillStyle=P.fg;
+  const vol=r.VCC+r.Vj+r.AP*trav/10;
+  ctx.fillText(`Volumen sobre el pistón: ${fx(vol,1)} cm³`,8,H-20);
+  ctx.textAlign='right'; ctx.fillStyle=P.muted; ctx.fillText(`Escala 1 mm = ${fx(sc,2)} px`,W-8,narrow?H-40:H-20);
+}
+
+/* ---------- gráficos de efectos ---------- */
+function niceStep(span,n){const raw=span/n, q=Math.pow(10,Math.floor(Math.log10(raw))), m=raw/q; return (m<1.5?1:m<3?2:m<7?5:10)*q;}
+function ticks(a,b,n){const st=niceStep(b-a,n), o=[]; for(let x=Math.ceil(a/st)*st;x<=b+st*1e-9;x+=st) o.push(+x.toPrecision(10)); return o;}
+function chart(cv,cfg){
+  const {ctx,W,H}=setup(cv), P=pal(); const m={l:48,r:14,t:12,b:40};
+  let y0=Infinity,y1=-Infinity; cfg.series.forEach(s=>s.pts.forEach(q=>{y0=Math.min(y0,q[1]); y1=Math.max(y1,q[1]);}));
+  (cfg.hl||[]).forEach(h=>{ if(h.v<y1+3&&h.v>y0-3){y0=Math.min(y0,h.v); y1=Math.max(y1,h.v);} });
+  const dy=(y1-y0)||1; y0-=dy*0.08; y1+=dy*0.12;
+  const pw=W-m.l-m.r, ph=H-m.t-m.b, X=v=>m.l+(v-cfg.x0)/(cfg.x1-cfg.x0)*pw, Y=v=>H-m.b-(v-y0)/(y1-y0)*ph;
+  ctx.fillStyle=P.bg; ctx.fillRect(m.l,m.t,pw,ph);
+  ctx.font='11px "JetBrains Mono", ui-monospace, monospace'; ctx.lineWidth=1;
+  ctx.textAlign='center'; ctx.textBaseline='top';
+  ticks(cfg.x0,cfg.x1,W<420?4:6).forEach(t=>{const x=Math.round(X(t))+.5; ctx.strokeStyle=P.grid; ctx.beginPath(); ctx.moveTo(x,m.t); ctx.lineTo(x,H-m.b); ctx.stroke(); ctx.fillStyle=P.muted; ctx.fillText((+t.toFixed(2)).toString(),x,H-m.b+5);});
+  ctx.textAlign='right'; ctx.textBaseline='middle';
+  ticks(y0,y1,5).forEach(t=>{const y=Math.round(Y(t))+.5; ctx.strokeStyle=P.grid; ctx.beginPath(); ctx.moveTo(m.l,y); ctx.lineTo(W-m.r,y); ctx.stroke(); ctx.fillStyle=P.muted; ctx.fillText((+t.toFixed(2)).toString(),m.l-5,y);});
+  ctx.strokeStyle=P.line; ctx.strokeRect(m.l+.5,m.t+.5,pw-1,ph-1);
+  ctx.fillStyle=P.fg; ctx.font='600 12.5px Barlow, system-ui, sans-serif'; ctx.textAlign='center'; ctx.textBaseline='bottom'; ctx.fillText(cfg.xl,m.l+pw/2,H-3);
+  ctx.save(); ctx.translate(12,m.t+ph/2); ctx.rotate(-Math.PI/2); ctx.textBaseline='middle'; ctx.fillText(cfg.yl,0,0); ctx.restore();
+  ctx.save(); ctx.beginPath(); ctx.rect(m.l,m.t,pw,ph); ctx.clip();
+  (cfg.hl||[]).forEach(h=>{const y=Y(h.v); if(y<m.t||y>H-m.b) return; ctx.setLineDash([5,4]); ctx.strokeStyle=P[h.c]; ctx.lineWidth=1.3; ctx.beginPath(); ctx.moveTo(m.l,y); ctx.lineTo(W-m.r,y); ctx.stroke(); ctx.setLineDash([]);
+    ctx.font='11px "JetBrains Mono", ui-monospace, monospace'; ctx.textAlign=h.al||'right'; ctx.textBaseline='bottom'; ctx.fillStyle=P[h.c]; ctx.fillText(h.t,h.al==='left'?m.l+6:W-m.r-6,y-3);});
+  cfg.series.forEach(s=>{ctx.strokeStyle=P[s.c]; ctx.lineWidth=s.w||2.4; ctx.setLineDash(s.dash||[]); ctx.beginPath(); s.pts.forEach((q,i)=>{const x=X(q[0]),y=Y(q[1]); i?ctx.lineTo(x,y):ctx.moveTo(x,y);}); ctx.stroke(); ctx.setLineDash([]);});
+  const px=X(cfg.pt[0]), py=Y(cfg.pt[1]);
+  ctx.setLineDash([3,3]); ctx.strokeStyle=P.muted; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(px,py); ctx.lineTo(px,H-m.b); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle=P.acc; ctx.globalAlpha=.25; ctx.beginPath(); ctx.arc(px,py,10,0,7); ctx.fill(); ctx.globalAlpha=1;
+  ctx.beginPath(); ctx.arc(px,py,5,0,7); ctx.fill(); ctx.strokeStyle=P.bg; ctx.lineWidth=2; ctx.stroke();
+  ctx.restore();
+  const t=cfg.ptLabel; ctx.font='600 12px "JetBrains Mono", ui-monospace, monospace'; const tw=ctx.measureText(t).width;
+  let lx=px+12, ly=py-14; if(lx+tw>W-m.r-4) lx=px-12-tw; if(ly<m.t+10) ly=py+16;
+  ctx.fillStyle=P.page; ctx.fillRect(lx-3,ly-9,tw+6,18); ctx.fillStyle=P.fg; ctx.textAlign='left'; ctx.textBaseline='middle'; ctx.fillText(t,lx,ly);
+}
+function drawCharts(){
+  const r=S.res, p=S.p; if(!r) return;
+  const e=[]; for(let E=0.3;E<=2.5001;E+=0.05) e.push([E,calc(Object.assign({},p,{Ej:E})).Rcj]);
+  chart($('#cEj'),{x0:0.3,x1:2.5,xl:'E_j  (mm)',yl:'R_cj',series:[{pts:e,c:'acc'}],pt:[p.Ej,r.Rcj],ptLabel:`${fx(r.Rcj,2)} : 1`,
+    hl:[{v:11,c:'hot',t:'11 : 1 límite de detonación'},{v:r.Rc,c:'muted',t:'R_c sin junta',al:'left'}]});
+  const mx=Math.max(1,Math.ceil((p.plan+0.1)*10)/10), a=[], b=[];
+  for(let h=0;h<=mx+1e-9;h+=mx/60){const c=calc(Object.assign({},p,{plan:h})); if(c.errors) break; a.push([h,c.Rcj]); b.push([h,c.Rc]);}
+  chart($('#cPl'),{x0:0,x1:mx,xl:'planeado h_p  (mm)',yl:'R_c',series:[{pts:b,c:'muted',dash:[6,4],w:1.8},{pts:a,c:'acc'}],pt:[p.plan,r.Rcj],ptLabel:`${fx(r.Rcj,2)} : 1`,
+    hl:[{v:11,c:'hot',t:'11 : 1',al:'left'}]});
+}
+
+/* ---------- bureta ---------- */
+function drawBur(){
+  const cv=$('#cBur'); const {ctx,W,H}=setup(cv), P=pal(), B=S.bur;
+  const tx=Math.max(34,W*0.12), tw=16, ty0=26, ty1=H-150, L=ty1-ty0, Y=v=>ty0+v/50*L;
+  // escala
+  ctx.strokeStyle=P.fg; ctx.lineWidth=1.3; ctx.strokeRect(tx,ty0-12,tw,L+12);
+  ctx.fillStyle=P.cold; ctx.globalAlpha=.35; ctx.fillRect(tx+1,Y(B.level),tw-2,ty1-Y(B.level)); ctx.globalAlpha=1;
+  ctx.font='10px "JetBrains Mono", ui-monospace, monospace'; ctx.textAlign='right'; ctx.textBaseline='middle';
+  for(let v=0;v<=50;v++){const y=Y(v), big=v%5===0; ctx.strokeStyle=P.fg; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(tx,y); ctx.lineTo(tx+(big?9:5),y); ctx.stroke(); if(big){ctx.fillStyle=P.muted; ctx.fillText(String(v),tx-4,y);}}
+  // llave y punta
+  ctx.fillStyle=P.adi; ctx.fillRect(tx-8,ty1+4,tw+16,7); ctx.fillStyle=P.fg; ctx.fillRect(tx+tw/2-2,ty1,4,30);
+  // culata con placa
+  const cx0=tx-20, cw=Math.min(W*0.5,200), cy=ty1+64;
+  const chW=cw*0.7, chX=cx0+(cw-chW)/2, chH=46;
+  ctx.fillStyle=P.sunk; ctx.strokeStyle=P.fg; ctx.lineWidth=1.4;
+  ctx.beginPath(); ctx.moveTo(cx0,cy); ctx.lineTo(chX,cy); ctx.lineTo(chX+chW*0.2,cy+chH); ctx.lineTo(chX+chW*0.8,cy+chH); ctx.lineTo(chX+chW,cy); ctx.lineTo(cx0+cw,cy); ctx.lineTo(cx0+cw,cy+chH+26); ctx.lineTo(cx0,cy+chH+26); ctx.closePath(); ctx.fill(); ctx.stroke();
+  // líquido en la cámara (se llena desde abajo)
+  const f=Math.max(0,Math.min(1,B.poured/B.vol)); if(f>0){
+    const hh=chH*Math.sqrt(f), yl=cy+chH-hh, k=(cy+chH-yl)/chH;
+    const xl=chX+chW*0.2-chW*0.2*k, xr=chX+chW*0.8+chW*0.2*k;
+    ctx.fillStyle=P.cold; ctx.globalAlpha=.45; ctx.beginPath(); ctx.moveTo(xl,yl); ctx.lineTo(chX+chW*0.2,cy+chH); ctx.lineTo(chX+chW*0.8,cy+chH); ctx.lineTo(xr,yl); ctx.closePath(); ctx.fill(); ctx.globalAlpha=1; }
+  // placa de vidrio
+  ctx.fillStyle=P.cold; ctx.globalAlpha=.18; ctx.fillRect(cx0-6,cy-7,cw+12,7); ctx.globalAlpha=1; ctx.strokeStyle=P.cold; ctx.strokeRect(cx0-6,cy-7,cw+12,7);
+  ctx.fillStyle=P.page; ctx.fillRect(tx+tw/2-3,cy-7,6,7);
+  if(B.state==='vertiendo'){ ctx.strokeStyle=P.cold; ctx.lineWidth=2; ctx.setLineDash([3,4]); ctx.beginPath(); ctx.moveTo(tx+tw/2,ty1+30); ctx.lineTo(tx+tw/2,cy); ctx.stroke(); ctx.setLineDash([]); }
+  ctx.font='11px Barlow, system-ui, sans-serif'; ctx.fillStyle=P.muted; ctx.textAlign='left'; ctx.textBaseline='top';
+  ctx.fillText('Placa de vidrio engrasada · culata nivelada',cx0-6,cy+chH+32);
+  // lupa del menisco
+  const zx=tx+tw+34, zw=Math.min(W-zx-10,170), zy=ty0, zh=Math.min(260,ty1-ty0);
+  ctx.fillStyle=P.bg; ctx.strokeStyle=P.line; ctx.lineWidth=1; ctx.fillRect(zx,zy,zw,zh); ctx.strokeRect(zx+.5,zy+.5,zw-1,zh-1);
+  ctx.strokeStyle=P.line; ctx.setLineDash([2,3]); ctx.beginPath(); ctx.moveTo(tx+tw,Y(B.level)); ctx.lineTo(zx,zy+zh/2); ctx.stroke(); ctx.setLineDash([]);
+  const span=2.4, ZY=v=>zy+zh/2+(v-B.level)/span*zh, gx=zx+zw*0.38, gw=zw*0.34;
+  ctx.save(); ctx.beginPath(); ctx.rect(zx+1,zy+1,zw-2,zh-2); ctx.clip();
+  const my=ZY(B.level);
+  ctx.fillStyle=P.cold; ctx.globalAlpha=.35; ctx.fillRect(gx,my,gw,zh); ctx.globalAlpha=1;
+  // menisco cóncavo: bordes suben
+  ctx.fillStyle=P.cold; ctx.globalAlpha=.35; ctx.beginPath(); ctx.moveTo(gx,my-8); ctx.quadraticCurveTo(gx+gw/2,my+8,gx+gw,my-8); ctx.lineTo(gx+gw,my); ctx.lineTo(gx,my); ctx.closePath(); ctx.fill(); ctx.globalAlpha=1;
+  ctx.strokeStyle=P.cold; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(gx,my-8); ctx.quadraticCurveTo(gx+gw/2,my+8,gx+gw,my-8); ctx.stroke();
+  ctx.strokeStyle=P.fg; ctx.lineWidth=1.2; ctx.strokeRect(gx,zy-4,gw,zh+8);
+  ctx.font='11px "JetBrains Mono", ui-monospace, monospace'; ctx.textAlign='right'; ctx.textBaseline='middle';
+  const vA=Math.floor((B.level-span/2)*10)/10, vB=B.level+span/2;
+  for(let v=vA;v<=vB+1e-9;v=+(v+0.1).toFixed(1)){ if(v<-1e-9||v>50.0001) continue; const y=ZY(v), i=Math.round(v*10), big=i%10===0, mid=i%5===0;
+    ctx.strokeStyle=P.fg; ctx.lineWidth=big?1.6:1; ctx.beginPath(); ctx.moveTo(gx,y); ctx.lineTo(gx+(big?gw*0.55:mid?gw*0.38:gw*0.22),y); ctx.stroke();
+    if(big){ctx.fillStyle=P.fg; ctx.fillText(String(Math.round(v)),gx-6,y);} }
+  ctx.restore();
+  ctx.font='11px Barlow, system-ui, sans-serif'; ctx.fillStyle=P.muted; ctx.textAlign='left'; ctx.textBaseline='top';
+  ctx.fillText('Lupa · 0.1 mL por división',zx,zy+zh+4);
+  ctx.fillText('Lea el fondo del menisco',zx,zy+zh+18);
+  ctx.fillStyle=P.fg; ctx.font='600 12px Barlow, system-ui, sans-serif';
+  const st={lleno:'Bureta llena: anote la lectura inicial',vertiendo:'Vertiendo…',final:'Cámara llena al ras de la placa: anote la lectura final'}[B.state];
+  ctx.fillText(st,zx,zy+zh+36,W-zx-6);
+}
+let burRAF=0;
+function burNew(first){
+  const B=S.bur; cancelAnimationFrame(burRAF);
+  B.vol=first?33.6:+(28+Math.random()*12).toFixed(2);
+  B.vol=Math.round(B.vol*20)/20; burFill(); B.calc=null; $('#rdI').value=''; $('#rdF').value='';
+  $('#burMsg').innerHTML=first?'':'<div class="msg">Culata nueva montada. Llene la bureta, anote la lectura inicial y pulse «Verter».</div>';
+}
+function burFill(){const B=S.bur; cancelAnimationFrame(burRAF); B.vi=Math.round((Math.random()*3)*20)/20; if(B.vi+B.vol>49.5) B.vi=0.5; B.level=B.vi; B.poured=0; B.state='lleno'; drawBur(); renderBurSum();}
+function burPour(){
+  const B=S.bur; if(B.state!=='lleno'){ $('#burMsg').innerHTML='<div class="msg warn">La cámara ya está llena. Pulse «Llenar bureta» para repetir la medición.</div>'; return; }
+  B.state='vertiendo'; const t0=performance.now(), dur=RM?0:3200;
+  const step=now=>{const u=dur?Math.min(1,(now-t0)/dur):1, e=u<1?1-Math.pow(1-u,2):1; B.poured=B.vol*e; B.level=B.vi+B.poured; if(u>=1){B.level=B.vi+B.vol; B.poured=B.vol; B.state='final';} drawBur(); if(u<1) burRAF=requestAnimationFrame(step);};
+  burRAF=requestAnimationFrame(step);
+}
+function burCalc(){
+  const B=S.bur, i=parseFloat($('#rdI').value), f=parseFloat($('#rdF').value);
+  if(!Number.isFinite(i)||!Number.isFinite(f)){ $('#burMsg').innerHTML='<div class="msg err">Escriba las dos lecturas en mL (por ejemplo 0.4 y 34.0) antes de calcular.</div>'; return; }
+  if(B.state!=='final'){ $('#burMsg').innerHTML='<div class="msg warn">Primero vierta el líquido hasta llenar la cámara y luego lea la lectura final.</div>'; return; }
+  const v=f-i, eI=Math.abs(i-B.vi), eF=Math.abs(f-(B.vi+B.vol)); B.calc=v;
+  let h=`<div class="msg${v<=0?' err':''}">V culata = lectura final − lectura inicial = ${fx(f,2)} − ${fx(i,2)} = <b>${fx(v,2)} cm³</b></div>`;
+  if(v<=0) h+='<div class="msg err">El volumen salió negativo: la lectura final debe ser mayor que la inicial porque la escala de la bureta crece hacia abajo.</div>';
+  else if(eI<=0.1&&eF<=0.1) h+='<div class="msg">Lecturas correctas (±0.1 mL). Pulse «Usar como V culata» para llevar el valor al cálculo.</div>';
+  else h+=`<div class="msg warn">${eI>0.1?'Revise la lectura inicial. ':''}${eF>0.1?'Revise la lectura final. ':''}Mire la lupa: cada división vale 0.1 mL y los números marcan mililitros enteros; lea el punto más bajo del menisco.</div>`;
+  $('#burMsg').innerHTML=h; renderBurSum();
+}
+function burUse(){
+  const B=S.bur; if(B.calc==null||!(B.calc>0)){ $('#burMsg').innerHTML='<div class="msg warn">Primero calcule el volumen con sus lecturas.</div>'; return; }
+  S.p.Vcam=+B.calc.toFixed(2); setMode('bur'); sync(); recompute();
+  $('#burMsg').innerHTML+=`<div class="msg">V culata = ${fx(B.calc,2)} cm³ aplicado. Modo cambiado a «V medido con bureta».</div>`;
+}
+function renderBurSum(){
+  const r=S.res, p=S.p; if(!r) return;
+  const vc=S.mode==='bur'?p.Vcam:null;
+  if(S.mode!=='bur'){ $('#burSum').innerHTML=`Modo fabricante: V<sub>CC</sub> = ${fx(r.VCC,2)} cm³ sale de R<sub>c</sub>. Cambie a «V medido con bureta» para componer V<sub>CC</sub> con la medición.`; return; }
+  $('#burSum').innerHTML=`V culata ${fx(vc,2)} ${p.plan>0?`− planeado ${fx(r.Vplan,2)} `:''}+ pistón ${fx(p.Vpis,2)} + altura ${fx(r.Vdeck,2)} = <b>V<sub>CC</sub> ${fx(r.VCC,2)} cm³</b><br>+ junta V<sub>j</sub> ${fx(r.Vj,2)} = V<sub>CC</sub> total ${fx(r.VCC+r.Vj,2)} cm³ → R<sub>c</sub> = (${fx(r.VC,2)} + ${fx(r.VCC+r.Vj,2)})/${fx(r.VCC+r.Vj,2)} = <b>${fx(r.Rcj,2)}</b> (igual a R<sub>cj</sub>)`;
+}
+
+/* ---------- animación del pistón ---------- */
+let lastT=0;
+function tick(ts){ if(!S.playing){lastT=0;return;} if(lastT){S.pos=(S.pos+(ts-lastT)/1000*0.5)%2;} lastT=ts; drawCut(); setPosBtns(); requestAnimationFrame(tick); }
+function setPlaying(on){S.playing=on; $('#playBtn').textContent=on?'❚❚ Pausar':'▶ Animar'; if(on) requestAnimationFrame(tick);}
+function setPosBtns(){const a=Math.abs(S.pos%2); $('#bPMS').setAttribute('aria-pressed',String(!S.playing&&(a<0.001||a>1.999))); $('#bPMI').setAttribute('aria-pressed',String(!S.playing&&Math.abs(a-1)<0.001));}
+function setMode(m){S.mode=m; $('#mFab').setAttribute('aria-pressed',String(m==='fab')); $('#mBur').setAttribute('aria-pressed',String(m==='bur'));}
+
+function drawAll(){ if(!S.res) return; drawCut(); drawCharts(); drawBur(); }
+
+/* ---------- inicio ---------- */
+function init(){
+  defaults();
+  build('pMotor',DEF.pMotor); build('pCam',DEF.pCam); build('pJunta',DEF.pJunta); build('pTaller',DEF.pTaller);
+  sync();
+  $('#mFab').addEventListener('click',()=>{setMode('fab'); recompute();});
+  $('#mBur').addEventListener('click',()=>{setMode('bur'); recompute();});
+  $('#djAuto').addEventListener('change',e=>{S.djAuto=e.target.checked; autoDj(); recompute();});
+  $('#vjSel').addEventListener('change',e=>{S.vjSel=e.target.value; recompute();});
+  $('#pi314').addEventListener('change',e=>{S.pi314=e.target.checked; recompute();});
+  $('#resetBtn').addEventListener('click',()=>{defaults(); S.djAuto=true; $('#djAuto').checked=true; S.vjSel='guia'; $('#vjSel').value='guia'; S.pi314=false; $('#pi314').checked=false; setMode('fab'); sync(); recompute();});
+  $('#bPMS').addEventListener('click',()=>{setPlaying(false); S.pos=0; drawCut(); setPosBtns();});
+  $('#bPMI').addEventListener('click',()=>{setPlaying(false); S.pos=1; drawCut(); setPosBtns();});
+  $('#playBtn').addEventListener('click',()=>setPlaying(!S.playing));
+  $('#bNew').addEventListener('click',()=>burNew(false));
+  $('#bFill').addEventListener('click',()=>{burFill(); $('#burMsg').innerHTML='<div class="msg">Bureta llena. Anote la lectura inicial en la lupa.</div>';});
+  $('#bPour').addEventListener('click',burPour);
+  $('#bCalc').addEventListener('click',burCalc);
+  $('#bUse').addEventListener('click',burUse);
+  $('#bShow').addEventListener('click',()=>{const B=S.bur; $('#burMsg').innerHTML=`<div class="msg">Lectura inicial ${fx(B.vi,2)} mL${B.state==='final'?` · lectura final ${fx(B.vi+B.vol,2)} mL · V culata = ${fx(B.vol,2)} cm³`:' · vierta para ver la lectura final'}</div>`;});
+  const redraw=()=>drawAll();
+  if(window.ResizeObserver){const ro=new ResizeObserver(redraw); ['#cCut','#cBur','#cEj','#cPl'].forEach(id=>ro.observe($(id)));} else window.addEventListener('resize',redraw);
+  try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',redraw);}catch(e){}
+  new MutationObserver(redraw).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme','class','style']});
+  if(document.fonts&&document.fonts.ready) document.fonts.ready.then(redraw);
+  burNew(true); S.bur.vi=0.4; S.bur.level=0.4;
+  recompute(); setPosBtns();
+}
+window.__sim={calc:p=>calc(Object.assign({},S.p,p)),S};
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
+})();
+</script>
+
+</body>
+</html>

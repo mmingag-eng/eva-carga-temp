@@ -1,0 +1,999 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Simulador Fugas de Corriente</title>
+<style>
+:root{--bg:#f3f5f8;--card:#fff;--ink:#1c2533;--muted:#5b6778;--line:#d9dfe7;--brand:#12355b;--brand2:#1f5a94;--accent:#e07b00;--ok:#1d8a4e;--okbg:#e6f4ec;--bad:#c62828;--badbg:#fdecea;--warnbg:#fff4e0;--wire:#2b3440;--flow:#ffb300}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.45}
+header{background:linear-gradient(90deg,var(--brand),var(--brand2));color:#fff;padding:14px 22px}
+header h1{margin:0;font-size:1.35rem;font-weight:600}
+header p{margin:3px 0 0;opacity:.85;font-size:.9rem}
+main{max-width:1320px;margin:0 auto;padding:16px;display:grid;grid-template-columns:minmax(0,1.75fr) minmax(320px,1fr);gap:16px}
+@media(max-width:980px){main{grid-template-columns:1fr}}
+section,aside{min-width:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:16px}
+.card h2{font-size:1.02rem;margin:0 0 10px;color:var(--brand)}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.tabs button,.btn{border:1px solid var(--line);background:#fff;color:var(--ink);padding:7px 13px;border-radius:7px;cursor:pointer;font-size:.9rem}
+.tabs button.on,.btn.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+.btn:hover,.tabs button:hover{border-color:var(--brand2)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.done{background:var(--okbg);border-color:var(--ok);color:#135c34}
+.btn.small{padding:4px 9px;font-size:.82rem}
+.svgwrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:8px}
+svg.main{width:100%;height:auto;background:#fbfcfe;border:1px solid var(--line);border-radius:8px;user-select:none;display:block}
+@media(max-width:620px){svg.main{min-width:640px}}
+.lbl{font-size:13px;fill:var(--ink);font-weight:600}
+.lbl2{font-size:11px;fill:var(--muted)}
+.clk{cursor:pointer}
+.ctl{margin-bottom:10px}
+.ctl label{display:block;font-size:.86rem;color:var(--muted);margin-bottom:3px}
+.ctl .row{display:flex;gap:8px;align-items:center}
+.ctl input[type=range]{flex:1;min-width:0}
+.ctl input[type=number]{width:90px;padding:4px 6px;border:1px solid var(--line);border-radius:6px}
+.ctl select{padding:5px 6px;border:1px solid var(--line);border-radius:6px;width:100%;min-width:0}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:4px 18px}
+.grid2>*{min-width:0}
+@media(max-width:620px){.grid2{grid-template-columns:1fr}}
+.grp{margin-bottom:12px}
+.grp h3{font-size:.86rem;color:var(--brand2);margin:0 0 5px;font-weight:700}
+.grp .bar{margin-top:0}
+.eq{background:#f7f9fc;border-left:4px solid var(--brand2);padding:10px 14px;border-radius:6px;font-size:.92rem}
+.eq p{margin:5px 0}
+.eq h3{font-size:.92rem;margin:12px 0 4px;color:var(--brand)}
+.f{font-family:"Cambria Math","Times New Roman",serif;font-size:1.05rem}
+/* multímetro */
+.meter{background:#39414d;border-radius:14px;padding:14px;color:#fff;box-shadow:inset 0 0 0 3px #e0a100;margin-bottom:12px}
+.clamp{background:#3b3329;border-radius:14px;padding:12px 14px;color:#fff;box-shadow:inset 0 0 0 3px #c0392b}
+.devt{font-size:.82rem;color:#e7ecf2;margin-bottom:6px;font-weight:700}
+.lcd{background:#b9c9a4;color:#1d2616;border-radius:6px;padding:10px 12px;font-family:"Consolas","Courier New",monospace;display:flex;justify-content:space-between;align-items:flex-end;min-height:66px;box-shadow:inset 0 2px 6px rgba(0,0,0,.35)}
+.lcd .val{font-size:2.2rem;font-weight:700;letter-spacing:1px}
+.lcd .unit{font-size:1.2rem;font-weight:700}
+.lcd .fn{font-size:.8rem;align-self:flex-start}
+.modes{display:flex;gap:6px;margin:12px 0 8px}
+.modes button{flex:1;padding:9px 0;border-radius:8px;border:0;background:#555f6d;color:#fff;font-weight:700;cursor:pointer;font-size:.9rem}
+.modes button.on{background:#e0a100;color:#1c1c1c}
+.probes{display:flex;gap:6px;align-items:center;font-size:.85rem;flex-wrap:wrap}
+.probes button{border:0;border-radius:6px;padding:5px 9px;cursor:pointer;font-weight:600;background:#555f6d;color:#fff;font-size:.82rem}
+.probes button.on{background:#e0a100;color:#1c1c1c}
+.mnote{font-size:.83rem;color:#e7ecf2;margin-top:8px;min-height:2.4em}
+.mstat{font-size:.8rem;color:#c6cfda;margin-top:6px}
+table{border-collapse:collapse;width:100%;font-size:.86rem}
+th,td{border-bottom:1px solid var(--line);padding:4px 6px;text-align:right}
+th:first-child,td:first-child{text-align:left}
+th{background:#eef2f7;color:var(--brand);font-weight:600}
+tr.tot td{font-weight:700;background:#f7f9fc}
+td.hot{color:var(--bad);font-weight:700}
+.tblwrap{overflow-x:auto}
+.evf{display:grid;grid-template-columns:1fr;gap:8px}
+.evf label{font-size:.86rem;color:var(--muted);display:block;margin-bottom:2px}
+.evf input,.evf select{width:100%;padding:5px 7px;border:1px solid var(--line);border-radius:6px;font-size:.9rem}
+.evf .ok{background:var(--okbg);border-color:var(--ok)}
+.evf .bad{background:var(--badbg);border-color:var(--bad)}
+.evf .row3{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr);gap:6px}
+.msgs div{padding:7px 10px;border-radius:6px;margin-bottom:6px;font-size:.87rem}
+.msgs .w{background:var(--warnbg);border-left:4px solid var(--accent)}
+.msgs .e{background:var(--badbg);border-left:4px solid var(--bad)}
+.msgs .i{background:#e8f1fb;border-left:4px solid var(--brand2)}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.switch{display:flex;align-items:center;gap:8px;font-size:.9rem;margin:6px 0}
+details summary{cursor:pointer;font-weight:600;color:var(--brand)}
+details ol{padding-left:20px;margin:8px 0}
+details li{margin-bottom:4px}
+.score{font-weight:700}
+.scorebox{margin-top:10px;padding:10px 12px;border-radius:8px;background:#f7f9fc;border:1px solid var(--line);font-size:.88rem}
+.scorebox ul{margin:6px 0 0;padding-left:18px}
+.scorebox li{margin-bottom:5px}
+.good{color:var(--ok);font-weight:700}.fail{color:var(--bad);font-weight:700}
+.muted{color:var(--muted);font-size:.85rem}
+.hide{display:none!important}
+.mobhint{display:none}
+@media(max-width:620px){.mobhint{display:block}}
+footer{text-align:center;color:var(--muted);font-size:.8rem;padding:10px 0 24px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Simulador 5 · Diagnóstico de fugas de corriente (consumo parásito)</h1>
+  <p>Electricidad Automotriz · Práctica de la batería, parte 2: fugas de corriente y descarga superficial · Tecnología Superior en Mecánica Automotriz · ISTS</p>
+</header>
+
+<main>
+<section>
+  <div class="card">
+    <div class="tabs" id="tabs">
+      <button data-t="par" class="on">Consumo parásito (vehículo estacionado)</button>
+      <button data-t="surf">Descarga superficial (carcasa de la batería)</button>
+    </div>
+    <div class="muted mobhint">Deslice el esquema horizontalmente para verlo completo.</div>
+    <div class="svgwrap"><svg id="scene" class="main" viewBox="0 0 800 470" aria-label="Esquema del vehículo, batería y caja de fusibles"></svg></div>
+    <div id="trendWrap" class="svgwrap" style="margin-top:10px"><svg id="trend" class="main" viewBox="0 0 800 182" aria-label="Registro gráfico de la corriente medida"></svg></div>
+    <div class="muted" style="margin-top:6px" id="sceneNote">Haga clic en el vehículo (puerta, llave, interruptor del capó), en el terminal negativo, en el puente o en el borne B+ del alternador para manipularlos. Clic en un fusible: el voltímetro (multímetro 2) mide su caída de tensión; con el extractor activo, el fusible se retira o se coloca.</div>
+  </div>
+
+  <div class="card">
+    <h2>Procedimiento y parámetros</h2>
+    <div id="ctlPar">
+      <div class="grp"><h3>Paso 1 · Preparar el vehículo</h3>
+        <div class="bar">
+          <button class="btn small" id="btnKey"></button>
+          <button class="btn small" id="btnHood"></button>
+          <button class="btn small" id="btnDoor"></button>
+        </div>
+      </div>
+      <div class="grp"><h3>Pasos 2 y 3 · Amperímetro en serie en el cable negativo (con puente)</h3>
+        <div class="bar">
+          <button class="btn small" id="btnJumper"></button>
+          <button class="btn small" id="btnAmpNeg">Conectar amperímetro en serie (borne − ↔ terminal)</button>
+          <button class="btn small" id="btnTerm"></button>
+        </div>
+      </div>
+      <div class="grp"><h3>Paso 4 · Esperar el reposo de los módulos (tiempo simulado)</h3>
+        <div class="bar">
+          <button class="btn small" id="btnPause">Pausa</button>
+          <button class="btn small" data-sp="1">×1</button>
+          <button class="btn small" data-sp="10">×10</button>
+          <button class="btn small" data-sp="60">×60</button>
+          <button class="btn small" id="btnJump">Avanzar 5 min</button>
+          <span class="muted" id="clockTxt" style="align-self:center"></span>
+        </div>
+      </div>
+      <div class="grp"><h3>Paso 5 · Localizar el circuito</h3>
+        <div class="bar">
+          <button class="btn small" id="btnExt"></button>
+          <button class="btn small" id="btnAllIn">Colocar todos los fusibles</button>
+          <button class="btn small" id="btnBplus"></button>
+          <button class="btn small" id="btnScene">Reiniciar escena</button>
+        </div>
+      </div>
+      <div class="grid2" id="practiceCtl">
+        <div class="ctl"><label>Avería</label><select id="selFault"></select></div>
+        <div class="ctl"><label>Capacidad de la batería C<sub>20</sub> (Ah)</label><div class="row"><input type="range" id="capR" min="35" max="100" step="5" value="60"><input type="number" id="capN" min="35" max="100" step="5" value="60"></div></div>
+        <label class="switch"><input type="checkbox" id="chkReal"> Mostrar corrientes reales en la caja de fusibles (docente)</label>
+      </div>
+    </div>
+    <div id="ctlSurf" class="hide">
+      <div class="grid2">
+        <div class="ctl" id="dirtCtl"><label>Estado de la carcasa (modo práctica)</label><select id="selDirt">
+          <option value="0">Limpia y seca</option><option value="1" selected>Polvo seco</option><option value="2">Polvo con humedad</option><option value="3">Electrolito derramado</option></select></div>
+      </div>
+      <div class="bar">
+        <button class="btn small" id="btnClean">Limpiar la carcasa (bicarbonato + agua, enjuagar y secar)</button>
+      </div>
+      <p class="muted">Punta roja del multímetro 2 fija en el borne positivo. Haga clic en los puntos P1…P5 de la tapa para colocar la punta negra y registre la mayor lectura. Impedancia de entrada del voltímetro: 10 MΩ.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Ecuaciones de trabajo</h2>
+    <div class="eq">
+      <p class="f">I<sub>fusible</sub> = U<sub>fusible</sub> / R<sub>fusible</sub> &nbsp;&nbsp;→&nbsp;&nbsp; I (mA) = 1000 · U (mV) / R (mΩ)</p>
+      <p class="f">I<sub>parásito</sub> = Σ I<sub>módulos en reposo</sub> + I<sub>fuga alternador</sub></p>
+      <p class="f">t<sub>días</sub> ≈ (C<sub>20</sub> · 0,5) / I<sub>parásito</sub> / 24 &nbsp;&nbsp;(C<sub>20</sub> en Ah, I en A; 0,5 = fracción de carga que se puede perder antes de que el motor no arranque)</p>
+      <p class="f">Ejemplo: U<sub>F2</sub> = 1,41 mV en un fusible de 15 A (4,7 mΩ) → I = 1000 · 1,41 / 4,7 = 300 mA</p>
+      <p class="f">Ejemplo: C<sub>20</sub> = 60 Ah, I = 30 mA → t = 60 · 0,5 / 0,030 / 24 ≈ 41,7 días</p>
+      <p class="muted">Límite orientativo de consumo parásito: ≤ 50 mA (muchos fabricantes indican entre 20 y 50 mA). Valor orientativo; consulte el manual del fabricante.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Valores de referencia</h2>
+    <div class="tblwrap"><table id="tblConv"></table></div>
+    <p class="muted">Resistencia aproximada de fusibles mini de cuchilla en frío. Valores orientativos: varían con el fabricante y la temperatura; consulte la tabla del fabricante del fusible. El método exige un multímetro con resolución de 0,01 mV; por debajo de ≈ 0,05 mV la lectura solo indica «consumo muy pequeño».</p>
+    <div class="tblwrap"><table style="margin-top:8px">
+      <tr><th>Circuito (en reposo)</th><th>Consumo normal típico</th></tr>
+      <tr><td>Radio / memoria</td><td>3 a 5 mA</td></tr>
+      <tr><td>ECU del motor (memoria)</td><td>1 a 3 mA</td></tr>
+      <tr><td>BCM (módulo de carrocería)</td><td>5 a 10 mA</td></tr>
+      <tr><td>Alarma / cierre centralizado (vigilancia)</td><td>5 a 15 mA</td></tr>
+      <tr><td>Panel, reloj, A/C, elevavidrios</td><td>0,1 a 1,5 mA cada uno</td></tr>
+      <tr><td>Diodos del alternador (cable B+)</td><td>≈ 0,5 mA; máx. ≈ 2 mA</td></tr>
+      <tr class="tot"><td>Total del vehículo, todo en reposo</td><td>≈ 20 a 40 mA</td></tr>
+      <tr><td>Recién cerrado (módulos despiertos)</td><td>≈ 0,3 a 1,5 A</td></tr>
+      <tr><td>Tiempo hasta el reposo completo</td><td>≈ 10 a 60 min</td></tr>
+    </table></div>
+    <p class="muted">Valores orientativos (Bosch; Crouse; Editex). Consulte el manual del fabricante del vehículo.</p>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>¿Cómo usar el simulador?</summary>
+      <ol>
+        <li><b>Preparar el vehículo:</b> retire la llave, enclave el interruptor del capó (para que el BCM y la alarma lo vean cerrado) y cierre la puerta del conductor. Con la llave puesta, la puerta abierta o el capó «abierto», los módulos no entran en reposo.</li>
+        <li><b>Conectar el amperímetro con puente:</b> coloque el puente (bypass) entre el borne negativo y su terminal, conecte el multímetro 1 en serie en la escala <b>10 A</b> y retire el terminal negativo. El puente mantiene la continuidad y no se despiertan ni se borran los módulos.</li>
+        <li><b>Quitar el puente y leer:</b> ahora toda la corriente pasa por el amperímetro.</li>
+        <li><b>Esperar el reposo:</b> use ×60 (1 s real = 1 min) o «Avanzar 5 min». La corriente parte en 0,3–1,5 A y baja por escalones en 10–60 min. Cuando la lectura sea menor que 200 mA, vuelva a colocar el puente, cambie a <b>mA</b> y retire el puente. Si cambia a mA sin puente o con la corriente de despertar presente, se funde el fusible de la entrada mA.</li>
+        <li><b>Localizar el circuito:</b> con el multímetro 2 en <b>mV</b>, haga clic en cada fusible y convierta la caída de tensión con la tabla (I = U / R). Es el método no intrusivo: no abre ningún circuito. Como alternativa, active el extractor y retire fusibles uno por uno observando el amperímetro (solo con los módulos ya dormidos). Si ningún fusible explica el consumo, desconecte el B+ del alternador.</li>
+        <li><b>Pinza de baja corriente (opcional):</b> póngala a cero fuera del cable (ZERO) y colóquela en el cable negativo o en el cable B+.</li>
+        <li><b>Descarga superficial:</b> en la segunda pestaña, mida con el voltímetro entre el borne + y varios puntos de la carcasa; limpie con bicarbonato y vuelva a medir.</li>
+        <li><b>Modo evaluación:</b> el simulador oculta la avería, el estado de la carcasa y la capacidad. Mida, complete el formulario y pulse «Comprobar». Abrir la puerta, poner la llave, soltar el interruptor del capó o interrumpir el negativo sin puente reinicia el reposo y resta puntos.</li>
+        <li>Use «Registrar lectura» en cada instrumento y descargue el registro en CSV (se abre con Excel).</li>
+      </ol>
+    </details>
+  </div>
+</section>
+
+<aside>
+  <div class="card">
+    <h2>Instrumentos</h2>
+    <div class="meter">
+      <div class="devt">Multímetro 1 · amperímetro (10 A / 200 mA)</div>
+      <div class="lcd"><span class="fn" id="aFn">A⎓</span><span><span class="val" id="aVal">- - -</span> <span class="unit" id="aUnit">A</span></span></div>
+      <div class="modes" id="aModes">
+        <button data-m="A10">A (10 A)</button><button data-m="mA">mA (200)</button><button data-m="OFF">OFF</button>
+      </div>
+      <div class="probes" id="aLeads">Puntas:
+        <button data-l="neg">En serie (negativo)</button>
+        <button data-l="bat">Bornes + y −</button>
+        <button data-l="none">Retirar</button>
+      </div>
+      <div class="mstat" id="aStat"></div>
+      <div class="mnote" id="aNote"></div>
+      <div class="bar">
+        <button class="btn small" id="btnLogA">Registrar lectura</button>
+        <button class="btn small" id="btnAFuse" style="display:none">Reponer fusibles del multímetro 1</button>
+      </div>
+    </div>
+    <div class="meter">
+      <div class="devt">Multímetro 2 · voltímetro (mV / V)</div>
+      <div class="lcd"><span class="fn" id="vFn">mV⎓</span><span><span class="val" id="vVal">- - -</span> <span class="unit" id="vUnit">mV</span></span></div>
+      <div class="modes" id="vModes">
+        <button data-m="mV">mV</button><button data-m="V">V</button><button data-m="OFF">OFF</button>
+      </div>
+      <div class="probes" id="vLeads">Puntas:
+        <button data-l="bat">Bornes batería</button>
+        <button data-l="gap">Borne − ↔ terminal</button>
+        <button data-l="none">Retirar</button>
+      </div>
+      <div class="mstat" id="vStat"></div>
+      <div class="mnote" id="vNote"></div>
+      <div class="bar"><button class="btn small" id="btnLogV">Registrar lectura</button></div>
+    </div>
+    <div class="clamp" id="clampBox">
+      <div class="devt">Pinza amperimétrica de baja corriente (resolución 1 mA) · opcional</div>
+      <div class="lcd"><span class="fn">A⎓ pinza</span><span><span class="val" id="clVal">0</span> <span class="unit" id="clUnit">mA</span></span></div>
+      <div class="probes" style="margin-top:10px" id="clampBar">
+        <button data-c="none">Retirada</button>
+        <button data-c="neg">Cable negativo</button>
+        <button data-c="bplus">Cable B+ alternador</button>
+        <button data-z="1" style="background:#c0392b">ZERO</button>
+      </div>
+      <div class="mnote" id="clNote"></div>
+      <div class="bar"><button class="btn small" id="btnLogC">Registrar lectura</button></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Avisos</h2>
+    <div class="msgs" id="msgs"></div>
+  </div>
+
+  <div class="card">
+    <h2>Resultados y evaluación</h2>
+    <label class="switch"><input type="checkbox" id="evalMode"> Modo evaluación (caso aleatorio oculto)</label>
+    <div id="evalBox" class="hide"></div>
+    <div id="results"></div>
+  </div>
+
+  <div class="card">
+    <h2>Registro de mediciones</h2>
+    <div class="tblwrap" id="logTbl"></div>
+    <div class="bar">
+      <button class="btn small" id="btnCsv">Descargar CSV</button>
+      <button class="btn small" id="btnClr">Limpiar registro</button>
+    </div>
+  </div>
+</aside>
+</main>
+<footer>Simulador didáctico · Carrera de Mecánica Automotriz · Instituto Superior Tecnológico Sudamericano</footer>
+
+<script>
+"use strict";
+/* ---------- datos ---------- */
+const UBAT = 12.62;          // tensión en reposo de la batería cargada (V)
+const RI_BAT = 0.012;        // resistencia interna (Ω)
+const R_CABLE = 0.0005;      // contacto terminal–borne (Ω)
+const R_JUMP = 0.003;        // puente con pinzas (Ω)
+const R_M10 = 0.03;          // derivador 10 A + cables del multímetro (Ω)
+const R_MMA = 1.5;           // derivador mA + fusible + cables (Ω)
+const MA_MAX = 0.2;          // límite de la entrada mA (A)
+const LIMIT = 50;            // límite orientativo (mA)
+const RF = {5:17,7.5:11,10:7.5,15:4.7,20:3.4};   // mΩ, fusible mini en frío (orientativo)
+const FCOL = {5:['#d8b47e','#1c2533'],7.5:['#7a4a24','#fff'],10:['#d32f2f','#fff'],15:['#3d8fe0','#fff'],20:['#f2c200','#1c2533']};
+// sl: reposo (mA) · aw: despierto (mA) · ts: minutos hasta dormir después del último despertar
+const FUSES = [
+ {id:'F1',n:'ECU del motor',l:['ECU','del motor'],a:10,sl:[1,3],aw:[150,250],ts:[2,5]},
+ {id:'F2',n:'BCM (módulo de carrocería)',l:['BCM','carrocería'],a:15,sl:[5,10],aw:[120,200],ts:[15,40],hood:1},
+ {id:'F3',n:'Radio / memoria',l:['Radio /','memoria'],a:10,sl:[3,5],aw:[60,120],ts:[3,8]},
+ {id:'F4',n:'Luz de cortesía / guantera',l:['Cortesía /','guantera'],a:5,sl:[0,0],aw:[330,380],ts:[0.5,0.5],door:1},
+ {id:'F5',n:'Alarma / cierre centralizado',l:['Alarma /','cierre c.'],a:15,sl:[5,15],aw:[40,80],ts:[1,2.5],hood:1},
+ {id:'F6',n:'Panel de instrumentos',l:['Panel de','instrum.'],a:7.5,sl:[0.5,1.5],aw:[40,80],ts:[1,3]},
+ {id:'F7',n:'Luces de freno',l:['Luces de','freno'],a:10,sl:[0,0],aw:[0,0],ts:[0,0]},
+ {id:'F8',n:'Bocina',l:['Bocina',''],a:15,sl:[0,0],aw:[0,0],ts:[0,0]},
+ {id:'F9',n:'Elevavidrios',l:['Eleva-','vidrios'],a:20,sl:[0.1,0.3],aw:[20,40],ts:[1,1.5]},
+ {id:'F10',n:'Encendedor',l:['Encen-','dedor'],a:15,sl:[0,0],aw:[0,0],ts:[0,0]},
+ {id:'F11',n:'Módulo del A/C',l:['Módulo','del A/C'],a:10,sl:[0.5,1.5],aw:[30,60],ts:[5,12]},
+ {id:'F12',n:'Reloj',l:['Reloj',''],a:5,sl:[0.5,1],aw:[0,0],ts:[0,0]},
+ {id:'F13',n:'Luz de maletero',l:['Luz de','maletero'],a:7.5,sl:[0,0],aw:[0,0],ts:[0,0]},
+ {id:'F14',n:'Conector de diagnóstico',l:['Conector','diagnóst.'],a:10,sl:[0,0],aw:[0,0],ts:[0,0]}
+];
+const FAULTS = {
+ none:{txt:'Sin avería: consumo normal en reposo (≈ 30 mA)',ans:'NONE'},
+ guantera:{txt:'Luz de guantera encendida (interruptor desajustado)',f:'F4',kind:'add',r:[250,500],ans:'F4'},
+ maletero:{txt:'Luz de maletero encendida (interruptor del portón defectuoso)',f:'F13',kind:'add',r:[250,500],ans:'F13'},
+ rele:{txt:'Relé principal de la ECU pegado: la ECU queda alimentada',f:'F1',kind:'nosleep',r:[180,250],ans:'F1'},
+ radio:{txt:'Radio de mercado secundario sin apagar (conectada a +30 en lugar de +15)',f:'F3',kind:'nosleep',r:[140,160],ans:'F3'},
+ modulo:{txt:'Módulo que no entra en reposo (BCM)',f:'F2',kind:'nosleep',r:[280,320],ans:'F2'},
+ diodo:{txt:'Diodo del alternador con fuga (cable B+, no pasa por la caja de fusibles)',f:'ALT',kind:'alt',r:[20,50],ans:'ALT'},
+ alarma:{txt:'Alarma de mercado secundario (conectada al circuito del F5)',f:'F5',kind:'add',r:[55,65],ans:'F5'}
+};
+const DIRT = [{n:'Limpia y seca',R:1e12},{n:'Polvo seco',R:5e9},{n:'Polvo con humedad',R:1.2e9},{n:'Electrolito derramado',R:3e8}];
+const SPTS = [{k:'P1',x:0.15},{k:'P2',x:0.26},{k:'P3',x:0.37},{k:'P4',x:0.48},{k:'P5',x:0.6}];
+const RM_VOLT = 1e7;         // impedancia del voltímetro (Ω)
+
+const $ = id => document.getElementById(id);
+const rnd=(a,b)=>a+Math.random()*(b-a);
+function nf(x,d){return x.toLocaleString('es-EC',{minimumFractionDigits:d,maximumFractionDigits:d,useGrouping:false});}
+function parseNum(s){if(s==null)return NaN;s=String(s).trim().replace(',', '.');return s===''?NaN:Number(s);}
+function fmtAmp(a){return nf(a,a%1?1:0)+' A';}
+function fmtT(t){t=Math.max(0,t);const m=Math.floor(t/60),s=Math.floor(t%60);return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');}
+function fmtmA(mA){return Math.abs(mA)>=1000?nf(mA/1000,2)+' A':nf(mA,1)+' mA';}
+const FU = id => FUSES.find(f=>f.id===id);
+
+/* ---------- estado ---------- */
+const st = {tab:'par', t:0, speed:60, paused:false, key:true, door:true, hood:false, tw:{}, pulled:new Set(),
+  cableOn:true, jumper:false, am:{leads:null,mode:'A10',f10:true,fmA:true}, vm:{leads:null,mode:'mV'},
+  bplus:true, ext:false, clamp:{pos:'none',zero:0}, surfPt:0, dirt:1, dirtK:1, powered:true, showReal:false, cap:60,
+  evalOn:false, evalChecked:false, pen:{wake:0,intr:0,early:0,mfuse:0}, events:[], log:[], samples:[], nextSample:0,
+  nz:{a:0,v:0,c:0}, cs:null};
+
+function newCase(faultKey){
+  const m={};
+  for(const f of FUSES)m[f.id]={aw:Math.round(rnd(...f.aw)),sl:Math.round(rnd(...f.sl)*10)/10,ts:rnd(...f.ts)};
+  const keys=Object.keys(FAULTS);
+  const fk=faultKey||(Math.random()<0.15?'none':keys[1+Math.floor(Math.random()*(keys.length-1))]);
+  st.cs={m,fault:fk,fI:0,drift:Math.round((Math.random()<0.5?-1:1)*rnd(20,45)),alt0:Math.round(rnd(0.3,1)*10)/10};
+  setFault(fk);
+}
+function setFault(fk){
+  const F=FAULTS[fk];st.cs.fault=fk;st.cs.fI=F.r?Math.round(rnd(...F.r)):0;
+  if(fk==='diodo'){ // la fuga debe llevar el total por encima del límite para que el caso sea diagnosticable
+    let base=0;for(const f of FUSES)base+=st.cs.m[f.id].sl;
+    st.cs.fI=Math.min(50,Math.max(st.cs.fI,Math.ceil(LIMIT+6-base)));
+  }
+}
+function resetScene(){
+  st.t=0;st.key=true;st.door=true;st.hood=false;st.pulled=new Set();st.cableOn=true;st.jumper=false;
+  st.am={leads:null,mode:'A10',f10:true,fmA:true};st.vm={leads:null,mode:'mV'};st.bplus=true;st.ext=false;
+  st.clamp={pos:'none',zero:0};st.powered=true;st.samples=[];st.nextSample=0;
+  for(const f of FUSES)st.tw[f.id]=0;
+}
+
+/* ---------- modelo eléctrico ---------- */
+function blocked(f){
+  if(f.door)return st.door;                 // luz de cortesía: solo con la puerta abierta
+  if(st.key||st.door)return true;           // llave puesta o puerta abierta: todo despierto
+  if(f.hood&&!st.hood)return true;          // BCM y alarma ven el capó abierto
+  return false;
+}
+function refreshBlocked(){for(const f of FUSES)if(blocked(f)||!st.powered)st.tw[f.id]=st.t;}
+function isAwake(f,t){const c=st.cs.m[f.id];return !st.pulled.has(f.id)&&c.ts>0&&c.aw>0&&(blocked(f)||t-st.tw[f.id]<c.ts*60);}
+function faultAdj(id,I,rest){
+  const F=FAULTS[st.cs.fault];
+  if(F.f!==id)return I;
+  if(F.kind==='add')return I+st.cs.fI;
+  return Math.max(I,st.cs.fI);
+}
+function modI(id,t){ // mA
+  if(st.pulled.has(id)||!st.powered)return 0;
+  const f=FU(id),c=st.cs.m[id];
+  return faultAdj(id,isAwake(f,t)?c.aw:c.sl);
+}
+function restMod(id){return faultAdj(id,st.cs.m[id].sl);}
+function altI(){if(!st.bplus||!st.powered)return 0;return st.cs.fault==='diodo'?st.cs.fI:st.cs.alt0;}
+function altRest(){return st.cs.fault==='diodo'?st.cs.fI:st.cs.alt0;}
+function totalI(t){if(!st.powered)return 0;let s=altI();for(const f of FUSES)s+=modI(f.id,t);return s;}
+function restI(){let s=altRest();for(const f of FUSES)s+=restMod(f.id);return s;}
+function daysOf(mA,C){return C*0.5/(mA/1000)/24;}
+function sleepers(){return FUSES.filter(f=>st.cs.m[f.id].ts>0&&st.cs.m[f.id].aw>0&&!f.door);}
+function awakeCount(t){return sleepers().filter(f=>isAwake(f,t)).length;}
+function allAsleep(t){return st.powered&&FUSES.every(f=>!isAwake(f,t));}
+function lastWake(){let m=0;for(const f of FUSES)if(st.cs.m[f.id].ts>0)m=Math.max(m,st.tw[f.id]);return m;}
+function aCond(){const a=st.am;return a.leads==='neg'&&((a.mode==='A10'&&a.f10)||(a.mode==='mA'&&a.fmA));}
+function hasPath(){return st.cableOn||st.jumper||aCond();}
+function gOther(){return (st.cableOn?1/R_CABLE:0)+(st.jumper?1/R_JUMP:0);}
+function ammeterA(t){ // A por el amperímetro
+  if(!aCond())return 0;
+  const gm=1/(st.am.mode==='A10'?R_M10:R_MMA);
+  return totalI(t)/1000*gm/(gm+gOther());
+}
+function clampActual(t){if(st.clamp.pos==='neg')return totalI(t);if(st.clamp.pos==='bplus')return altI();return 0;}
+function clampRead(t,noise){return clampActual(t)+st.cs.drift-st.clamp.zero+(noise?st.nz.c:0);}
+function measuredAt(t){
+  if(aCond()&&!st.cableOn&&!st.jumper)return ammeterA(t);
+  if(st.clamp.pos==='neg'&&st.clamp.zero!==0)return Math.max(0,clampRead(t,false))/1000;
+  return null;
+}
+function surfV(x,lvl){
+  const Rf=DIRT[lvl].R*st.dirtK,R1=Rf*x,R2=Rf*(1-x);
+  const R1p=R1*RM_VOLT/(R1+RM_VOLT);
+  return UBAT*R1p/(R1p+R2);
+}
+function surfMax(){return surfV(SPTS[SPTS.length-1].x,st.dirt);}
+function surfClass(v){return v>0.5?2:v>0.1?1:0;}
+const SURF_TXT=['Sin descarga superficial apreciable (≤ 0,1 V)','Película conductora: limpiar (0,1 a 0,5 V)','Descarga superficial importante: limpiar y buscar derrame o sobrecarga (> 0,5 V)'];
+
+/* ---------- acciones ---------- */
+function pen(k,v=1){if(st.evalOn&&!st.evalChecked)st.pen[k]+=v;}
+function event(cls,txt){st.events.unshift({cls,txt:`[${fmtT(st.t)}] ${txt}`});st.events=st.events.slice(0,4);}
+function wakeAll(){for(const f of FUSES)st.tw[f.id]=st.t;}
+function act(fn,momentary){
+  const b=hasPath();fn();checkShorts();const a=hasPath();
+  if(b&&!a){wakeAll();st.powered=false;pen('intr');
+    event('e','Circuito de la batería abierto: no queda continuidad entre el borne negativo y el terminal. Todos los módulos se apagan, se pierden memorias (radio, adaptaciones de la ECU) y al reconectar arrancan de nuevo: el tiempo de reposo se reinicia. Use siempre el puente (bypass).');}
+  else if(b&&a&&momentary){wakeAll();pen('intr');
+    event('e','Interrupción momentánea: cambió el cable rojo del multímetro de borne (10 A ↔ mA) sin el puente colocado. Los módulos despertaron y el tiempo de reposo se reinició.');}
+  else if(!b&&a){st.powered=true;wakeAll();event('i','Alimentación restablecida: los módulos arrancan y se reinicia la espera de reposo.');}
+  refreshBlocked();overloadCheck();render();
+}
+function checkShorts(){
+  const a=st.am;
+  if(a.leads==='bat'&&a.mode==='A10'&&a.f10){a.f10=false;pen('mfuse');event('e','¡Cortocircuito! Conectó el amperímetro (10 A) directamente entre los bornes de la batería. Se fundió el fusible de 10 A del multímetro 1. El amperímetro siempre va en serie.');}
+  if(a.leads==='bat'&&a.mode==='mA'&&a.fmA){a.fmA=false;pen('mfuse');event('e','¡Cortocircuito! Conectó el amperímetro (mA) entre los bornes de la batería. Se fundió el fusible de la entrada mA.');}
+}
+function overloadCheck(){
+  if(st.am.leads==='neg'&&st.am.mode==='mA'&&st.am.fmA){
+    const I=ammeterA(st.t);
+    if(I>MA_MAX){
+      st.am.fmA=false;pen('mfuse');
+      const a=hasPath();
+      event('e',`Fusible de la entrada mA fundido: pasaron ${nf(I*1000,0)} mA por el rango de 200 mA (corriente de despertar de los módulos). Mida primero en 10 A y pase a mA solo con el puente colocado y la corriente por debajo de 200 mA.`);
+      if(!a){wakeAll();st.powered=false;pen('intr');event('e','Al fundirse el fusible del multímetro se abrió el circuito de la batería: el vehículo quedó sin alimentación y se perdieron las memorias.');}
+    }
+  }
+}
+function toggleDoor(){
+  act(()=>{st.door=!st.door;
+    if(st.door){wakeAll();pen('wake');event('w','Puerta abierta: se enciende la luz de cortesía y todos los módulos despiertan. El tiempo de reposo se reinicia.');}
+    else event('i','Puerta cerrada: la luz de cortesía se apaga con retardo y comienza la cuenta de reposo de los módulos.');});
+}
+function toggleKey(){
+  act(()=>{st.key=!st.key;
+    if(st.key){wakeAll();pen('wake');event('w','Llave en el contacto: el BCM la detecta y despierta la red de módulos. El tiempo de reposo se reinicia.');}
+    else event('i','Llave retirada y alejada del vehículo.');});
+}
+function toggleHood(){
+  act(()=>{st.hood=!st.hood;
+    if(!st.hood){wakeAll();pen('wake');event('w','Interruptor del capó liberado: el BCM y la alarma detectan «capó abierto» y despiertan. El tiempo de reposo se reinicia.');}
+    else event('i','Interruptor del capó enclavado (presionado con una pinza): el BCM y la alarma ven el capó cerrado, aunque esté abierto para trabajar.');});
+}
+function toggleFuse(id){
+  const f=FU(id);
+  if(st.pulled.has(id)){act(()=>{st.pulled.delete(id);st.tw[id]=st.t;event('i',`${id} (${f.n}) colocado de nuevo${st.cs.m[id].ts>0&&st.cs.m[id].aw>0?': ese módulo arranca y vuelve a esperar su tiempo de reposo':''}.`);});return;}
+  const early=!allAsleep(st.t);
+  act(()=>{if(early){pen('early',0.5);event('w',`Retiró ${id} antes de que todos los módulos entraran en reposo: la variación del amperímetro no es concluyente, porque la corriente todavía baja por sí sola.`);}
+    st.pulled.add(id);});
+}
+function setALeads(l){if(l==='none')l=null;act(()=>{st.am.leads=l;});}
+function setAMode(m){
+  if(m===st.am.mode)return;
+  const mom=st.am.leads==='neg'&&!st.cableOn&&!st.jumper&&aCond()&&m!=='OFF';
+  act(()=>{st.am.mode=m;},mom);
+}
+function toggleJumper(){act(()=>{st.jumper=!st.jumper;event('i',st.jumper?'Puente (bypass) colocado entre el borne negativo y el terminal.':'Puente retirado.');});}
+function toggleTerm(){act(()=>{st.cableOn=!st.cableOn;event('i',st.cableOn?'Terminal negativo colocado y apretado sobre el borne.':'Terminal negativo aflojado y retirado del borne.');});}
+function toggleBplus(){act(()=>{st.bplus=!st.bplus;event(st.bplus?'i':'w',st.bplus?'Cable B+ reconectado en el alternador.':'Cable B+ desconectado del alternador. Aísle el terminal con cinta: está unido directamente al positivo de la batería, sin fusible pequeño.');});}
+function allFusesIn(){act(()=>{for(const id of st.pulled)st.tw[id]=st.t;if(st.pulled.size)event('i','Todos los fusibles colocados: los módulos correspondientes arrancan de nuevo.');st.pulled.clear();});}
+
+/* ---------- tiempo ---------- */
+function sample(){
+  while(st.nextSample<=st.t){st.samples.push({t:st.nextSample,v:measuredAt(st.nextSample)});st.nextSample+=5;}
+  if(st.samples.length>1500)st.samples.splice(0,st.samples.length-1500);
+}
+function jump(sec){
+  const end=st.t+sec;
+  while(st.t<end){st.t=Math.min(end,st.t+5);refreshBlocked();sample();overloadCheck();}
+  render();
+}
+let last=performance.now(),lastDraw=0,lastNz=0;
+function tick(now){
+  const dt=Math.min(0.1,(now-last)/1000);last=now;
+  if(!st.paused)st.t+=dt*st.speed;
+  refreshBlocked();sample();overloadCheck();
+  if(now-lastNz>450){st.nz.a=Math.random()*2-1;st.nz.v=Math.random()*2-1;st.nz.c=Math.round(Math.random()*2-1);lastNz=now;}
+  if(now-lastDraw>250){lastDraw=now;render();}
+  requestAnimationFrame(tick);
+}
+
+/* ---------- dibujo: consumo parásito ---------- */
+const svg=$('scene');
+function ground(x,y){return `<line x1="${x}" y1="${y}" x2="${x}" y2="${y+8}" stroke="#2b3440" stroke-width="3"/><line x1="${x-14}" y1="${y+8}" x2="${x+14}" y2="${y+8}" stroke="#2b3440" stroke-width="3"/><line x1="${x-9}" y1="${y+13}" x2="${x+9}" y2="${y+13}" stroke="#2b3440" stroke-width="3"/><line x1="${x-4}" y1="${y+18}" x2="${x+4}" y2="${y+18}" stroke="#2b3440" stroke-width="3"/>`;}
+function clampIcon(x,y){return `<g pointer-events="none"><ellipse cx="${x}" cy="${y}" rx="12" ry="16" fill="none" stroke="#c0392b" stroke-width="6"/><rect x="${x+14}" y="${y-8}" width="34" height="16" rx="4" fill="#c0392b"/><text x="${x+31}" y="${y+4}" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">pinza</text></g>`;}
+let flowOff=0;
+function drawPar(){
+  const t=st.t,hid=st.evalOn&&!st.evalChecked,real=st.showReal&&!hid;
+  const It=totalI(t);
+  let s='';
+  s+=`<text class="lbl" x="16" y="22">Vehículo estacionado · contacto OFF · capó abierto para trabajar</text>`;
+  const rest=t-lastWake();
+  s+=`<rect x="590" y="4" width="200" height="50" rx="8" fill="#1c2533"/><text x="602" y="19" fill="#c6cfda" font-size="10.5">Tiempo simulado · sin despertar</text>
+      <text x="602" y="45" fill="#ffd54f" font-size="22" font-weight="700" font-family="Consolas,monospace">${fmtT(t)}</text>
+      <text x="778" y="31" text-anchor="end" fill="#8fe39f" font-size="12" font-family="Consolas,monospace">${fmtT(rest)}</text>
+      <text x="778" y="47" text-anchor="end" fill="#fff" font-size="12" font-weight="700">${st.paused?'pausa':'×'+st.speed}</text>`;
+  // cable positivo y B+
+  s+=`<path d="M70 78 V40 H360 V60" fill="none" stroke="#c62828" stroke-width="4" stroke-linejoin="round"/>
+      <text x="368" y="54" class="lbl2">+30 (positivo permanente)</text>`;
+  const bpEnd=st.bplus?'H160 V386':'H132 V372';
+  s+=`<path d="M70 40 H16 V340 ${bpEnd}" fill="none" stroke="#c62828" stroke-width="4" stroke-linejoin="round"/>`;
+  s+=`<text transform="translate(30 336) rotate(-90)" class="lbl2">Cable B+ (sin fusible)</text>`;
+  // flujo animado en el cable negativo
+  if(It>0.5){const sp=Math.min(6,0.6+Math.log10(1+It));flowOff=(flowOff+sp)%400;
+    s+=`<path d="M${st.cableOn?172:226} ${st.cableOn?84:60} H280 V330" fill="none" stroke="#ffb300" stroke-width="3" stroke-dasharray="3 14" stroke-dashoffset="${-flowOff}" pointer-events="none"/>`;}
+  // alternador
+  s+=`<g class="clk" data-act="bplus"><rect x="55" y="350" width="140" height="100" fill="transparent"/>
+      <circle cx="100" cy="410" r="36" fill="#e8ecf1" stroke="#2b3440" stroke-width="2.5"/>
+      <text x="100" y="405" text-anchor="middle" font-size="16" font-weight="700" fill="#2b3440">G</text><text x="100" y="424" text-anchor="middle" font-size="12" fill="#2b3440">3~</text>
+      <line x1="136" y1="400" x2="160" y2="400" stroke="#2b3440" stroke-width="3"/>
+      <circle cx="160" cy="394" r="7" fill="${st.bplus?'#b0b8c2':'#fff'}" stroke="#2b3440" stroke-width="2"/>
+      ${st.bplus?'':'<circle cx="132" cy="372" r="6" fill="none" stroke="#c62828" stroke-width="3"/><text x="146" y="365" class="lbl2" style="fill:#c62828">B+ suelto</text>'}
+      <text x="172" y="398" class="lbl">B+</text></g>`;
+  s+=`<text x="58" y="364" class="lbl2">Alternador</text>`+ground(100,446);
+  // batería
+  const Ub=UBAT-It/1000*RI_BAT;
+  s+=`<rect x="30" y="90" width="170" height="110" rx="6" fill="#37414f"/><rect x="30" y="90" width="170" height="18" rx="6" fill="#4b5667"/>
+      <text x="115" y="138" text-anchor="middle" fill="#fff" font-size="14" font-weight="700">Batería 12 V</text>
+      <text x="115" y="158" text-anchor="middle" fill="#dfe5ec" font-size="12">C₂₀ = ${st.cap} Ah</text>
+      <text x="115" y="176" text-anchor="middle" fill="#dfe5ec" font-size="12">${nf(Ub,2)} V</text>
+      <rect x="60" y="78" width="20" height="12" fill="#9aa3ad" stroke="#2b3440"/><text x="44" y="82" font-size="18" font-weight="700" fill="#c62828">+</text>
+      <rect x="150" y="78" width="20" height="12" fill="#9aa3ad" stroke="#2b3440"/><text x="134" y="80" font-size="20" font-weight="700" fill="#2b3440">−</text>`;
+  // terminal negativo
+  const T=st.cableOn?[160,84]:[214,60];
+  s+=`<path d="M${T[0]+12} ${T[1]} H280 V330" fill="none" stroke="#1c1c1c" stroke-width="4" stroke-linejoin="round"/>`+ground(280,330);
+  s+=`<text x="268" y="362" text-anchor="end" class="lbl2">Masa (carrocería)</text><text transform="translate(296 262) rotate(-90)" class="lbl2">Cable negativo</text>`;
+  s+=`<g class="clk" data-act="term"><rect x="${T[0]-16}" y="${T[1]-12}" width="32" height="24" fill="transparent"/><rect x="${T[0]-14}" y="${T[1]-9}" width="28" height="18" rx="3" fill="${st.cableOn?'#5d6672':'#7c8591'}" stroke="#1c1c1c" stroke-width="2"/>
+      <circle cx="${T[0]}" cy="${T[1]}" r="3" fill="#ccc"/>${st.cableOn?'':`<rect x="${T[0]-16}" y="${T[1]-11}" width="32" height="22" rx="4" fill="none" stroke="#c62828" stroke-width="2" stroke-dasharray="4 2"/>`}</g>`;
+  // puente
+  if(st.jumper){
+    const qx=(156+T[0])/2,qy=Math.min(T[1],78)-40;
+    s+=`<g class="clk" data-act="jumper"><path d="M156 78 Q${qx} ${qy} ${T[0]+4} ${T[1]-8}" fill="none" stroke="transparent" stroke-width="14"/>
+        <path d="M156 78 Q${qx} ${qy} ${T[0]+4} ${T[1]-8}" fill="none" stroke="#e07b00" stroke-width="3.5"/>
+        <rect x="150" y="70" width="10" height="8" fill="#e07b00"/><rect x="${T[0]}" y="${T[1]-14}" width="10" height="8" fill="#e07b00"/>
+        <text x="${qx}" y="${qy+12}" text-anchor="middle" class="lbl2" style="fill:#9a5400;font-weight:700">puente</text></g>`;
+  }
+  // amperímetro
+  const mlab={A10:'A',mA:'mA',OFF:'—'}[st.am.mode];
+  if(st.am.leads==='neg'){
+    s+=`<path d="M152 88 C140 118 190 150 218 152" fill="none" stroke="#e53935" stroke-width="3"/>
+        <path d="M${T[0]+6} ${T[1]+8} C${T[0]+20} ${T[1]+40} 250 112 246 136" fill="none" stroke="#111" stroke-width="3"/>
+        <circle cx="236" cy="152" r="19" fill="#fff" stroke="#e07b00" stroke-width="3"/><text x="236" y="157" text-anchor="middle" font-weight="700" fill="#e07b00" font-size="${mlab.length>1?12:15}">${mlab}</text>`;
+  }else if(st.am.leads==='bat'){
+    s+=`<path d="M70 78 Q80 58 102 60" fill="none" stroke="#e53935" stroke-width="3"/><path d="M160 78 Q150 58 128 60" fill="none" stroke="#111" stroke-width="3"/>
+        <circle cx="115" cy="60" r="14" fill="#fff" stroke="#e07b00" stroke-width="3"/><text x="115" y="64" text-anchor="middle" font-weight="700" fill="#e07b00" font-size="11">${mlab}</text>`;
+  }
+  if(st.vm.leads==='bat')s+=`<path d="M78 86 Q115 118 152 86" fill="none" stroke="#7b1fa2" stroke-width="2.5" stroke-dasharray="5 3"/><text x="115" y="126" text-anchor="middle" font-size="10" font-weight="700" fill="#7b1fa2">V (mult. 2)</text>`;
+  if(st.vm.leads==='gap')s+=`<path d="M170 76 Q190 40 ${T[0]+10} ${T[1]-10}" fill="none" stroke="#7b1fa2" stroke-width="2.5" stroke-dasharray="5 3"/>`;
+  // pinza
+  if(st.clamp.pos==='neg')s+=clampIcon(280,236);
+  if(st.clamp.pos==='bplus')s+=clampIcon(16,200);
+  // caja de fusibles
+  s+=`<rect x="330" y="60" width="460" height="262" rx="8" fill="#eef1f5" stroke="#9aa6b5" stroke-width="1.5"/>
+      <text x="345" y="82" class="lbl">Caja de fusibles (fusibles mini)</text>
+      <text x="775" y="82" text-anchor="end" class="lbl2">${st.ext?'EXTRACTOR ACTIVO: clic para retirar/colocar':'clic en un fusible: medir su caída (mV)'}</text>`;
+  const cw=460/7;
+  FUSES.forEach((f,k)=>{
+    const c=k%7,r=Math.floor(k/7),cx=330+cw*(c+0.5),y=94+r*112;
+    const pulled=st.pulled.has(f.id),sel=st.vm.leads==='fuse:'+f.id;
+    const [col,tc]=FCOL[f.a];
+    s+=`<g class="clk" data-act="fuse" data-id="${f.id}"><rect x="${cx-cw/2+2}" y="${y-4}" width="${cw-4}" height="108" fill="transparent"/>`;
+    s+=`<rect x="${cx-20}" y="${y}" width="40" height="42" rx="3" fill="#2b3440"/>`;
+    if(pulled){
+      s+=`<rect x="${cx-12}" y="${y+14}" width="6" height="16" fill="#111"/><rect x="${cx+6}" y="${y+14}" width="6" height="16" fill="#111"/>
+          <text x="${cx}" y="${y+10}" text-anchor="middle" font-size="9" fill="#ff8a80" font-weight="700">retirado</text>`;
+    }else{
+      s+=`<rect x="${cx-16}" y="${y+3}" width="32" height="36" rx="3" fill="${col}" stroke="${sel?'#7b1fa2':'#1c2533'}" stroke-width="${sel?3.5:1}"/>
+          <rect x="${cx-12}" y="${y+6}" width="7" height="6" fill="#dfe4ea" stroke="#555"/><rect x="${cx+5}" y="${y+6}" width="7" height="6" fill="#dfe4ea" stroke="#555"/>
+          <text x="${cx}" y="${y+31}" text-anchor="middle" font-size="12" font-weight="700" fill="${tc}">${nf(f.a,f.a%1?1:0)}</text>`;
+      if(sel)s+=`<circle cx="${cx-8.5}" cy="${y+9}" r="4.5" fill="#e53935"/><circle cx="${cx+8.5}" cy="${y+9}" r="4.5" fill="#111" stroke="#fff"/>`;
+    }
+    s+=`<text x="${cx}" y="${y+56}" text-anchor="middle" font-size="11" font-weight="700" fill="#12355b">${f.id} · ${fmtAmp(f.a)}</text>
+        <text x="${cx}" y="${y+69}" text-anchor="middle" font-size="10" fill="#1c2533">${f.l[0]}</text>
+        <text x="${cx}" y="${y+81}" text-anchor="middle" font-size="10" fill="#1c2533">${f.l[1]}</text>`;
+    if(real){const I=modI(f.id,t);s+=`<text x="${cx}" y="${y+96}" text-anchor="middle" font-size="10" font-weight="700" fill="${I>LIMIT?'#c62828':'#1d8a4e'}">${fmtmA(I)}</text>`;}
+    s+='</g>';
+  });
+  // estado
+  const pl=[...st.pulled];
+  const lines=[['Estado de la escena',1],
+    [`Llave: ${st.key?'EN EL CONTACTO':'retirada'}`],
+    [`Puerta del conductor: ${st.door?'ABIERTA':'cerrada'}`],
+    [`Interruptor del capó: ${st.hood?'enclavado':'SIN ENCLAVAR'}`],
+    [`Terminal −: ${st.cableOn?'en el borne':'retirado'} · puente: ${st.jumper?'sí':'no'}`],
+    [`B+ del alternador: ${st.bplus?'conectado':'desconectado'}`],
+    [`Fusibles retirados: ${pl.length?pl.slice(0,4).join(', ')+(pl.length>4?'…':''):'ninguno'}`],
+    [`Módulos despiertos: ${hid?'(oculto)':st.powered?awakeCount(t)+' de '+sleepers().length:'sin alimentación'}`]];
+  lines.forEach((l,i)=>{s+=`<text x="340" y="${346+i*15.5}" font-size="${l[1]?12.5:11.5}" ${l[1]?'font-weight="700" fill="#12355b"':'fill="#1c2533"'}>${l[0]}</text>`;});
+  // vehículo (vista lateral, frente a la derecha)
+  const cour=st.powered&&!st.pulled.has('F4')&&modI('F4',t)>100;
+  const alarmOn=st.powered&&!st.pulled.has('F5')&&!isAwake(FU('F5'),t)&&(Math.floor(performance.now()/700)%2===0);
+  s+=`<g><path d="M572 430 L572 400 Q576 385 598 382 L626 380 L652 354 Q657 350 667 350 L722 350 Q734 350 742 360 L754 378 Q782 382 786 400 L786 430 Z" fill="#dce4ee" stroke="#2b3440" stroke-width="2"/>
+      <path d="M660 358 L720 358 Q730 358 736 366 L744 378 L638 378 Z" fill="#9fb6cf" stroke="#2b3440" stroke-width="1.5"/>
+      ${cour?'<circle cx="690" cy="368" r="24" fill="#ffd54f" opacity=".55"/>':''}
+      <circle cx="690" cy="360" r="3.5" fill="${cour?'#ffb300':'#8894a3'}"/>
+      <circle cx="646" cy="374" r="3.5" fill="${alarmOn?'#ff1744':'#6d7682'}"/>
+      <circle cx="610" cy="432" r="16" fill="#2b3440"/><circle cx="610" cy="432" r="7" fill="#bbb"/><circle cx="752" cy="432" r="16" fill="#2b3440"/><circle cx="752" cy="432" r="7" fill="#bbb"/></g>`;
+  // capó (siempre abierto para trabajar) e interruptor
+  s+=`<path d="M752 378 L784 340" stroke="#2b3440" stroke-width="4" stroke-linecap="round"/>
+      <g class="clk" data-act="hood"><rect x="756" y="382" width="34" height="30" fill="transparent"/><rect x="770" y="388" width="12" height="12" rx="2" fill="${st.hood?'#1d8a4e':'#c62828'}" stroke="#1c2533"/>
+      ${st.hood?'<path d="M766 386 L786 386" stroke="#e07b00" stroke-width="3"/>':''}</g>
+      <text x="792" y="336" text-anchor="end" font-size="10" fill="${st.hood?'#1d8a4e':'#c62828'}" font-weight="700">${st.hood?'sw capó enclavado':'sw capó libre'}</text>`;
+  // llave
+  s+=`<g class="clk" data-act="key"><rect x="700" y="356" width="44" height="40" fill="transparent"/>
+      <circle cx="724" cy="372" r="6" fill="#fff" stroke="#2b3440" stroke-width="1.5"/>
+      ${st.key?'<circle cx="724" cy="372" r="2.5" fill="#e0a100"/><path d="M724 378 L724 388" stroke="#e0a100" stroke-width="3"/><circle cx="724" cy="391" r="3.5" fill="none" stroke="#e0a100" stroke-width="2.5"/>':''}
+      <text x="712" y="462" text-anchor="middle" font-size="10" fill="${st.key?'#c62828':'#1d8a4e'}" font-weight="700">${st.key?'llave puesta':'sin llave'}</text></g>`;
+  // puerta
+  s+=`<g class="clk" data-act="door">`;
+  if(st.door)s+=`<rect x="610" y="336" width="60" height="100" fill="transparent"/><path d="M660 354 L632 340 L632 432 L660 426 Z" fill="#c9d4e2" stroke="#c62828" stroke-width="2.5"/><text x="576" y="462" class="lbl2" style="fill:#c62828;font-weight:700">puerta abierta</text>`;
+  else s+=`<rect x="640" y="352" width="54" height="76" fill="transparent"/><path d="M660 354 L660 426 M694 358 L694 426" stroke="#2b3440" stroke-width="1.5"/><rect x="676" y="390" width="10" height="3" fill="#2b3440"/><text x="576" y="462" class="lbl2">puerta cerrada</text>`;
+  s+='</g>';
+  svg.setAttribute('viewBox','0 0 800 470');
+  svg.innerHTML=s;
+}
+
+/* ---------- dibujo: descarga superficial ---------- */
+const BLOBS=[[190,130,34],[260,285,40],[330,160,28],[400,250,46],[470,140,30],[520,290,36],[300,215,22],[430,200,26],[230,190,20],[360,300,30],[480,230,24],[160,280,26]];
+function drawSurf(){
+  const lvl=st.dirt,hid=st.evalOn&&!st.evalChecked;
+  let s=`<text class="lbl" x="20" y="26">Prueba de descarga superficial · voltímetro de 10 MΩ (multímetro 2)</text>
+         <text class="lbl2" x="20" y="44">Punta roja en el borne +, punta negra sobre la carcasa. Criterio orientativo: &gt; 0,1 V película conductora; &gt; 0,5 V descarga importante.</text>`;
+  s+=`<rect x="80" y="90" width="480" height="250" rx="14" fill="#3a4452" stroke="#1c2533" stroke-width="2"/>
+      <rect x="80" y="90" width="480" height="30" rx="14" fill="#465264"/>`;
+  for(let i=0;i<6;i++)s+=`<circle cx="${190+i*52}" cy="140" r="9" fill="#2c3440" stroke="#56627a"/>`;
+  const dc=['','#b8a98c','#8a6e4b','#cfe3ef'][lvl],dop=[0,.28,.45,.55][lvl];
+  if(lvl>0)BLOBS.forEach(([x,y,r],i)=>{s+=`<ellipse cx="${x}" cy="${y}" rx="${r}" ry="${r*0.62}" fill="${dc}" opacity="${(dop*(0.7+0.3*((i*7)%3)/2)).toFixed(2)}"/>`;});
+  if(lvl>=3)s+=`<ellipse cx="320" cy="215" rx="190" ry="26" fill="#a9d6f5" opacity=".35"/><circle cx="150" cy="215" r="32" fill="#e6f5d8" opacity=".6"/>`;
+  s+=`<circle cx="150" cy="215" r="22" fill="#9aa3ad" stroke="#1c2533" stroke-width="2"/><text x="150" y="222" text-anchor="middle" font-size="22" font-weight="700" fill="#c62828">+</text>
+      <circle cx="490" cy="215" r="22" fill="#9aa3ad" stroke="#1c2533" stroke-width="2"/><text x="490" y="222" text-anchor="middle" font-size="24" font-weight="700" fill="#1c2533">−</text>`;
+  const px=x=>150+340*x;
+  SPTS.forEach((p,i)=>{
+    const x=px(p.x),y=i%2?262:238,on=st.surfPt===i;
+    s+=`<g class="clk" data-act="spt" data-i="${i}"><circle cx="${x}" cy="${y}" r="16" fill="transparent"/><circle cx="${x}" cy="${y}" r="7" fill="#fff" stroke="${on?'#e07b00':'#fff'}" stroke-width="${on?3.5:1.5}"/>
+        <text x="${x}" y="${y+(i%2?24:-14)}" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">${p.k}</text></g>`;
+  });
+  const bx=px(SPTS[st.surfPt].x),by=st.surfPt%2?262:238;
+  const r=vmRead();
+  s+=`<rect x="600" y="80" width="180" height="230" rx="16" fill="#39414d" stroke="#e0a100" stroke-width="3"/>
+      <rect x="616" y="98" width="148" height="62" rx="6" fill="#b9c9a4"/>
+      <text x="756" y="142" text-anchor="end" font-family="Consolas,monospace" font-size="${r.v.length>6?24:28}" font-weight="700" fill="#1d2616">${r.v}</text>
+      <text x="624" y="114" font-family="Consolas,monospace" font-size="11" fill="#1d2616">${r.u}⎓</text>
+      <text x="690" y="186" text-anchor="middle" fill="#fff" font-size="12">Multímetro 2 · 10 MΩ</text>
+      <circle cx="650" cy="280" r="9" fill="#e53935"/><circle cx="730" cy="280" r="9" fill="#111" stroke="#888"/>`;
+  s+=`<path d="M150 200 C150 60 600 40 650 272" fill="none" stroke="#e53935" stroke-width="3"/>
+      <path d="M${bx} ${by} C${bx} 400 740 400 730 289" fill="none" stroke="#111" stroke-width="3"/>
+      <circle cx="${bx}" cy="${by}" r="5" fill="#111" stroke="#fff" stroke-width="1.5"/>`;
+  s+=`<text x="80" y="372" class="lbl">Punta negra en: ${SPTS[st.surfPt].k} (sobre la tapa, entre el borne + y el borne −)</text>`;
+  if(!hid){
+    const Rf=DIRT[lvl].R*st.dirtK;
+    s+=`<text x="80" y="392" class="lbl2">Estado de la carcasa: ${DIRT[lvl].n} · resistencia aproximada de la película entre bornes: ${Rf>=1e12?'> 1 TΩ':Rf>=1e9?nf(Rf/1e9,1)+' GΩ':nf(Rf/1e6,0)+' MΩ'}</text>
+        <text x="80" y="410" class="lbl2">La película permite una fuga directa entre bornes por la tapa: descarga la batería y el amperímetro del cable negativo no la detecta.</text>`;
+  }else s+=`<text x="80" y="392" class="lbl2">Estado de la carcasa: oculto en modo evaluación. Mida en P1…P5 y clasifique según la mayor lectura.</text>`;
+  svg.setAttribute('viewBox','0 0 800 425');
+  svg.innerHTML=s;
+}
+
+/* ---------- registro gráfico ---------- */
+function drawTrend(){
+  const x0=58,x1=785,y0=24,y1=138,span=60*60;
+  const tMin=Math.max(0,st.t-span);
+  const X=t=>x0+(t-tMin)/span*(x1-x0);
+  const Y=v=>{const c=Math.min(2,Math.max(0.001,v));return y1-Math.log10(c/0.001)/Math.log10(2000)*(y1-y0);};
+  let s=`<text x="12" y="15" class="lbl" style="font-size:12px">Corriente medida (amperímetro en serie sin puente, o pinza en el negativo puesta a cero) · escala logarítmica · últimos 60 min</text>`;
+  [[0.001,'1 mA'],[0.01,'10 mA'],[0.1,'100 mA'],[1,'1 A']].forEach(([v,l])=>{s+=`<line x1="${x0}" y1="${Y(v)}" x2="${x1}" y2="${Y(v)}" stroke="#e3e8ef"/><text x="${x0-5}" y="${Y(v)+4}" text-anchor="end" class="lbl2">${l}</text>`;});
+  s+=`<line x1="${x0}" y1="${Y(0.05)}" x2="${x1}" y2="${Y(0.05)}" stroke="#c62828" stroke-dasharray="6 4"/><text x="${x1-4}" y="${Y(0.05)-4}" text-anchor="end" font-size="10" fill="#c62828">50 mA (límite orientativo)</text>`;
+  s+=`<line x1="${x0}" y1="${Y(0.2)}" x2="${x1}" y2="${Y(0.2)}" stroke="#e07b00" stroke-dasharray="2 3"/><text x="${x1-4}" y="${Y(0.2)-4}" text-anchor="end" font-size="10" fill="#9a5400">200 mA (máx. rango mA)</text>`;
+  for(let m=Math.ceil(tMin/600)*10;m*60<=tMin+span;m+=10){const x=X(m*60);s+=`<line x1="${x}" y1="${y0}" x2="${x}" y2="${y1}" stroke="#eef1f5"/><text x="${x}" y="${y1+15}" text-anchor="middle" class="lbl2">${m} min</text>`;}
+  s+=`<rect x="${x0}" y="${y0}" width="${x1-x0}" height="${y1-y0}" fill="none" stroke="#c8d0da"/>`;
+  let seg=[],paths='';
+  const flush=()=>{if(seg.length>1)paths+=`<polyline points="${seg.join(' ')}" fill="none" stroke="#1f5a94" stroke-width="2"/>`;else if(seg.length===1){const [a,b]=seg[0].split(',');paths+=`<circle cx="${a}" cy="${b}" r="2" fill="#1f5a94"/>`;}seg=[];};
+  for(const p of st.samples){if(p.t<tMin)continue;if(p.v==null){flush();continue;}seg.push(X(p.t).toFixed(1)+','+Y(p.v).toFixed(1));}
+  flush();
+  s+=paths;
+  s+=`<text x="${x0+6}" y="${y1+36}" class="lbl2">Tramos vacíos = sin amperímetro en serie (o con el puente colocado) y sin pinza en el cable negativo.</text>`;
+  $('trend').innerHTML=s;
+}
+
+/* ---------- instrumentos ---------- */
+function amRead(){
+  const a=st.am,m=a.mode,t=st.t;
+  const u={A10:'A',mA:'mA',OFF:''}[m];
+  if(m==='OFF')return {v:'',u:'',note:a.leads==='neg'?'Multímetro apagado: en OFF no conduce. Si el terminal y el puente están retirados, el circuito queda abierto.':'Multímetro apagado.'};
+  if(m==='A10'&&!a.f10)return {v:'FUSE',u:'',note:'Fusible de 10 A del multímetro 1 fundido. Repóngalo.'};
+  if(m==='mA'&&!a.fmA)return {v:'FUSE',u:'',note:'Fusible de la entrada mA fundido: el amperímetro está abierto. Repóngalo.'};
+  if(!a.leads)return {v:'- - -',u,note:'Conecte las puntas en serie en el cable negativo (entre el borne − y el terminal).'};
+  const I=Math.max(0,ammeterA(t));
+  let note='';
+  if(st.cableOn)note='El terminal sigue sobre el borne y desvía casi toda la corriente: la lectura no es válida. Retire el terminal (con el puente colocado).';
+  else if(st.jumper)note='El puente está en paralelo con el amperímetro y desvía casi toda la corriente. Quítelo para leer el consumo real.';
+  else if(!st.powered)note='Sin corriente: el circuito está abierto.';
+  else if(m==='A10'&&I<MA_MAX)note='Lectura menor que 200 mA: puede pasar a la escala mA para mejor resolución (coloque antes el puente).';
+  else if(m==='A10')note='Corriente de despertar todavía alta: espere en la escala de 10 A.';
+  else note='Escala mA: resolución de 0,1 mA.';
+  if(m==='A10'){const v=Math.max(0,I+(I>0?0.0006*st.nz.a:0));return {v:nf(v,3),u:'A',note,mA:v*1000};}
+  const v=Math.max(0,I*1000+(I>0?0.12*st.nz.a:0));return {v:nf(v,1),u:'mA',note,mA:v};
+}
+function fmtVm(Uv,mode){ // Uv en V
+  if(mode==='mV'){const mv=Uv*1000;return mv>600?{v:'OL',u:'mV'}:{v:nf(mv,mv<100?2:1),u:'mV'};}
+  return {v:nf(Uv,Uv<1?3:2),u:'V'};
+}
+function vmRead(){
+  const m=st.vm.mode,t=st.t;
+  if(m==='OFF')return {v:'',u:'',note:'Multímetro 2 apagado.'};
+  if(st.tab==='surf'){
+    const U=Math.max(0,surfV(SPTS[st.surfPt].x,st.dirt)*(1+0.004*st.nz.v)+0.0002*st.nz.v);
+    return {...fmtVm(U,m),note:'Tensión entre el borne + y la carcasa: indica la película conductora de suciedad o electrolito.',Uv:U};
+  }
+  const l=st.vm.leads;
+  if(!l)return {v:'- - -',u:m,note:'Haga clic en un fusible (ventanas de prueba) o elija los bornes de la batería.'};
+  const It=totalI(t)/1000;
+  if(l==='bat'){const U=UBAT-It*RI_BAT+0.002*st.nz.v;return {...fmtVm(U,m),note:m==='mV'?'Fuera de rango: la escala mV no sirve para la tensión de la batería.':'Tensión en reposo de la batería (≈ 12,6 V: cargada; orientativo).',Uv:U};}
+  if(l==='gap'){
+    const g=gOther()+(aCond()?1/(st.am.mode==='A10'?R_M10:R_MMA):0);
+    const U=g>0?It/g:UBAT;
+    return {...fmtVm(U,m),note:g>0?'Tensión entre el borne − y el terminal: es la caída en lo que los une (terminal, puente o amperímetro).':'Circuito abierto: aparece la tensión de la batería entre el borne − y el terminal.',Uv:U};
+  }
+  const id=l.slice(5),f=FU(id);
+  if(st.pulled.has(id))return m==='mV'?{v:'OL',u:'mV',note:`${id} está retirado: entre las ventanas de prueba no hay fusible.`}:{v:nf(st.powered?UBAT:0,2),u:'V',note:`${id} retirado: aparece la tensión de alimentación entre los contactos del zócalo.`};
+  const Uv=Math.max(0,modI(id,t)/1000*RF[f.a]/1000+0.000005*st.nz.v);
+  const r=fmtVm(Uv,m);
+  if(m==='V')return {...r,note:'La caída sobre un fusible es de milivoltios: use la escala mV.',Uv};
+  const mv=Uv*1000;
+  r.note=`${id} · ${f.n} · ${fmtAmp(f.a)} (R ≈ ${nf(RF[f.a],1)} mΩ). Calcule I = U / R.${mv<0.05?' Lectura menor que 0,05 mV: consumo muy pequeño o nulo.':''}`;
+  r.v=nf(mv,2);r.mA=mv/RF[f.a]*1000;r.Uv=Uv;
+  return r;
+}
+function aLeadsName(){return st.am.leads==='neg'?'en serie: borne − → terminal negativo':st.am.leads==='bat'?'bornes + y − de la batería':'sin conectar';}
+function vLeadsName(){if(st.tab==='surf')return 'borne + → carcasa '+SPTS[st.surfPt].k;const l=st.vm.leads;if(!l)return 'sin conectar';if(l==='bat')return 'bornes + y − de la batería';if(l==='gap')return 'borne − ↔ terminal negativo';const id=l.slice(5);return `ventanas de prueba de ${id} (${FU(id).n})`;}
+function updateMeters(){
+  const a=amRead();
+  $('aVal').textContent=a.v;$('aUnit').textContent=a.u;$('aFn').textContent={A10:'A⎓ 10 A',mA:'mA⎓ 200 mA',OFF:''}[st.am.mode];
+  $('aNote').textContent=a.note||'';$('aStat').textContent='Puntas: '+aLeadsName();
+  document.querySelectorAll('#aModes button').forEach(b=>b.classList.toggle('on',b.dataset.m===st.am.mode));
+  document.querySelectorAll('#aLeads button').forEach(b=>b.classList.toggle('on',(b.dataset.l==='none'?null:b.dataset.l)===st.am.leads));
+  $('btnAFuse').style.display=(st.am.f10&&st.am.fmA)?'none':'';
+  const v=vmRead();
+  $('vVal').textContent=v.v;$('vUnit').textContent=v.u;$('vFn').textContent={mV:'mV⎓',V:'V⎓',OFF:''}[st.vm.mode];
+  $('vNote').textContent=v.note||'';$('vStat').textContent='Puntas: '+vLeadsName();
+  document.querySelectorAll('#vModes button').forEach(b=>b.classList.toggle('on',b.dataset.m===st.vm.mode));
+  document.querySelectorAll('#vLeads button').forEach(b=>b.classList.toggle('on',st.tab==='par'&&(b.dataset.l==='none'?null:b.dataset.l)===st.vm.leads));
+  return {a,v};
+}
+function updateClamp(){
+  const v=clampRead(st.t,true),big=Math.abs(v)>=1000;
+  $('clVal').textContent=big?nf(v/1000,2):nf(Math.round(v),0);$('clUnit').textContent=big?'A':'mA';
+  document.querySelectorAll('#clampBar button[data-c]').forEach(b=>b.classList.toggle('on',b.dataset.c===st.clamp.pos));
+  $('clNote').textContent=st.clamp.pos==='none'?'Fuera del cable la lectura debería ser 0: si no lo es, pulse ZERO antes de colocarla.':st.clamp.pos==='neg'?'Mide la corriente total del cable negativo sin abrir el circuito.':'Mide la corriente que entra al alternador por el cable B+ con el motor parado (fuga de los diodos).';
+  return {v:big?nf(v/1000,2)+' A':nf(Math.round(v),0)+' mA',mA:v};
+}
+
+/* ---------- controles ---------- */
+function updateControls(){
+  $('btnPause').textContent=st.paused?'Reanudar':'Pausa';
+  document.querySelectorAll('[data-sp]').forEach(b=>b.classList.toggle('on',+b.dataset.sp===st.speed&&!st.paused));
+  $('clockTxt').textContent=`t = ${fmtT(st.t)} (min:s) · sin despertar: ${fmtT(st.t-lastWake())}`;
+  const set=(id,txt,done)=>{$(id).textContent=txt;$(id).classList.toggle('done',!!done);};
+  set('btnKey',st.key?'Retirar la llave':'Llave retirada (clic: ponerla)',!st.key);
+  set('btnHood',st.hood?'Switch del capó enclavado (clic: soltar)':'Enclavar interruptor del capó',st.hood);
+  set('btnDoor',st.door?'Cerrar puerta del conductor':'Puerta cerrada (clic: abrir)',!st.door);
+  set('btnJumper',st.jumper?'Quitar puente (bypass)':'Colocar puente (bypass)',st.jumper);
+  set('btnTerm',st.cableOn?'Retirar terminal negativo del borne':'Colocar terminal negativo en el borne',!st.cableOn);
+  $('btnAmpNeg').classList.toggle('done',st.am.leads==='neg');
+  $('btnExt').textContent='Extractor de fusibles: '+(st.ext?'ACTIVO':'inactivo');$('btnExt').classList.toggle('on',st.ext);
+  $('btnBplus').textContent=st.bplus?'Desconectar B+ del alternador':'Conectar B+ del alternador';
+  $('practiceCtl').classList.toggle('hide',st.evalOn);$('dirtCtl').classList.toggle('hide',st.evalOn);
+  $('ctlPar').classList.toggle('hide',st.tab!=='par');$('ctlSurf').classList.toggle('hide',st.tab!=='surf');
+  $('trendWrap').classList.toggle('hide',st.tab!=='par');$('sceneNote').classList.toggle('hide',st.tab!=='par');
+  $('vLeads').classList.toggle('hide',st.tab!=='par');
+}
+
+/* ---------- resultados / evaluación ---------- */
+function resultsTable(){
+  const t=st.t,C=st.cap;
+  let h='<div class="tblwrap"><table><tr><th>Fusible · circuito</th><th>Estado</th><th>I ahora (mA)</th><th>I reposo (mA)</th><th>U reposo (mV)</th></tr>';
+  for(const f of FUSES){
+    const I=modI(f.id,t),c=st.cs.m[f.id],Ir=restMod(f.id);
+    const est=st.pulled.has(f.id)?'retirado':!st.powered?'sin alim.':c.ts>0&&c.aw>0?(isAwake(f,t)?'despierto':'reposo'):'—';
+    h+=`<tr><td>${f.id} · ${f.n} (${fmtAmp(f.a)})</td><td>${est}</td><td>${nf(I,1)}</td><td class="${Ir>LIMIT/2?'hot':''}">${nf(Ir,1)}</td><td>${nf(Ir*RF[f.a]/1000,3)}</td></tr>`;
+  }
+  const Ia=altI(),Iar=altRest();
+  h+=`<tr><td>Alternador · cable B+ (sin fusible en la caja)</td><td>${st.bplus?'conectado':'desconect.'}</td><td>${nf(Ia,1)}</td><td class="${Iar>5?'hot':''}">${nf(Iar,1)}</td><td>—</td></tr>`;
+  const It=totalI(t),Ir=restI(),d=daysOf(Ir,C);
+  h+=`<tr class="tot"><td>Total</td><td></td><td>${nf(It,1)}</td><td>${nf(Ir,1)}</td><td></td></tr></table></div>`;
+  h+=`<table style="margin-top:8px"><tr><th>Consumo parásito en reposo</th><th>${nf(Ir,1)} mA</th></tr>
+      <tr><td>Días hasta que la batería no arranque (${C} Ah · 0,5)</td><td>${nf(d,1)} días</td></tr>
+      <tr><td>Veredicto (límite orientativo ${LIMIT} mA)</td><td style="color:${Ir>LIMIT?'var(--bad)':'var(--ok)'};font-weight:700">${Ir>LIMIT?'Supera el límite':'Dentro del límite'}</td></tr>
+      <tr><td>Carcasa: ${DIRT[st.dirt].n} (máx. ${nf(surfMax(),3)} V)</td><td>${['sin fuga','limpiar','limpiar'][surfClass(surfMax())]}</td></tr></table>`;
+  h+=`<p class="muted" style="margin:6px 0 0">Avería: ${FAULTS[st.cs.fault].txt}${st.cs.fault!=='none'?` (≈ ${st.cs.fI} mA)`:''}.</p>`;
+  return h;
+}
+function fuseOpts(){return FUSES.map(f=>`<option value="${f.id}">${f.id} · ${f.n} (${fmtAmp(f.a)})</option>`).join('');}
+function buildEvalForm(){
+  $('evalBox').innerHTML=`<p class="muted" style="margin-top:0">Caso oculto. Siga el procedimiento, mida y responda. Capacidad de la batería: ver la etiqueta en el esquema.</p>
+   <div class="evf">
+    <div><label>1. Consumo total en reposo, con todos los módulos dormidos (mA)</label><input id="evI" inputmode="decimal" placeholder="p. ej. 27,5"></div>
+    <div><label>2. Circuito responsable del consumo excesivo</label><select id="evCul"><option value="">— Seleccione —</option>${fuseOpts()}<option value="ALT">Alternador: diodo con fuga (cable B+)</option><option value="NONE">Ninguno: consumo dentro del límite</option></select></div>
+    <div><label>3. Fusible con la mayor caída de tensión en reposo · U medida (mV) · I = U / R (mA)</label>
+      <div class="row3"><select id="evFz"><option value="">— Fusible —</option>${fuseOpts()}</select><input id="evU" inputmode="decimal" placeholder="U (mV)"><input id="evIF" inputmode="decimal" placeholder="I (mA)"></div></div>
+    <div><label>4. Días hasta que la batería no arranque: t = C₂₀ · 0,5 / I / 24</label><input id="evD" inputmode="decimal" placeholder="días"></div>
+    <div><label>5. Carcasa de la batería (pestaña «Descarga superficial»)</label><select id="evS"><option value="">— Seleccione —</option>${SURF_TXT.map((x,i)=>`<option value="${i}">${x}</option>`).join('')}</select></div>
+   </div>
+   <div class="bar"><button class="btn primary" id="btnCheck">Comprobar</button><button class="btn" id="btnNew">Nuevo caso</button></div>
+   <div id="scoreBox"></div>`;
+  $('btnCheck').onclick=checkEval;
+  $('btnNew').onclick=startEval;
+}
+function startEval(){
+  newCase();st.dirt=Math.floor(Math.random()*4);st.dirtK=rnd(0.8,1.2);st.cap=[45,55,60,70][Math.floor(Math.random()*4)];resetScene();
+  st.pen={wake:0,intr:0,early:0,mfuse:0};st.evalChecked=false;st.events=[];st.showReal=false;$('chkReal').checked=false;
+  buildEvalForm();render();
+}
+function mark(el,ok,exp){el.classList.toggle('ok',ok);el.classList.toggle('bad',!ok);el.title=ok?'Correcto':'Esperado: '+exp;}
+function maxFuse(){let b=FUSES[0],bu=-1;for(const f of FUSES){const u=restMod(f.id)*RF[f.a];if(u>bu){bu=u;b=f;}}return b;}
+function checkEval(){
+  const F=FAULTS[st.cs.fault],Ir=restI(),C=st.cap,d=daysOf(Ir,C),mf=maxFuse(),Umf=restMod(mf.id)*RF[mf.a]/1000;
+  const gi=parseNum($('evI').value),cul=$('evCul').value,fz=$('evFz').value,gu=parseNum($('evU').value),gif=parseNum($('evIF').value),gd=parseNum($('evD').value),gs=$('evS').value;
+  const fb=[];
+  // 1 consumo total
+  const okI=isFinite(gi)&&Math.abs(gi-Ir)<=Math.max(0.1*Ir,3);
+  fb.push([okI,2,`Consumo en reposo: real ${nf(Ir,1)} mA.`,okI?'Midió después de que todos los módulos entraron en reposo.':(isFinite(gi)&&gi>Ir*1.5?'Su valor es mayor: probablemente leyó antes de que los módulos durmieran (la corriente baja por escalones hasta 10–60 min) o con un fusible recién colocado.':isFinite(gi)&&gi<Ir*0.7?'Su valor es menor: quizá leyó con el puente colocado, con fusibles retirados o con el B+ desconectado; el consumo total se mide con todo conectado.':'Anote la lectura estable del amperímetro en mA sin el puente.')]);
+  // 2 circuito
+  const ansName=F.ans==='ALT'?'el diodo del alternador (cable B+)':F.ans==='NONE'?'ninguno (consumo normal)':`${F.ans} · ${FU(F.ans).n}`;
+  const okC=cul===F.ans;
+  let why;
+  if(F.ans==='NONE')why=`El total (${nf(Ir,1)} mA) está dentro del límite orientativo de ${LIMIT} mA y ningún fusible muestra una caída anormal: no hay avería.`;
+  else if(F.ans==='ALT')why=`Ningún fusible explica el exceso: la suma de las corrientes calculadas en la caja es menor que el total. La fuga (≈ ${st.cs.fI} mA) está en los diodos del alternador, que se alimentan por el cable B+ sin pasar por la caja; se confirma desconectando el B+ (el amperímetro baja) o con la pinza sobre ese cable.`;
+  else why=`La mayor caída en reposo está en ${F.ans} (≈ ${nf(restMod(F.ans)*RF[FU(F.ans).a]/1000,2)} mV → ${nf(restMod(F.ans),0)} mA). Causa: ${F.txt.toLowerCase()}.`;
+  fb.push([okC,3,`Circuito responsable: ${ansName}.`,why]);
+  // 3 mV y cálculo
+  const okFz=fz===mf.id,okU=okFz&&isFinite(gu)&&Math.abs(gu-Umf)<=Math.max(0.15*Umf,0.02);
+  const Rsel=fz?RF[FU(fz).a]:NaN,Icalc=isFinite(gu)?gu/Rsel*1000:NaN;
+  const okIF=isFinite(gif)&&isFinite(Icalc)&&Math.abs(gif-Icalc)<=Math.max(0.05*Icalc,0.5);
+  fb.push([okU,1,`Mayor caída en reposo: ${mf.id} con ≈ ${nf(Umf,2)} mV.`,okU?'Lectura correcta.':okFz?'El fusible es correcto, pero la lectura no coincide: mida con los módulos dormidos y en la escala mV.':'Recorra todos los fusibles con la escala mV cuando la corriente total ya esté estable.']);
+  fb.push([okIF,1,`Conversión: I = U / R${fz?` = ${isFinite(gu)?nf(gu,2):'U'} mV / ${nf(Rsel,1)} mΩ = ${isFinite(Icalc)?nf(Icalc,1):'—'} mA`:''}.`,okIF?'Cálculo correcto.':fz?`Use la resistencia del fusible de ${fmtAmp(FU(fz).a)} (${nf(Rsel,1)} mΩ) y multiplique por 1000 para obtener mA.`:'Elija el fusible medido para saber qué resistencia usar.']);
+  // 4 días
+  const dUser=isFinite(gi)&&gi>0?daysOf(gi,C):NaN;
+  const okD=isFinite(gd)&&(Math.abs(gd-d)<=0.1*d||(isFinite(dUser)&&Math.abs(gd-dUser)<=0.03*dUser));
+  fb.push([okD,2,`Días: t = ${C} · 0,5 / ${nf(Ir/1000,4)} / 24 = ${nf(d,1)} días.`,okD?'Cálculo correcto.':'Pase la corriente a amperios (mA / 1000) antes de dividir y divida entre 24 para pasar de horas a días.']);
+  // 5 carcasa
+  const sc=surfClass(surfMax()),okS=gs===String(sc);
+  fb.push([okS,1,`Carcasa: ${DIRT[st.dirt].n}, mayor lectura ≈ ${nf(surfMax(),3)} V → ${SURF_TXT[sc].toLowerCase()}.`,'La clasificación se hace con la mayor lectura entre el borne + y la carcasa.']);
+  mark($('evI'),okI,nf(Ir,1)+' mA');mark($('evCul'),okC,ansName);mark($('evFz'),okFz,mf.id);mark($('evU'),okU,nf(Umf,2)+' mV');mark($('evIF'),okIF,isFinite(Icalc)?nf(Icalc,1)+' mA':'U / R');mark($('evD'),okD,nf(d,1)+' días');mark($('evS'),okS,SURF_TXT[sc]);
+  const pts=fb.reduce((s,x)=>s+(x[0]?x[1]:0),0);
+  const P=st.pen,pt=Math.min(5,P.wake+P.intr+P.early+P.mfuse);
+  const score=Math.max(0,pts-pt);
+  st.evalChecked=true;
+  $('scoreBox').innerHTML=`<div class="scorebox"><span class="score">Puntaje: ${nf(score,1)} / 10</span> (respuestas ${pts} / 10 − penalizaciones ${nf(pt,1)})
+    <ul>${fb.map(x=>`<li><span class="${x[0]?'good':'fail'}">${x[0]?'Correcto':'Incorrecto'} (${x[1]} pt${x[1]>1?'s':''}).</span> ${x[2]} ${x[3]}</li>`).join('')}
+    <li>Penalizaciones: reposo reiniciado por puerta, llave o capó ${P.wake} · interrupciones del negativo sin puente ${P.intr} · fusibles retirados antes del reposo ${nf(P.early,1)} · fusible del multímetro fundido ${P.mfuse} (máx. −5). Cada reinicio del reposo obliga a esperar de nuevo 10–60 min y, en el taller, borra memorias.</li></ul>
+    <p style="margin:6px 0 0"><b>Caso:</b> ${F.txt}${st.cs.fault!=='none'?` (≈ ${st.cs.fI} mA)`:''} · batería de ${C} Ah. Pase el cursor sobre una casilla roja para ver el valor esperado.</p></div>`;
+  render();
+}
+function updateResults(){
+  $('evalBox').classList.toggle('hide',!st.evalOn);
+  $('chkReal').disabled=st.evalOn&&!st.evalChecked;
+  if(st.evalOn&&!st.evalChecked){$('results').innerHTML='<p class="muted">Resultados ocultos hasta pulsar «Comprobar».</p>';return;}
+  $('results').innerHTML=resultsTable();
+}
+
+/* ---------- avisos ---------- */
+function updateMsgs(){
+  const w=[],t=st.t,hid=st.evalOn&&!st.evalChecked;
+  if(st.tab==='par'){
+    if(st.key)w.push(['w','Llave en el contacto: el BCM la detecta y la red de módulos no se duerme. Retírela y aléjela del vehículo (llaves de proximidad).']);
+    if(st.door)w.push(['w','Puerta abierta: la luz de cortesía está encendida (≈ 0,35 A) y los módulos no pueden entrar en reposo.']);
+    if(!st.hood&&!st.key&&!st.door)w.push(['w','Interruptor del capó sin enclavar: el BCM y la alarma ven el capó abierto y siguen despiertos. Presiónelo con una pinza.']);
+    if(!st.powered)w.push(['e','Sin continuidad en el negativo: el vehículo está sin alimentación. Coloque el terminal o el puente.']);
+    if(!st.am.f10||!st.am.fmA)w.push(['e',`Fusible del multímetro 1 fundido (${!st.am.f10?'10 A':''}${!st.am.f10&&!st.am.fmA?' y ':''}${!st.am.fmA?'mA':''}). Repóngalo antes de seguir midiendo.`]);
+    if(aCond()&&!st.cableOn&&!st.jumper&&st.am.mode==='mA'&&ammeterA(t)>0.15)w.push(['w','La corriente se acerca al límite de 200 mA de la entrada mA: el fusible interno puede fundirse.']);
+    if(st.am.leads==='neg'&&!aCond()&&!st.cableOn&&!st.jumper)w.push(['e','El amperímetro está apagado o con su fusible abierto entre el borne y el terminal: el circuito está abierto.']);
+    if(st.am.leads==='neg'&&st.cableOn&&!st.jumper)w.push(['i','Amperímetro conectado con el terminal aún en el borne: coloque el puente antes de retirar el terminal.']);
+    if(st.pulled.size)w.push(['i',`Fusibles retirados: ${[...st.pulled].join(', ')}. Vuelva a colocarlos al terminar.`]);
+    if(!st.bplus)w.push(['w','Cable B+ desconectado del alternador: mantenga el terminal aislado. Si el consumo baja al desconectarlo, la fuga está en los diodos del alternador.']);
+    if(st.clamp.pos!=='none'&&st.clamp.zero===0)w.push(['w','La pinza no se ha puesto a cero: su lectura incluye un desvío. Retírela del cable, pulse ZERO y vuelva a colocarla.']);
+    if(st.ext)w.push(['i','Extractor activo: haga clic en un fusible para retirarlo o colocarlo. Retire fusibles solo con los módulos dormidos; el método de mV es preferible porque no abre circuitos.']);
+    if(!hid&&st.powered){
+      const n=awakeCount(t);
+      if(n>0||st.door||st.key)w.push(['i',`Módulos todavía despiertos: ${n} de ${sleepers().length}. Espere a que la corriente se estabilice antes de concluir.`]);
+      else{const It=totalI(t);w.push([It>LIMIT?'w':'i',`Todos los módulos en reposo: consumo actual ${nf(It,1)} mA ${It>LIMIT?`> ${LIMIT} mA (orientativo): localice el circuito responsable.`:`(≤ ${LIMIT} mA; valor orientativo, consulte el manual del fabricante).`}`]);}
+    }
+  }else{
+    const v=surfV(SPTS[st.surfPt].x,st.dirt),c=surfClass(v);
+    if(!hid)w.push([c?'w':'i',c===2?`Lectura de ${nf(v,2)} V > 0,5 V (orientativo): descarga superficial importante. Limpie con agua y bicarbonato, enjuague, seque, proteja los bornes y averigüe por qué hay electrolito (derrame o sobrecarga).`:c===1?`Lectura de ${nf(v,3)} V entre 0,1 y 0,5 V (orientativo): película conductora de suciedad húmeda. Limpie la carcasa con bicarbonato y vuelva a medir.`:`Lectura de ${nf(v*1000,1)} mV: sin descarga superficial apreciable en este punto.`]);
+    else w.push(['i','Mida en todos los puntos P1…P5 y clasifique la carcasa según la mayor lectura.']);
+  }
+  const all=[...st.events.map(e=>[e.cls,e.txt]),...w];
+  $('msgs').innerHTML=all.length?all.map(([c,t])=>`<div class="${c}">${t}</div>`).join(''):'<div class="i">Sin avisos.</div>';
+}
+
+/* ---------- registro ---------- */
+function obs(){const o=[];if(st.pulled.size)o.push('retirados: '+[...st.pulled].join(' '));if(!st.bplus)o.push('B+ desconectado');if(st.door)o.push('puerta abierta');if(st.key)o.push('llave puesta');if(st.jumper)o.push('puente colocado');if(st.cableOn&&st.am.leads==='neg')o.push('terminal en el borne');return o.join(', ');}
+function addLog(e){st.log.push({n:st.log.length+1,t:fmtT(st.t),...e});drawLog();}
+function logA(){const m=updateMeters().a;if(!m.v||m.v==='- - -')return;addLog({inst:st.am.mode==='A10'?'Multímetro 1 (A, 10 A)':'Multímetro 1 (mA)',p:aLeadsName(),l:m.v+' '+m.u,eq:m.mA!=null?nf(m.mA,1):'',o:obs()});}
+function logV(){const m=updateMeters().v;if(!m.v||m.v==='- - -')return;addLog({inst:'Multímetro 2 ('+st.vm.mode+')',p:vLeadsName(),l:m.v+' '+m.u,eq:m.mA!=null?nf(m.mA,1):'',o:st.tab==='surf'?'descarga superficial':obs()});}
+function logC(){const c=updateClamp();addLog({inst:'Pinza de baja corriente',p:{none:'retirada',neg:'cable negativo',bplus:'cable B+ alternador'}[st.clamp.pos],l:c.v,eq:nf(c.mA,0),o:obs()+(st.clamp.zero===0?' (sin ZERO)':'')});}
+function drawLog(){
+  $('logTbl').innerHTML=st.log.length?`<table><tr><th>N.º</th><th>t</th><th>Instrumento</th><th>Punto</th><th>Lectura</th><th>≈ mA</th></tr>${st.log.map(r=>`<tr><td>${r.n}</td><td>${r.t}</td><td style="text-align:left">${r.inst}</td><td style="text-align:left">${r.p}${r.o?`<br><span class="muted">${r.o}</span>`:''}</td><td>${r.l}</td><td>${r.eq}</td></tr>`).join('')}</table>`:'<p class="muted">Aún no hay lecturas registradas.</p>';
+}
+function csv(){
+  const lines=['N;Tiempo (min:s);Instrumento;Punto de medida;Lectura;Equivalente (mA);Observaciones',...st.log.map(r=>[r.n,r.t,r.inst,r.p,r.l,r.eq,r.o].map(x=>String(x).replace(/;/g,',')).join(';'))];
+  const blob=new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='registro_fugas_de_corriente.csv';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+
+/* ---------- eventos de interfaz ---------- */
+svg.addEventListener('click',ev=>{
+  const g=ev.target.closest('[data-act]');if(!g)return;
+  const a=g.dataset.act;
+  if(a==='door')toggleDoor();
+  else if(a==='key')toggleKey();
+  else if(a==='hood')toggleHood();
+  else if(a==='term')toggleTerm();
+  else if(a==='jumper')toggleJumper();
+  else if(a==='bplus')toggleBplus();
+  else if(a==='spt'){st.surfPt=+g.dataset.i;render();}
+  else if(a==='fuse'){
+    const id=g.dataset.id;
+    if(st.ext){toggleFuse(id);return;}
+    st.vm.leads='fuse:'+id;if(st.vm.mode==='OFF')st.vm.mode='mV';render();
+  }
+});
+document.querySelectorAll('#aModes button').forEach(b=>b.addEventListener('click',()=>setAMode(b.dataset.m)));
+document.querySelectorAll('#aLeads button').forEach(b=>b.addEventListener('click',()=>setALeads(b.dataset.l)));
+document.querySelectorAll('#vModes button').forEach(b=>b.addEventListener('click',()=>{st.vm.mode=b.dataset.m;render();}));
+document.querySelectorAll('#vLeads button').forEach(b=>b.addEventListener('click',()=>{st.vm.leads=b.dataset.l==='none'?null:b.dataset.l;render();}));
+document.querySelectorAll('#clampBar button').forEach(b=>b.addEventListener('click',()=>{
+  if(b.dataset.z){const a=clampActual(st.t);st.clamp.zero=a+st.cs.drift;if(Math.abs(a)>0.5)event('w','Puso a cero la pinza con el cable dentro de la mordaza: la corriente real quedó descontada y la lectura será falsa. Retírela, pulse ZERO y vuelva a colocarla.');else event('i','Pinza puesta a cero fuera del cable.');}
+  else st.clamp.pos=b.dataset.c;
+  render();}));
+document.querySelectorAll('[data-sp]').forEach(b=>b.addEventListener('click',()=>{st.speed=+b.dataset.sp;st.paused=false;render();}));
+document.querySelectorAll('#tabs button').forEach(b=>b.addEventListener('click',()=>{st.tab=b.dataset.t;document.querySelectorAll('#tabs button').forEach(x=>x.classList.toggle('on',x===b));render();}));
+$('btnPause').onclick=()=>{st.paused=!st.paused;render();};
+$('btnJump').onclick=()=>jump(300);
+$('btnKey').onclick=toggleKey;$('btnHood').onclick=toggleHood;$('btnDoor').onclick=toggleDoor;
+$('btnScene').onclick=()=>{resetScene();st.events=[];event('i','Escena reiniciada: vehículo recién cerrado, llave puesta, puerta abierta, terminal sobre el borne.');render();};
+$('btnJumper').onclick=toggleJumper;$('btnTerm').onclick=toggleTerm;
+$('btnAmpNeg').onclick=()=>{if(st.am.leads!=='neg')setALeads('neg');};
+$('btnExt').onclick=()=>{st.ext=!st.ext;render();};
+$('btnAllIn').onclick=allFusesIn;$('btnBplus').onclick=toggleBplus;
+$('btnAFuse').onclick=()=>act(()=>{st.am.f10=true;st.am.fmA=true;st.am.mode='A10';st.events=st.events.filter(e=>!/fundid/.test(e.txt));event('i','Fusibles del multímetro 1 repuestos. El selector queda en 10 A por seguridad.');});
+$('btnLogA').onclick=logA;$('btnLogV').onclick=logV;$('btnLogC').onclick=logC;
+$('btnCsv').onclick=csv;$('btnClr').onclick=()=>{st.log=[];drawLog();};
+$('btnClean').onclick=()=>{st.dirt=0;$('selDirt').value='0';event('i','Carcasa limpiada con agua y bicarbonato, enjuagada y secada. Mida de nuevo.');render();};
+$('selDirt').onchange=e=>{st.dirt=+e.target.value;render();};
+function setCap(v){if(!isFinite(v))return;st.cap=Math.min(100,Math.max(35,v));$('capR').value=st.cap;render();}
+$('capR').oninput=e=>{$('capN').value=e.target.value;setCap(parseNum(e.target.value));};
+$('capN').oninput=e=>{setCap(parseNum(e.target.value));};
+$('chkReal').onchange=e=>{st.showReal=e.target.checked;render();};
+$('selFault').innerHTML=Object.entries(FAULTS).map(([k,f])=>`<option value="${k}">${f.txt}</option>`).join('');
+$('selFault').onchange=e=>{setFault(e.target.value);event('i','Avería cambiada. Para un diagnóstico limpio, reinicie la escena y repita el procedimiento.');render();};
+$('evalMode').onchange=e=>{
+  st.evalOn=e.target.checked;
+  if(st.evalOn)startEval();
+  else{st.evalChecked=false;st.dirtK=1;st.cap=parseNum($('capN').value)||60;$('selFault').value=st.cs.fault;$('selDirt').value=String(st.dirt);st.events=[];render();}
+};
+$('tblConv').innerHTML='<tr><th>Fusible mini</th><th>R en frío (mΩ)</th><th>1 mV equivale a</th><th>0,1 mV equivale a</th></tr>'+
+  Object.keys(RF).map(Number).sort((a,b)=>a-b).map(a=>`<tr><td><span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:${FCOL[a][0]};border:1px solid #555;vertical-align:-1px"></span> ${fmtAmp(a)}</td><td>${nf(RF[a],1)}</td><td>${nf(1000/RF[a],0)} mA</td><td>${nf(100/RF[a],1)} mA</td></tr>`).join('');
+
+function render(){
+  if(st.tab==='par'){drawPar();drawTrend();}else drawSurf();
+  updateMeters();updateClamp();updateControls();updateResults();updateMsgs();
+}
+newCase('none');resetScene();$('selFault').value='none';
+event('i','Vehículo recién utilizado: llave puesta y puerta abierta. Siga el paso 1 del procedimiento.');
+render();drawLog();
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>

@@ -1,0 +1,666 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Simulador Ley de Ohm</title>
+<style>
+:root{--bg:#f3f5f8;--card:#fff;--ink:#1c2533;--muted:#5b6778;--line:#d9dfe7;--brand:#12355b;--brand2:#1f5a94;--accent:#e07b00;--ok:#1d8a4e;--okbg:#e6f4ec;--bad:#c62828;--badbg:#fdecea;--warnbg:#fff4e0;--wire:#2b3440;--flow:#ffb300}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.45}
+header{background:linear-gradient(90deg,var(--brand),var(--brand2));color:#fff;padding:14px 22px}
+header h1{margin:0;font-size:1.35rem;font-weight:600}
+header p{margin:3px 0 0;opacity:.85;font-size:.9rem}
+main{max-width:1320px;margin:0 auto;padding:16px;display:grid;grid-template-columns:minmax(0,1.75fr) minmax(320px,1fr);gap:16px}
+@media(max-width:980px){main{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:16px}
+.card h2{font-size:1.02rem;margin:0 0 10px;color:var(--brand)}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.tabs button,.btn{border:1px solid var(--line);background:#fff;color:var(--ink);padding:7px 13px;border-radius:7px;cursor:pointer;font-size:.9rem}
+.tabs button.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+.btn:hover,.tabs button:hover{border-color:var(--brand2)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.small{padding:4px 9px;font-size:.82rem}
+svg#circ{width:100%;height:auto;background:#fbfcfe;border:1px solid var(--line);border-radius:8px;user-select:none}
+.wire{stroke:var(--wire);stroke-width:3;stroke-linecap:round;fill:none}
+.wire.sc{stroke:var(--bad);stroke-dasharray:8 5}
+.hit{stroke:transparent;stroke-width:20;cursor:pointer}
+.el.sel .wire{stroke:var(--accent)}
+.flow{fill:none;stroke:var(--flow);stroke-width:4;stroke-dasharray:3 15;stroke-linecap:round;pointer-events:none}
+.sym{stroke:var(--wire);stroke-width:2.4;fill:#fff}
+.lbl{font-size:13px;fill:var(--ink);font-weight:600}
+.lbl2{font-size:12px;fill:var(--muted)}
+.node circle{fill:#fff;stroke:var(--brand);stroke-width:2.5;cursor:pointer}
+.node:hover circle{fill:#dbe9f7}
+.node text{font-size:13px;font-weight:700;fill:var(--brand);pointer-events:none}
+.clk{cursor:pointer}
+.ctl{margin-bottom:10px}
+.ctl label{display:block;font-size:.86rem;color:var(--muted);margin-bottom:3px}
+.ctl .row{display:flex;gap:8px;align-items:center}
+.ctl input[type=range]{flex:1}
+.ctl input[type=number]{width:90px;padding:4px 6px;border:1px solid var(--line);border-radius:6px}
+.ctl select{padding:5px 6px;border:1px solid var(--line);border-radius:6px;min-width:130px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:4px 18px}
+@media(max-width:620px){.grid2{grid-template-columns:1fr}}
+.eq{background:#f7f9fc;border-left:4px solid var(--brand2);padding:10px 14px;border-radius:6px;font-size:.92rem}
+.eq p{margin:5px 0}
+.f{font-family:"Cambria Math","Times New Roman",serif;font-size:1.05rem}
+/* multímetro */
+.meter{background:#39414d;border-radius:14px;padding:14px;color:#fff;box-shadow:inset 0 0 0 3px #e0a100}
+.lcd{background:#b9c9a4;color:#1d2616;border-radius:6px;padding:10px 12px;font-family:"Consolas","Courier New",monospace;display:flex;justify-content:space-between;align-items:flex-end;min-height:66px;box-shadow:inset 0 2px 6px rgba(0,0,0,.35)}
+.lcd .val{font-size:2.2rem;font-weight:700;letter-spacing:1px}
+.lcd .unit{font-size:1.2rem;font-weight:700}
+.lcd .fn{font-size:.8rem;align-self:flex-start}
+.modes{display:flex;gap:6px;margin:12px 0 8px}
+.modes button{flex:1;padding:9px 0;border-radius:8px;border:0;background:#555f6d;color:#fff;font-weight:700;cursor:pointer;font-size:.95rem}
+.modes button.on{background:#e0a100;color:#1c1c1c}
+.probes{display:flex;gap:6px;align-items:center;font-size:.85rem;flex-wrap:wrap}
+.probes button{border:0;border-radius:6px;padding:5px 10px;cursor:pointer;font-weight:600}
+.pr{background:#e53935;color:#fff;opacity:.55}.pb{background:#111;color:#fff;opacity:.55;border:1px solid #888!important}
+.probes button.on{opacity:1;outline:2px solid #fff}
+.mnote{font-size:.83rem;color:#e7ecf2;margin-top:8px;min-height:2.4em}
+.mstat{font-size:.8rem;color:#c6cfda;margin-top:4px}
+table{border-collapse:collapse;width:100%;font-size:.88rem}
+th,td{border-bottom:1px solid var(--line);padding:5px 6px;text-align:right}
+th:first-child,td:first-child{text-align:left}
+th{background:#eef2f7;color:var(--brand);font-weight:600}
+tr.tot td{font-weight:700;background:#f7f9fc}
+td input{width:62px;padding:3px 5px;border:1px solid var(--line);border-radius:5px;text-align:right}
+td input.ok{background:var(--okbg);border-color:var(--ok)}
+td input.bad{background:var(--badbg);border-color:var(--bad)}
+.msgs div{padding:7px 10px;border-radius:6px;margin-bottom:6px;font-size:.87rem}
+.msgs .w{background:var(--warnbg);border-left:4px solid var(--accent)}
+.msgs .e{background:var(--badbg);border-left:4px solid var(--bad)}
+.msgs .i{background:#e8f1fb;border-left:4px solid var(--brand2)}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.switch{display:flex;align-items:center;gap:8px;font-size:.9rem;margin:6px 0}
+details summary{cursor:pointer;font-weight:600;color:var(--brand)}
+details ol{padding-left:20px;margin:8px 0}
+.score{font-weight:700;margin-left:6px}
+.muted{color:var(--muted);font-size:.85rem}
+footer{text-align:center;color:var(--muted);font-size:.8rem;padding:10px 0 24px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Simulador 1 · Ley de Ohm, leyes de Kirchhoff y potencia eléctrica</h1>
+  <p>Electricidad Automotriz · Práctica 1: Principios básicos eléctricos · Tecnología Superior en Mecánica Automotriz · ISTS</p>
+</header>
+
+<main>
+<section>
+  <div class="card">
+    <div class="tabs" id="tabs"></div>
+    <svg id="circ" viewBox="0 0 760 440" aria-label="Esquema del circuito"></svg>
+    <div class="muted" style="margin-top:6px">Los puntos amarillos en movimiento representan el sentido convencional de la corriente (de + a −); su velocidad aumenta con la intensidad. Haga clic en el interruptor <b>S</b> para abrirlo o cerrarlo.</div>
+  </div>
+
+  <div class="card">
+    <h2>Parámetros del circuito</h2>
+    <div class="grid2" id="controls"></div>
+    <div class="bar">
+      <button class="btn" id="btnRand">Valores aleatorios</button>
+      <button class="btn" id="btnReset">Restablecer circuito</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Ecuaciones de trabajo</h2>
+    <div class="eq" id="eqs"></div>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>¿Cómo usar el simulador?</summary>
+      <ol>
+        <li>Elija el tipo de circuito en las pestañas: serie, paralelo, mixto o un circuito automotriz de alumbrado.</li>
+        <li>Ajuste la tensión de la fuente y el valor de cada receptor. El circuito se recalcula al instante.</li>
+        <li><b>Voltímetro (V⎓):</b> elija la punta (roja o negra) y haga clic en un nodo (A, B, C…) para colocarla. Si hace clic sobre un componente, las dos puntas se colocan en sus extremos y se mide la caída de tensión en él.</li>
+        <li><b>Amperímetro (A⎓):</b> haga clic sobre un componente o un cable para abrir el circuito en ese punto e intercalar el instrumento <b>en serie</b>. Si coloca las puntas en paralelo sobre dos nodos con tensión, se funde el fusible interno del multímetro, igual que en el taller.</li>
+        <li><b>Óhmetro (Ω):</b> solo mide con el circuito <b>desenergizado</b> (abra S). Observe que, en paralelo, medir un componente sin desconectarlo da la resistencia equivalente del conjunto.</li>
+        <li><b>Modo evaluación:</b> oculta los resultados y bloquea el multímetro. El estudiante calcula los valores, los escribe en la tabla y pulsa «Comprobar». Después puede verificar con el multímetro y comparar el valor calculado con el medido.</li>
+        <li>Use «Registrar lectura» para llenar la tabla de mediciones y descárguela en formato CSV (se abre con Excel).</li>
+      </ol>
+    </details>
+  </div>
+</section>
+
+<aside>
+  <div class="card">
+    <h2>Multímetro digital</h2>
+    <div class="meter">
+      <div class="lcd"><span class="fn" id="lcdFn">V⎓</span><span><span class="val" id="lcdVal">- - -</span> <span class="unit" id="lcdUnit">V</span></span></div>
+      <div class="modes" id="modes">
+        <button data-m="V" class="on">V⎓</button><button data-m="A">A⎓</button><button data-m="R">Ω</button><button data-m="OFF">OFF</button>
+      </div>
+      <div class="probes">Colocar punta:
+        <button class="pr on" id="pRed">● Roja (V/Ω/A)</button>
+        <button class="pb" id="pBlk">● Negra (COM)</button>
+      </div>
+      <div class="mstat" id="mstat"></div>
+      <div class="mnote" id="mnote"></div>
+      <div class="bar">
+        <button class="btn small" id="btnLog">Registrar lectura</button>
+        <button class="btn small" id="btnFuse" style="display:none">Reponer fusible del multímetro</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Avisos</h2>
+    <div class="msgs" id="msgs"></div>
+  </div>
+
+  <div class="card">
+    <h2>Resultados del circuito</h2>
+    <label class="switch"><input type="checkbox" id="evalMode"> Modo evaluación (el estudiante calcula)</label>
+    <div id="results"></div>
+    <div class="bar" id="evalBar" style="display:none">
+      <button class="btn primary" id="btnCheck">Comprobar</button>
+      <span id="score" class="score"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Registro de mediciones</h2>
+    <div id="logTbl"></div>
+    <div class="bar">
+      <button class="btn small" id="btnCsv">Descargar CSV</button>
+      <button class="btn small" id="btnClr">Limpiar registro</button>
+    </div>
+  </div>
+</aside>
+</main>
+<footer>Simulador didáctico · Carrera de Mecánica Automotriz · Instituto Superior Tecnológico Sudamericano · Resolución por análisis nodal modificado (MNA)</footer>
+
+<script>
+"use strict";
+const WIRE_R = 1e-3;   // resistencia de cada tramo de cable (Ω)
+const GMIN = 1e-9;     // conductancia mínima para nodos flotantes
+const E12 = [10,12,15,18,22,27,33,39,47,56,68,82];
+
+const BASE = {
+  serie:{name:'Serie',pnom:5,vmin:0,vmax:24,tol:0.02,
+    nodes:{A:[90,90],B:[250,90],C:[440,90],D:[630,90],E:[630,360],G:[90,360]},
+    battery:{V:12,r:0},
+    elements:[
+      {id:'S',type:'S',n1:'A',n2:'B',closed:true},
+      {id:'R1',type:'R',n1:'B',n2:'C',R:100,show:true},
+      {id:'R2',type:'R',n1:'C',n2:'D',R:220,show:true},
+      {id:'R3',type:'R',n1:'D',n2:'E',R:330,show:true},
+      {id:'w1',type:'W',n1:'E',n2:'G'}],
+    eq:`<p class="f">R<sub>eq</sub> = R<sub>1</sub> + R<sub>2</sub> + R<sub>3</sub></p>
+        <p class="f">I = U / R<sub>eq</sub> &nbsp;(la misma corriente en todos los receptores)</p>
+        <p class="f">U<sub>n</sub> = I · R<sub>n</sub> &nbsp;&nbsp;·&nbsp;&nbsp; U = U<sub>1</sub> + U<sub>2</sub> + U<sub>3</sub> &nbsp;(2.ª ley de Kirchhoff)</p>
+        <p class="f">P<sub>n</sub> = U<sub>n</sub> · I = I² · R<sub>n</sub> &nbsp;&nbsp;·&nbsp;&nbsp; P<sub>t</sub> = U · I = P<sub>1</sub> + P<sub>2</sub> + P<sub>3</sub></p>
+        <p class="muted">Si un receptor se abre, toda la corriente se interrumpe. La mayor caída de tensión aparece en la mayor resistencia.</p>`},
+  paralelo:{name:'Paralelo',pnom:5,vmin:0,vmax:24,tol:0.02,
+    nodes:{A:[90,90],B:[240,90],C:[430,90],D:[620,90],E:[620,360],F:[430,360],H:[240,360],G:[90,360]},
+    battery:{V:12,r:0},
+    elements:[
+      {id:'S',type:'S',n1:'A',n2:'B',closed:true},
+      {id:'w1',type:'W',n1:'B',n2:'C'},
+      {id:'w2',type:'W',n1:'C',n2:'D'},
+      {id:'R1',type:'R',n1:'B',n2:'H',R:100,show:true},
+      {id:'R2',type:'R',n1:'C',n2:'F',R:220,show:true},
+      {id:'R3',type:'R',n1:'D',n2:'E',R:330,show:true},
+      {id:'w3',type:'W',n1:'E',n2:'F'},
+      {id:'w4',type:'W',n1:'F',n2:'H'},
+      {id:'w5',type:'W',n1:'H',n2:'G'}],
+    eq:`<p class="f">1 / R<sub>eq</sub> = 1 / R<sub>1</sub> + 1 / R<sub>2</sub> + 1 / R<sub>3</sub></p>
+        <p class="f">U<sub>1</sub> = U<sub>2</sub> = U<sub>3</sub> = U &nbsp;(la misma tensión en todas las ramas)</p>
+        <p class="f">I<sub>n</sub> = U / R<sub>n</sub> &nbsp;&nbsp;·&nbsp;&nbsp; I<sub>t</sub> = I<sub>1</sub> + I<sub>2</sub> + I<sub>3</sub> &nbsp;(1.ª ley de Kirchhoff)</p>
+        <p class="f">P<sub>n</sub> = U² / R<sub>n</sub> &nbsp;&nbsp;·&nbsp;&nbsp; P<sub>t</sub> = U · I<sub>t</sub></p>
+        <p class="muted">R<sub>eq</sub> siempre es menor que la menor de las resistencias. Así se conectan casi todos los consumidores del vehículo.</p>`},
+  mixto:{name:'Mixto',pnom:5,vmin:0,vmax:24,tol:0.02,
+    nodes:{A:[90,90],B:[230,90],C:[430,90],D:[620,90],E:[620,360],F:[430,360],G:[90,360]},
+    battery:{V:12,r:0},
+    elements:[
+      {id:'S',type:'S',n1:'A',n2:'B',closed:true},
+      {id:'R1',type:'R',n1:'B',n2:'C',R:100,show:true},
+      {id:'w1',type:'W',n1:'C',n2:'D'},
+      {id:'R2',type:'R',n1:'C',n2:'F',R:220,show:true},
+      {id:'R3',type:'R',n1:'D',n2:'E',R:330,show:true},
+      {id:'w2',type:'W',n1:'E',n2:'F'},
+      {id:'w3',type:'W',n1:'F',n2:'G'}],
+    eq:`<p class="f">R<sub>23</sub> = (R<sub>2</sub> · R<sub>3</sub>) / (R<sub>2</sub> + R<sub>3</sub>) &nbsp;&nbsp;·&nbsp;&nbsp; R<sub>eq</sub> = R<sub>1</sub> + R<sub>23</sub></p>
+        <p class="f">I<sub>t</sub> = U / R<sub>eq</sub> &nbsp;&nbsp;·&nbsp;&nbsp; U<sub>1</sub> = I<sub>t</sub> · R<sub>1</sub></p>
+        <p class="f">U<sub>23</sub> = U − U<sub>1</sub> = I<sub>t</sub> · R<sub>23</sub> &nbsp;&nbsp;·&nbsp;&nbsp; I<sub>2</sub> = U<sub>23</sub> / R<sub>2</sub> &nbsp;&nbsp;·&nbsp;&nbsp; I<sub>3</sub> = U<sub>23</sub> / R<sub>3</sub></p>
+        <p class="f">P<sub>n</sub> = U<sub>n</sub> · I<sub>n</sub></p>
+        <p class="muted">Primero se reduce el grupo en paralelo a una resistencia equivalente y después se resuelve como un circuito serie.</p>`},
+  auto:{name:'Automotriz: faros',vmin:11,vmax:14.8,tol:0.03,
+    nodes:{A:[90,90],B:[210,90],C:[330,90],D:[460,90],E:[610,90],F:[610,360],H:[460,360],K:[285,360],G:[90,360]},
+    battery:{V:12.6,r:0.02},
+    elements:[
+      {id:'F',type:'F',n1:'A',n2:'B',rating:15,blown:false},
+      {id:'S',type:'S',n1:'B',n2:'C',closed:true},
+      {id:'Rc',type:'R',n1:'C',n2:'D',R:0.02,show:true,min:0,max:2,step:0.01,lbl:'Rc · resistencia de contacto del conector (Ω)',name:'Rc (conector)'},
+      {id:'w1',type:'W',n1:'D',n2:'E'},
+      {id:'L1',type:'L',n1:'D',n2:'H',P:55,show:true},
+      {id:'L2',type:'L',n1:'E',n2:'F',P:55,show:true},
+      {id:'w2',type:'W',n1:'F',n2:'H'},
+      {id:'Rm',type:'R',n1:'H',n2:'K',R:0.01,show:true,min:0,max:2,step:0.01,lbl:'Rm · resistencia de la conexión a masa (Ω)',name:'Rm (masa)'},
+      {id:'w3',type:'W',n1:'K',n2:'G'},
+      {id:'X',type:'SC',n1:'D',n2:'K',active:false}],
+    eq:`<p class="f">R<sub>L</sub> = U<sub>nom</sub>² / P<sub>nom</sub> &nbsp;(filamento caliente; U<sub>nom</sub> = 12 V)</p>
+        <p class="f">R<sub>total</sub> = r<sub>i</sub> + R<sub>c</sub> + (R<sub>L1</sub> ∥ R<sub>L2</sub>) + R<sub>m</sub> &nbsp;&nbsp;·&nbsp;&nbsp; I<sub>t</sub> = U<sub>0</sub> / R<sub>total</sub></p>
+        <p class="f">ΔU = I · R &nbsp;&nbsp;·&nbsp;&nbsp; U<sub>lámparas</sub> = U<sub>bat</sub> − ΔU<sub>positivo</sub> − ΔU<sub>masa</sub></p>
+        <p class="f">U<sub>bornes</sub> = U<sub>0</sub> − I<sub>t</sub> · r<sub>i</sub> &nbsp;&nbsp;·&nbsp;&nbsp; P = U · I</p>
+        <p class="muted">Referencia orientativa para el método de caída de tensión: ≤ 0,5 V en todo el lado positivo y ≤ 0,2 V en el lado de masa. Confirme siempre con el manual del fabricante. Un filamento frío mide aproximadamente la décima parte de su resistencia en caliente, por eso el óhmetro marca menos que R<sub>L</sub>. Si un faro se funde, el otro sigue encendido porque están en paralelo.</p>`}
+};
+const ORDER = ['serie','paralelo','mixto','auto'];
+let CIRC = JSON.parse(JSON.stringify(BASE));
+let key = 'serie';
+let SOL = null;
+const st = {mode:'V', place:'red', red:null, black:'G', ampEl:null, meterFuse:true, evalOn:false, evalChecked:false, log:[], events:[], resSig:''};
+const flowOff = {};
+let flows = [];
+const $ = id => document.getElementById(id);
+const svg = $('circ');
+const cur = () => CIRC[key];
+
+/* ---------- formato ---------- */
+function nf(x,d){return x.toLocaleString('es-EC',{minimumFractionDigits:d,maximumFractionDigits:d,useGrouping:false});}
+function dec(x){const a=Math.abs(x);return a<1?3:a<100?2:1;}
+function fmtV(v){return nf(v,dec(v));}
+function fmtA(i){const a=Math.abs(i);return a<1?nf(i*1000,1)+' mA':nf(i,2)+' A';}
+function fmtR(r){if(!isFinite(r))return 'OL';if(r>=1000)return nf(r/1000,3)+' kΩ';return nf(r,r<1?3:r<100?2:1)+' Ω';}
+function fmtP(p){const a=Math.abs(p);return a<1?nf(p*1000,1)+' mW':nf(p,2)+' W';}
+function parseNum(s){if(s==null)return NaN;s=String(s).trim().replace(',', '.');return s===''?NaN:Number(s);}
+
+/* ---------- solucionador (MNA) ---------- */
+function gauss(A,b){
+  const n=b.length;
+  for(let c=0;c<n;c++){
+    let p=c;for(let r=c+1;r<n;r++)if(Math.abs(A[r][c])>Math.abs(A[p][c]))p=r;
+    [A[c],A[p]]=[A[p],A[c]];[b[c],b[p]]=[b[p],b[c]];
+    const d=A[c][c];if(Math.abs(d)<1e-300)continue;
+    for(let r=c+1;r<n;r++){const f=A[r][c]/d;if(f===0)continue;for(let k=c;k<n;k++)A[r][k]-=f*A[c][k];b[r]-=f*b[c];}
+  }
+  const x=new Float64Array(n);
+  for(let r=n-1;r>=0;r--){let s=b[r];for(let k=r+1;k<n;k++)s-=A[r][k]*x[k];x[r]=Math.abs(A[r][r])<1e-300?0:s/A[r][r];}
+  return x;
+}
+function mna(list,src,inj){
+  const names=new Set();
+  list.forEach(x=>{names.add(x.n1);names.add(x.n2);});
+  if(src){names.add(src.np);names.add(src.nn);}
+  if(inj){names.add(inj.a);names.add(inj.b);}
+  names.delete('G');
+  const idx={};let n=0;for(const k of names)idx[k]=n++;
+  const m=n+(src?1:0);
+  const A=Array.from({length:m},()=>new Float64Array(m)),b=new Float64Array(m);
+  for(let i=0;i<n;i++)A[i][i]+=GMIN;
+  for(const x of list){
+    const g=1/x.R,i=idx[x.n1],j=idx[x.n2];
+    if(i!==undefined)A[i][i]+=g;if(j!==undefined)A[j][j]+=g;
+    if(i!==undefined&&j!==undefined){A[i][j]-=g;A[j][i]-=g;}
+  }
+  if(src){const k=n,i=idx[src.np],j=idx[src.nn];
+    if(i!==undefined){A[i][k]+=1;A[k][i]+=1;} if(j!==undefined){A[j][k]-=1;A[k][j]-=1;} b[k]=src.V;}
+  if(inj){const i=idx[inj.a],j=idx[inj.b];if(i!==undefined)b[i]+=inj.I;if(j!==undefined)b[j]-=inj.I;}
+  const x=gauss(A,b);
+  const V={G:0};for(const k in idx)V[k]=x[idx[k]];
+  return {V,Is:src?x[n]:0};
+}
+function resOf(e,ohm){
+  switch(e.type){
+    case 'W':case 'S':return WIRE_R;
+    case 'F':case 'SC':return 0.005;
+    case 'L':{const Rh=144/e.P;return ohm?Rh/10:Rh;}
+    default:return Math.max(e.R,1e-4);
+  }
+}
+function activeList(C,ohm){
+  const L=[];
+  for(const e of C.elements){
+    if(e.type==='S'&&!e.closed)continue;
+    if(e.type==='F'&&e.blown)continue;
+    if(e.type==='SC'&&!e.active)continue;
+    L.push({e,n1:e.n1,n2:e.n2,R:resOf(e,ohm)});
+  }
+  if(!ohm&&C.battery.r>0)L.push({e:null,n1:'_Bi',n2:'A',R:C.battery.r});
+  return L;
+}
+function solveCircuit(C){
+  const list=activeList(C,false);
+  const np=C.battery.r>0?'_Bi':'A';
+  const r=mna(list,{np,nn:'G',V:C.battery.V},null);
+  const I={};for(const x of list)if(x.e)I[x.e.id]=(r.V[x.n1]-r.V[x.n2])/x.R;
+  for(const k in C.nodes)if(r.V[k]===undefined)r.V[k]=0;
+  const It=-r.Is;I.BAT=It;
+  return {V:r.V,I,It};
+}
+function compute(){
+  const C=cur();
+  SOL=solveCircuit(C);
+  const f=C.elements.find(e=>e.type==='F');
+  if(f&&!f.blown&&Math.abs(SOL.I[f.id]||0)>f.rating){
+    const Ib=Math.abs(SOL.I[f.id]);
+    f.blown=true;
+    event('e',`Fusible de ${nf(f.rating,f.rating%1?1:0)} A fundido: la corriente llegó a ${fmtA(Ib)}. Corrija la causa y haga clic sobre el fusible para reponerlo.`);
+    SOL=solveCircuit(C);
+  }
+}
+function ohmMeasure(a,b){
+  const C=cur();
+  if(Math.abs(SOL.It)>1e-6)return {err:'energ'};
+  if(a===b)return {R:0};
+  const L=activeList(C,true);
+  const adj={};L.forEach(x=>{(adj[x.n1]??=[]).push(x.n2);(adj[x.n2]??=[]).push(x.n1);});
+  const comp=s=>{const seen=new Set([s]),stack=[s];while(stack.length){const u=stack.pop();for(const v of adj[u]||[])if(!seen.has(v)){seen.add(v);stack.push(v);}}return seen;};
+  const ca=comp(a),cb=comp(b);
+  if((ca.has('A')&&cb.has('G'))||(ca.has('G')&&cb.has('A')))return {err:'bat'};
+  if(!ca.has(b))return {R:Infinity};
+  const r=mna(L,null,{a,b,I:1});
+  const R=r.V[a]-r.V[b];
+  return {R:R>1e7?Infinity:R};
+}
+
+/* ---------- dibujo ---------- */
+function heat(t){t=Math.sqrt(Math.max(0,t));if(t<=1){return `rgb(255,${Math.round(255-120*t)},${Math.round(255-230*t)})`;}return '#e53935';}
+function symbol(e,P){
+  switch(e.type){
+    case 'R':{const C=cur();const t=C.pnom?P/C.pnom:Math.min(1,P/20);const over=C.pnom&&P>C.pnom;
+      return `<rect x="-26" y="-10" width="52" height="20" rx="2" class="sym" style="fill:${heat(t)};${over?'stroke:#c62828;stroke-width:3.5':''}"/>`;}
+    case 'L':{const g=Math.max(0,Math.min(1,P/e.P));
+      return `<circle r="30" fill="#ffd54f" opacity="${(g*0.45).toFixed(2)}"/><circle r="15" class="sym" style="fill:rgba(255,213,0,${g.toFixed(2)})"/>
+        <line x1="-10.6" y1="-10.6" x2="10.6" y2="10.6" class="sym"/><line x1="-10.6" y1="10.6" x2="10.6" y2="-10.6" class="sym"/>`;}
+    case 'F':return e.blown
+      ?`<g class="clk"><rect x="-18" y="-8" width="36" height="16" rx="3" class="sym" style="stroke:#c62828"/><polyline points="-18,0 -5,0 -1,-5 3,5 6,0" fill="none" stroke="#c62828" stroke-width="2"/><line x1="10" y1="0" x2="18" y2="0" stroke="#c62828" stroke-width="2"/></g>`
+      :`<rect x="-18" y="-8" width="36" height="16" rx="3" class="sym"/><line x1="-18" y1="0" x2="18" y2="0" class="sym"/>`;
+    case 'S':return `<g class="clk"><rect x="-22" y="-22" width="44" height="32" fill="transparent"/><circle cx="-18" cy="0" r="3.5" fill="${'#2b3440'}"/><circle cx="18" cy="0" r="3.5" fill="#2b3440"/>
+      <line x1="-18" y1="0" x2="${e.closed?18:13}" y2="${e.closed?0:-15}" stroke="#2b3440" stroke-width="3" stroke-linecap="round"/></g>`;
+    case 'B':return `<line x1="-6" y1="-9" x2="-6" y2="9" stroke="#2b3440" stroke-width="6"/><line x1="6" y1="-20" x2="6" y2="20" stroke="#2b3440" stroke-width="2.5"/>`;
+    default:return '';
+  }
+}
+function labelOf(e){
+  const C=cur();
+  switch(e.type){
+    case 'R':return [e.name||e.id,fmtR(e.R)];
+    case 'L':return [e.id,nf(e.P,0)+' W · '+fmtR(144/e.P)];
+    case 'F':return ['F',nf(e.rating,e.rating%1?1:0)+' A'+(e.blown?' · FUNDIDO':'')];
+    case 'S':return ['S',e.closed?'cerrado':'abierto'];
+    case 'B':return ['Batería',nf(C.battery.V,1)+' V'+(C.battery.r>0?' · rᵢ '+nf(C.battery.r,3)+' Ω':'')];
+    case 'SC':return ['Cortocircuito',''];
+    default:return null;
+  }
+}
+function speedOf(I){return 14+22*Math.log10(1+Math.abs(I)*1000);}
+function elemSVG(e,p1,p2,I,P){
+  const [x1,y1]=p1,[x2,y2]=p2,dx=x2-x1,dy=y2-y1,L=Math.hypot(dx,dy),ux=dx/L,uy=dy/L;
+  const mx=(x1+x2)/2,my=(y1+y2)/2,ang=Math.atan2(dy,dx)*180/Math.PI;
+  const half={R:26,L:15,F:18,S:18,B:8}[e.type]||0;
+  const sel=(st.mode==='A'&&st.ampEl===e.id)?' sel':'';
+  let g=`<g class="el${sel}" data-id="${e.id}">`;
+  g+=`<line class="hit" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`;
+  if(half){g+=`<line class="wire" x1="${x1}" y1="${y1}" x2="${mx-ux*half}" y2="${my-uy*half}"/><line class="wire" x1="${mx+ux*half}" y1="${my+uy*half}" x2="${x2}" y2="${y2}"/>`;}
+  else g+=`<line class="wire${e.type==='SC'?' sc':''}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`;
+  if(Math.abs(I)>1e-6)g+=`<path class="flow" data-id="${e.id}" data-dir="${I>0?1:-1}" data-speed="${speedOf(I).toFixed(1)}" d="M${x1} ${y1}L${x2} ${y2}"/>`;
+  g+=`<g transform="translate(${mx} ${my}) rotate(${ang})">${symbol(e,P)}</g>`;
+  const lb=labelOf(e);
+  if(lb){
+    const horiz=Math.abs(dx)>=Math.abs(dy);
+    if(e.type==='SC'){g+=`<text class="lbl" x="${mx+10}" y="${my}" fill="#c62828" style="fill:#c62828">Cortocircuito a masa</text>`;}
+    else if(e.type==='B'){g+=`<text class="lbl" x="${mx-72}" y="${my-8}">${lb[0]}</text><text class="lbl2" x="${mx-72}" y="${my+9}">${lb[1].split(' · ')[0]}</text>${C_r()}<text class="lbl" x="${mx+14}" y="${my-26}">+</text>`;}
+    else if(horiz){g+=`<text class="lbl" text-anchor="middle" x="${mx}" y="${my-27}">${lb[0]}</text><text class="lbl2" text-anchor="middle" x="${mx}" y="${my+32}">${lb[1]}</text>`;}
+    else{const ox=e.type==='L'?34:22;g+=`<text class="lbl" x="${mx+ox}" y="${my-4}">${lb[0]}</text><text class="lbl2" x="${mx+ox}" y="${my+13}">${lb[1]}</text>`;}
+  }
+  g+='</g>';
+  return g;
+  function C_r(){const C=cur();return C.battery.r>0?`<text class="lbl2" x="${mx-72}" y="${my+25}">rᵢ ${nf(C.battery.r,3)} Ω</text>`:'';}
+}
+function drawSVG(){
+  const C=cur(),N=C.nodes;let s='';
+  for(const e of C.elements){
+    if(e.type==='SC'&&!e.active)continue;
+    const I=SOL.I[e.id]??0,P=e.show?Math.abs((SOL.V[e.n1]-SOL.V[e.n2])*I):0;
+    s+=elemSVG(e,N[e.n1],N[e.n2],I,P);
+  }
+  s+=elemSVG({id:'BAT',type:'B',n1:'G',n2:'A'},N.G,N.A,SOL.It,0);
+  // amperímetro intercalado
+  if(st.mode==='A'&&st.ampEl){
+    const e=st.ampEl==='BAT'?{n1:'G',n2:'A'}:C.elements.find(x=>x.id===st.ampEl);
+    if(e){const [x1,y1]=N[e.n1],[x2,y2]=N[e.n2];const t=(e.type==='R'||e.type==='L'||e.type==='F'||e.type==='S')?0.22:0.5;const ax=x1+(x2-x1)*t,ay=y1+(y2-y1)*t;
+      s+=`<g><circle cx="${ax}" cy="${ay}" r="14" fill="#fff" stroke="#e07b00" stroke-width="3"/><text x="${ax}" y="${ay+5}" text-anchor="middle" font-weight="700" fill="#e07b00" font-size="15">A</text></g>`;}
+  }
+  // nodos
+  for(const k in N){const [x,y]=N[k];
+    s+=`<g class="node" data-n="${k}"><circle cx="${x}" cy="${y}" r="7"/><text x="${x-18}" y="${y-11}">${k}</text></g>`;}
+  // puntas
+  if(!(st.mode==='A'&&st.ampEl)&&st.mode!=='OFF'){
+    const probe=(n,col,txt,dy)=>{if(!n||!N[n])return '';const [x,y]=N[n];
+      return `<g pointer-events="none"><circle cx="${x}" cy="${y}" r="12" fill="none" stroke="${col}" stroke-width="3.5"/><rect x="${x+8}" y="${y+dy-9}" width="${txt.length*8+8}" height="17" rx="4" fill="${col}"/><text x="${x+12}" y="${y+dy+4}" fill="#fff" font-size="11" font-weight="700">${txt}</text></g>`;};
+    s+=probe(st.black,'#111','COM',st.red===st.black?22:14);
+    s+=probe(st.red,'#e53935',st.mode==='A'?'A':st.mode==='R'?'Ω':'V',-14);
+  }
+  svg.innerHTML=s;
+  flows=[...svg.querySelectorAll('path.flow')].map(p=>({p,id:p.dataset.id,dir:+p.dataset.dir,speed:+p.dataset.speed}));
+}
+let last=performance.now();
+function tick(t){const dt=Math.min(0.05,(t-last)/1000);last=t;
+  for(const f of flows){let o=(flowOff[f.id]||0)-f.speed*dt*f.dir;o%=1800;flowOff[f.id]=o;f.p.style.strokeDashoffset=o;}
+  requestAnimationFrame(tick);}
+requestAnimationFrame(tick);
+
+/* ---------- multímetro ---------- */
+function meter(){
+  const C=cur();
+  if(st.evalOn&&!st.evalChecked)return {v:'LOCK',u:'',note:'Multímetro bloqueado: primero calcule y pulse «Comprobar».'};
+  switch(st.mode){
+    case 'OFF':return {v:'',u:'',note:'Instrumento apagado.'};
+    case 'V':{
+      if(!st.red||!st.black)return {v:'- - -',u:'V',note:'Coloque la punta roja y la negra sobre dos nodos.'};
+      const v=SOL.V[st.red]-SOL.V[st.black];
+      return {v:fmtV(v),u:'V',raw:v,note:v<-0.0005?'Lectura negativa: las puntas están invertidas respecto a la polaridad.':''};}
+    case 'R':{
+      if(!st.red||!st.black)return {v:'- - -',u:'Ω',note:'Coloque las puntas sobre dos nodos con el circuito desenergizado.'};
+      const r=ohmMeasure(st.red,st.black);
+      if(r.err==='energ')return {v:'Err',u:'Ω',note:'¡El circuito está energizado! Abra el interruptor S (o desconecte la batería) antes de medir resistencia. Con tensión presente la lectura es falsa y el instrumento puede dañarse.'};
+      if(r.err==='bat')return {v:'Err',u:'Ω',note:'La batería queda dentro del tramo medido. Desconecte la batería o elija otros puntos.'};
+      if(!isFinite(r.R))return {v:'OL',u:'Ω',note:'Circuito abierto entre las puntas (resistencia infinita).'};
+      let note='';
+      if(key==='paralelo'&&r.R>0.01)note='Recuerde: dentro de un circuito en paralelo se mide la resistencia equivalente del conjunto. Para medir un solo componente, desconecte uno de sus extremos.';
+      if(key==='auto'&&r.R>0.01)note='El filamento frío mide aproximadamente la décima parte de su resistencia en funcionamiento.';
+      const t=fmtR(r.R).split(' ');return {v:t[0],u:t[1],note,raw:r.R};}
+    case 'A':{
+      if(!st.meterFuse)return {v:'FUSE',u:'',note:'Fusible interno del multímetro fundido: el amperímetro se conectó en paralelo con una fuente de tensión. Repóngalo y conéctelo en serie.'};
+      if(!st.ampEl)return {v:'- - -',u:'A',note:'Haga clic sobre un componente o un cable para abrir el circuito ahí e intercalar el amperímetro en serie.'};
+      const I=SOL.I[st.ampEl]??0;
+      if(Math.abs(I)>10)return {v:'OL',u:'A',note:'La corriente supera el rango de 10 A del multímetro: use una pinza amperimétrica.'};
+      const t=fmtA(I).split(' ');return {v:t[0],u:t[1],raw:I,note:Math.abs(I)<1e-6?'No circula corriente por este punto (circuito abierto).':''};}
+  }
+}
+function updateMeter(){
+  const m=meter();
+  $('lcdVal').textContent=m.v;$('lcdUnit').textContent=m.u;
+  $('lcdFn').textContent={V:'V⎓',A:'A⎓',R:'Ω',OFF:''}[st.mode];
+  $('mnote').textContent=m.note||'';
+  document.querySelectorAll('#modes button').forEach(b=>b.classList.toggle('on',b.dataset.m===st.mode));
+  $('pRed').classList.toggle('on',st.place==='red');$('pBlk').classList.toggle('on',st.place==='black');
+  $('btnFuse').style.display=st.meterFuse?'none':'';
+  let s='';
+  if(st.mode==='A'&&st.ampEl)s=`Amperímetro intercalado en: ${elName(st.ampEl)}`;
+  else if(st.mode!=='OFF')s=`Punta roja: ${st.red||'—'} · Punta negra (COM): ${st.black||'—'}`;
+  $('mstat').textContent=s;
+  return m;
+}
+function elName(id){if(id==='BAT')return 'batería';const e=cur().elements.find(x=>x.id===id);if(!e)return id;
+  return {W:`cable ${e.n1}–${e.n2}`,S:'interruptor S',F:'fusible F',SC:'cortocircuito'}[e.type]||(e.name||e.id);}
+
+/* ---------- resultados ---------- */
+function rows(){
+  const C=cur();const out=[];
+  for(const e of C.elements.filter(x=>x.show)){
+    const V=SOL.V[e.n1]-SOL.V[e.n2],I=SOL.I[e.id]??0;
+    out.push({id:e.id,name:e.name||e.id,R:resOf(e,false),V,I,P:V*I});
+  }
+  const Ub=SOL.V.A-SOL.V.G,It=SOL.It;
+  return {out,Req:Math.abs(It)>1e-9?Ub/It:Infinity,It,Pt:Ub*It,Ub};
+}
+function updateResults(){
+  const C=cur(),r=rows();
+  const sig=key+JSON.stringify(C)+st.evalOn;
+  if(st.evalOn&&sig===st.resSig)return;
+  st.resSig=sig;
+  let h='<table><tr><th>Elemento</th><th>R (Ω)</th><th>U (V)</th><th>I (A)</th><th>P (W)</th></tr>';
+  const cell=(k,val,d)=>st.evalOn?`<td><input data-k="${k}" data-v="${val}" inputmode="decimal"></td>`:`<td>${nf(val,d)}</td>`;
+  for(const x of r.out){
+    h+=`<tr><td>${x.name}${key==='auto'&&x.id.startsWith('L')?' (caliente)':''}</td><td>${nf(x.R,x.R<1?3:x.R<100?2:1)}</td>${cell(x.id+'V',Math.abs(x.V),3)}${cell(x.id+'I',Math.abs(x.I),4)}${cell(x.id+'P',Math.abs(x.P),3)}</tr>`;
+  }
+  h+=`<tr class="tot"><td>Total</td>${st.evalOn?`<td><input data-k="Req" data-v="${r.Req}" placeholder="Req"></td>`:`<td>${isFinite(r.Req)?nf(r.Req,r.Req<100?3:1):'∞'}</td>`}${st.evalOn?'<td>'+nf(r.Ub,2)+'</td>':`<td>${nf(r.Ub,3)}</td>`}${cell('It',Math.abs(r.It),4)}${cell('Pt',Math.abs(r.Pt),3)}</tr></table>`;
+  h+=`<p class="muted" style="margin:6px 0 0">U total = tensión en bornes de la fuente${key==='auto'?' (ya descontada la caída en rᵢ)':''}. R<sub>eq</sub> = U / I<sub>t</sub>.</p>`;
+  if(key==='auto'&&!st.evalOn){
+    const dPos=SOL.V.A-SOL.V.D,dNeg=SOL.V.H-SOL.V.G,uL=SOL.V.D-SOL.V.H;
+    h+=`<table style="margin-top:10px"><tr><th>Método de caída de tensión</th><th>Valor</th></tr>
+      <tr><td>Lado positivo (A → D)</td><td>${fmtV(dPos)} V</td></tr>
+      <tr><td>Lado de masa (H → G)</td><td>${fmtV(dNeg)} V</td></tr>
+      <tr><td>Tensión en las lámparas (D → H)</td><td>${fmtV(uL)} V</td></tr>
+      <tr><td>Potencia real de cada lámpara vs. nominal</td><td>${r.out.filter(x=>x.id.startsWith('L')).map(x=>nf(Math.abs(x.P),1)).join(' / ')} W</td></tr></table>`;
+  }
+  $('results').innerHTML=h;
+  $('evalBar').style.display=st.evalOn?'':'none';
+  $('score').textContent='';
+}
+function checkEval(){
+  const tol=cur().tol;let ok=0,n=0;
+  document.querySelectorAll('#results input').forEach(inp=>{
+    const want=Number(inp.dataset.v),got=parseNum(inp.value);n++;
+    const good=isFinite(got)&&(isFinite(want)?Math.abs(got-want)<=Math.max(tol*Math.abs(want),0.002):false);
+    inp.classList.toggle('ok',good);inp.classList.toggle('bad',!good);
+    inp.title=good?'Correcto':'Valor esperado ≈ '+(isFinite(want)?nf(want,4):'∞');
+    if(good)ok++;
+  });
+  $('score').textContent=`${ok} / ${n} correctos (tolerancia ±${Math.round(tol*100)} %). Pase el cursor sobre una casilla roja para ver el valor esperado.`;
+  st.evalChecked=true;updateMeter();
+}
+
+/* ---------- avisos ---------- */
+function event(cls,txt){st.events.unshift({cls,txt});st.events=st.events.slice(0,4);}
+function updateMsgs(){
+  const C=cur(),w=[];
+  if(C.pnom)for(const x of rows().out)if(Math.abs(x.P)>C.pnom)w.push(['e',`${x.name} disipa ${fmtP(Math.abs(x.P))}, más que su potencia nominal (${nf(C.pnom,2)} W): se sobrecalienta y puede quemarse. Aumente su resistencia o use una de mayor potencia.`]);
+  const f=C.elements.find(e=>e.type==='F');
+  if(f&&f.blown)w.push(['e','Fusible fundido: el circuito está abierto. Elimine la causa y haga clic sobre el fusible para reponerlo.']);
+  const s=C.elements.find(e=>e.type==='S');
+  if(s&&!s.closed)w.push(['i','Interruptor S abierto: no circula corriente. Ahora puede usar el óhmetro.']);
+  if(key==='auto'&&Math.abs(SOL.It)>1e-3){
+    const dPos=SOL.V.A-SOL.V.D,dNeg=SOL.V.H-SOL.V.G,uL=SOL.V.D-SOL.V.H;
+    if(dPos>0.5)w.push(['w',`Caída de tensión excesiva en el lado positivo: ${fmtV(dPos)} V (orientativo ≤ 0,5 V). Revise conectores y terminales.`]);
+    if(dNeg>0.2)w.push(['w',`Caída de tensión excesiva en el lado de masa: ${fmtV(dNeg)} V (orientativo ≤ 0,2 V). Revise el punto de masa.`]);
+    if(uL<11.5)w.push(['w',`Las lámparas reciben solo ${fmtV(uL)} V: brillo reducido.`]);
+  }
+  const all=[...st.events.map(e=>[e.cls,e.txt]),...w];
+  $('msgs').innerHTML=all.length?all.map(([c,t])=>`<div class="${c}">${t}</div>`).join(''):'<div class="i">Sin avisos: el circuito funciona dentro de sus valores nominales.</div>';
+}
+
+/* ---------- controles ---------- */
+function ctlRange(k,label,val,min,max,step){
+  return `<div class="ctl"><label>${label}</label><div class="row"><input type="range" data-k="${k}" min="${min}" max="${max}" step="${step}" value="${val}"><input type="number" data-k="${k}" min="${min}" max="${max}" step="${step}" value="${val}"></div></div>`;}
+function ctlSelect(k,label,opts,val){
+  return `<div class="ctl"><label>${label}</label><select data-k="${k}">${opts.map(o=>`<option value="${o[0]}" ${String(o[0])===String(val)?'selected':''}>${o[1]}</option>`).join('')}</select></div>`;}
+function buildControls(){
+  const C=cur();let h='';
+  h+=ctlRange('bat',key==='auto'?'Tensión en vacío de la batería U₀ (V)':'Tensión de la fuente U (V)',C.battery.V,C.vmin,C.vmax,0.1);
+  if(key==='auto')h+=ctlRange('batr','Resistencia interna de la batería rᵢ (Ω)',C.battery.r,0.005,0.1,0.005);
+  for(const e of C.elements){
+    if(e.type==='R')h+=ctlRange('R:'+e.id,e.lbl||`${e.id} (Ω)`,e.R,e.min??1,e.max??1000,e.step??1);
+    if(e.type==='L')h+=ctlSelect('L:'+e.id,`Lámpara ${e.id} · potencia nominal a 12 V`,[21,35,55,60,65,100].map(p=>[p,p+' W']),e.P);
+    if(e.type==='F')h+=ctlSelect('F:'+e.id,'Fusible de protección',[5,7.5,10,15,20].map(a=>[a,nf(a,a%1?1:0)+' A']),e.rating);
+  }
+  if(C.pnom!==undefined)h+=ctlSelect('pnom','Potencia nominal de las resistencias',[0.25,0.5,1,2,5,10].map(p=>[p,nf(p,p<1?2:0)+' W']),C.pnom);
+  const sc=C.elements.find(e=>e.type==='SC');
+  if(sc)h+=`<div class="ctl"><label>Avería simulada</label><label class="switch" style="color:var(--ink)"><input type="checkbox" data-k="SC" ${sc.active?'checked':''}> Cable de alimentación de faros en corto a masa</label></div>`;
+  $('controls').innerHTML=h;
+  $('controls').querySelectorAll('[data-k]').forEach(inp=>inp.addEventListener(inp.type==='checkbox'||inp.tagName==='SELECT'?'change':'input',()=>{
+    const k=inp.dataset.k;let v=inp.type==='checkbox'?inp.checked:parseNum(inp.value);
+    if(inp.type!=='checkbox'&&!isFinite(v))return;
+    setVal(k,v);
+    $('controls').querySelectorAll(`[data-k="${k}"]`).forEach(o=>{if(o!==inp&&o.type!=='checkbox')o.value=v;});
+    changed();
+  }));
+}
+function setVal(k,v){
+  const C=cur();const [t,id]=k.split(':');const e=id&&C.elements.find(x=>x.id===id);
+  if(k==='bat')C.battery.V=v;else if(k==='batr')C.battery.r=v;else if(k==='pnom')C.pnom=v;
+  else if(k==='SC')C.elements.find(x=>x.type==='SC').active=v;
+  else if(t==='R')e.R=v;else if(t==='L')e.P=v;else if(t==='F'){e.rating=v;e.blown=false;}
+}
+function changed(){st.evalChecked=false;render();}
+function randomize(){
+  const C=cur(),pick=a=>a[Math.floor(Math.random()*a.length)];
+  if(key==='auto'){
+    C.battery.V=pick([12.2,12.4,12.6,12.8]);
+    for(const e of C.elements){if(e.type==='L')e.P=pick([55,60,65]);if(e.type==='R')e.R=pick([0.02,0.05,0.1,0.2,0.3,0.5]);}
+  }else{
+    C.battery.V=pick([5,6,9,12,24]);
+    for(const e of C.elements)if(e.type==='R')e.R=pick(E12)*pick([1,10]);
+  }
+  st.events=[];buildControls();changed();
+}
+
+/* ---------- registro ---------- */
+function addLog(){
+  const m=updateMeter();if(!m.v||m.v==='- - -'||m.v==='LOCK')return;
+  const pts=st.mode==='A'?elName(st.ampEl):`${st.red} → ${st.black}`;
+  st.log.push({n:st.log.length+1,c:cur().name,f:{V:'Tensión',A:'Corriente',R:'Resistencia'}[st.mode],p:pts,l:m.v+' '+m.u});
+  drawLog();
+}
+function drawLog(){
+  $('logTbl').innerHTML=st.log.length?`<table><tr><th>N.º</th><th>Circuito</th><th>Magnitud</th><th>Puntos</th><th>Lectura</th></tr>${st.log.map(r=>`<tr><td>${r.n}</td><td>${r.c}</td><td>${r.f}</td><td>${r.p}</td><td>${r.l}</td></tr>`).join('')}</table>`:'<p class="muted">Aún no hay lecturas registradas.</p>';
+}
+function csv(){
+  const lines=['N;Circuito;Magnitud;Puntos;Lectura',...st.log.map(r=>[r.n,r.c,r.f,r.p,r.l].join(';'))];
+  const blob=new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='registro_ley_de_ohm.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+
+/* ---------- eventos ---------- */
+svg.addEventListener('click',ev=>{
+  const C=cur();
+  const nd=ev.target.closest('.node');
+  if(nd){
+    const n=nd.dataset.n;
+    if(st.mode==='A'){
+      st.ampEl=null;
+      if(st.place==='red')st.red=n;else st.black=n;
+      if(st.red&&st.black&&st.meterFuse&&Math.abs(SOL.V[st.red]-SOL.V[st.black])>0.05){
+        st.meterFuse=false;event('e',`¡Cortocircuito! El amperímetro se conectó en paralelo entre ${st.red} y ${st.black} (${fmtV(SOL.V[st.red]-SOL.V[st.black])} V). Su resistencia interna es casi nula y se fundió su fusible interno.`);
+      }
+    }else if(st.mode!=='OFF'){if(st.place==='red')st.red=n;else st.black=n;}
+    render();return;
+  }
+  const el=ev.target.closest('.el');
+  if(!el)return;
+  const id=el.dataset.id,e=C.elements.find(x=>x.id===id);
+  if(e&&e.type==='S'){e.closed=!e.closed;changed();return;}
+  if(e&&e.type==='F'&&e.blown){e.blown=false;st.events=st.events.filter(x=>!x.txt.startsWith('Fusible'));changed();return;}
+  if(st.mode==='A'){st.ampEl=id;render();return;}
+  if(st.mode==='V'||st.mode==='R'){
+    if(id==='BAT'){st.red='A';st.black='G';}else{st.red=e.n1;st.black=e.n2;}
+    render();
+  }
+});
+document.querySelectorAll('#modes button').forEach(b=>b.addEventListener('click',()=>{st.mode=b.dataset.m;st.ampEl=null;render();}));
+$('pRed').onclick=()=>{st.place='red';updateMeter();};
+$('pBlk').onclick=()=>{st.place='black';updateMeter();};
+$('btnFuse').onclick=()=>{st.meterFuse=true;st.red=null;st.black='G';st.events=st.events.filter(x=>!x.txt.startsWith('¡Cortocircuito'));render();};
+$('btnLog').onclick=addLog;
+$('btnCsv').onclick=csv;
+$('btnClr').onclick=()=>{st.log=[];drawLog();};
+$('btnRand').onclick=randomize;
+$('btnReset').onclick=()=>{CIRC[key]=JSON.parse(JSON.stringify(BASE[key]));st.events=[];buildControls();changed();};
+$('evalMode').onchange=e=>{st.evalOn=e.target.checked;st.evalChecked=false;st.resSig='';render();};
+$('btnCheck').onclick=checkEval;
+
+function buildTabs(){
+  $('tabs').innerHTML=ORDER.map(k=>`<button data-k="${k}" class="${k===key?'on':''}">${BASE[k].name}</button>`).join('');
+  $('tabs').querySelectorAll('button').forEach(b=>b.onclick=()=>{key=b.dataset.k;st.red=null;st.black='G';st.ampEl=null;st.events=[];st.evalChecked=false;st.resSig='';buildTabs();buildControls();render();});
+  $('eqs').innerHTML=BASE[key].eq;
+}
+function render(){compute();drawSVG();updateMeter();updateResults();updateMsgs();}
+buildTabs();buildControls();render();drawLog();
+</script>
+</body>
+</html>

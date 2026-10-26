@@ -1,0 +1,606 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Orden de Encendido</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* Layout: banco de instrumentos — panel de mandos a la izquierda, dos diagramas como lectura principal, cilindro y datos debajo */
+:root{
+  --bg:#eef1f4; --surface:#ffffff; --sunk:#e3e8ee; --fg:#17202b; --muted:#5b6778; --line:#cfd6df; --grid:#e6eaef;
+  --hot:#d9480f; --cold:#1864ab; --adi:#6b7686;
+  --accent:#087f5b;
+  --f-display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e1217; --surface:#151b23; --sunk:#1c242e; --fg:#e3e8ee; --muted:#95a1b0; --line:#29323d; --grid:#1f2731;
+    --hot:#ff7b45; --cold:#4dabf7; --adi:#8d99a8; --accent:#38d9a9; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e1217; --surface:#151b23; --sunk:#1c242e; --fg:#e3e8ee; --muted:#95a1b0; --line:#29323d; --grid:#1f2731;
+  --hot:#ff7b45; --cold:#4dabf7; --adi:#8d99a8; --accent:#38d9a9; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.5;margin:0}
+.page{max-width:1440px;margin:0 auto;padding-inline:clamp(16px,3vw,32px);padding-block:24px 40px}
+.top{display:grid;gap:10px;padding-bottom:18px;border-bottom:1px solid var(--line);margin-bottom:20px}
+.eyebrow{font-family:var(--f-mono);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(36px,5.2vw,56px);line-height:1;margin:0;letter-spacing:-.005em;text-wrap:balance}
+h1 .acc{color:var(--accent)}
+.lede{max-width:72ch;margin:0;color:var(--muted)}
+.chips{list-style:none;display:flex;flex-wrap:wrap;gap:6px;padding:0;margin:4px 0 0}
+.chips li{font-size:13px;padding:4px 11px;border:1px solid var(--line);border-radius:999px;background:var(--surface);display:flex;gap:7px;align-items:center;cursor:pointer;transition:border-color .15s}
+.chips li b{font-family:var(--f-mono);font-weight:500;font-size:12px}
+.chips li.on{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.dot{width:9px;height:9px;border-radius:50%;flex:none}
+.layout{display:grid;grid-template-columns:310px minmax(0,1fr);gap:22px;align-items:start}
+.panel{position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px);display:grid;gap:16px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;max-height:calc(100vh - 24px);overflow:auto}
+@media (max-width:980px){.layout{grid-template-columns:minmax(0,1fr)}.panel{position:static;max-height:none}}
+.panel h2,.sec-h{font-family:var(--f-display);font-size:14.5px;font-weight:600;text-transform:uppercase;letter-spacing:.09em;margin:0 0 4px;color:var(--muted)}
+.prm{display:grid;gap:3px;padding-block:5px}
+.prm-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.prm label{font-size:14px;font-weight:500}
+.sym{font-family:var(--f-mono);font-size:12px;color:var(--accent);white-space:nowrap}
+.prm-in{display:grid;grid-template-columns:minmax(0,1fr) 84px 58px;gap:8px;align-items:center}
+.prm-in.sel{grid-template-columns:minmax(0,1fr)}
+input[type=range]{width:100%;accent-color:var(--accent);margin:0}
+input[type=number],select{width:100%;font-family:var(--f-mono);font-size:13px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--fg)}
+input:focus-visible,select:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.unit{font-family:var(--f-mono);font-size:11px;color:var(--muted);line-height:1.2}
+.hint{font-size:12.5px;color:var(--muted);min-height:1.1em}
+.hint b{color:var(--fg);font-weight:600;font-family:var(--f-mono);font-size:12px}
+details.adv summary{cursor:pointer;font-family:var(--f-display);font-size:14.5px;font-weight:600;text-transform:uppercase;letter-spacing:.09em;color:var(--muted)}
+.btns{display:flex;flex-wrap:wrap;gap:8px}
+button{font-family:var(--f-body);font-size:14px;font-weight:600;padding:7px 12px;border-radius:7px;border:1px solid var(--line);background:var(--sunk);color:var(--fg);cursor:pointer}
+button:hover{border-color:var(--accent)}
+button.pri{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.msgs{display:grid;gap:8px}
+.msg{font-size:13px;padding:8px 10px;border-radius:7px;border:1px solid var(--line);border-left:4px solid var(--adi);background:var(--bg)}
+.msg.err{border-left-color:var(--hot)}
+.msg.warn{border-left-color:#e8a317}
+.work{display:grid;gap:18px;min-width:0}
+.plots{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media (max-width:760px){.plots{grid-template-columns:minmax(0,1fr)}}
+.plot{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 10px 8px;min-width:0;position:relative}
+.plot figcaption{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:0 4px 6px}
+.plot figcaption span{font-family:var(--f-display);font-weight:700;font-size:20px}
+.plot figcaption small{font-size:12.5px;color:var(--muted)}
+.plot figcaption label{font-size:12.5px;color:var(--muted);display:flex;gap:5px;align-items:center;cursor:pointer}
+.plot canvas{width:100%;aspect-ratio:4/3.3;display:block;touch-action:pan-y;cursor:crosshair}
+body.invalid .plots,body.invalid .anim,body.invalid .kpis,body.invalid .tables{opacity:.35;filter:grayscale(.6)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:var(--muted);padding-inline:4px}
+.legend span{display:flex;align-items:center;gap:7px}
+.legend i{display:inline-block;width:22px;height:3px;border-radius:2px}
+.legend i.area{height:11px;opacity:.35;background:var(--accent)}
+.legend i.ref{height:0;border-top:2px dashed var(--muted)}
+.anim{display:grid;grid-template-columns:260px minmax(0,1fr);gap:18px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px}
+@media (max-width:640px){.anim{grid-template-columns:minmax(0,1fr)}}
+.anim canvas{width:100%;height:400px;display:block;background:var(--bg);border-radius:8px}
+.anim-info{display:grid;gap:12px;align-content:start;min-width:0}
+.ctl{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.ctl select{width:auto}
+.scrub{display:grid;gap:2px}
+.scrub label{font-size:12.5px;color:var(--muted)}
+.pn-head{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.pn-id{font-family:var(--f-mono);font-size:13px;padding:2px 8px;border-radius:5px;background:var(--accent);color:var(--surface)}
+.pn-type{font-size:13px;color:var(--muted)}
+.pn h3{font-family:var(--f-display);font-size:26px;font-weight:600;margin:6px 0 4px;line-height:1.1}
+.pn p{margin:0 0 10px;max-width:66ch}
+.pn-vals{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0}
+.pn-vals div{background:var(--bg);border-radius:7px;padding:6px 10px}
+.pn-vals dt{font-size:12px;color:var(--muted)}
+.pn-vals dd{margin:0;font-family:var(--f-mono);font-size:15px;font-variant-numeric:tabular-nums}
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:10px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:10px 12px;display:grid;gap:2px;align-content:start}
+.kpi.main{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.kpi .l{font-size:12.5px;color:var(--muted);line-height:1.25}
+.kpi .v{font-family:var(--f-mono);font-size:22px;font-weight:500;font-variant-numeric:tabular-nums;line-height:1.2}
+.kpi.main .v{color:var(--accent);font-size:28px}
+.kpi .v small{font-size:12px;color:var(--muted);font-weight:400;margin-left:4px}
+.kpi .s{font-size:12px;color:var(--muted);font-family:var(--f-mono)}
+.kpi-group{grid-column:1/-1;font-family:var(--f-display);font-size:14.5px;font-weight:600;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin-top:4px}
+.tables{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media (max-width:1100px){.tables{grid-template-columns:minmax(0,1fr)}}
+.tbl{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px;min-width:0}
+.tbl-scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{padding:6px 8px;text-align:right;white-space:nowrap}
+th{font-weight:600;color:var(--muted);font-size:12px;border-bottom:1px solid var(--line)}
+th:first-child,td:first-child{text-align:left}
+td{font-family:var(--f-mono);font-variant-numeric:tabular-nums;border-bottom:1px solid var(--grid)}
+td.txt{font-family:var(--f-body)}
+tr.on td{background:var(--sunk)}
+tr.tot td{font-weight:600;border-top:1px solid var(--line);border-bottom:0}
+.pos{color:var(--hot)} .neg{color:var(--cold)}
+.theory{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media (max-width:900px){.theory{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;min-width:0}
+.card h3{font-family:var(--f-display);font-size:22px;font-weight:600;margin:0 0 8px}
+.card p,.card li{max-width:68ch}
+.card ol,.card ul{padding-left:20px;margin:6px 0}
+.card li{margin-bottom:6px}
+.eq{font-family:var(--f-mono);font-size:13.5px;background:var(--bg);border-radius:6px;padding:7px 10px;margin:6px 0;overflow-x:auto;white-space:nowrap}
+.eq-note{font-size:13px;color:var(--muted);margin:0 0 4px}
+.live{font-family:var(--f-mono);font-size:13px;color:var(--accent)}
+footer{margin-top:26px;padding-top:14px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted);max-width:110ch}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* ---- propio del simulador de orden de encendido ---- */
+:root{--ph-a:#1971c2;--ph-c:#e8a317;--ph-e:#e03131;--ph-s:#7048e8}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--ph-a:#4dabf7;--ph-c:#fcc419;--ph-e:#ff6b6b;--ph-s:#9775fa}}
+:root[data-theme="dark"]{--ph-a:#4dabf7;--ph-c:#fcc419;--ph-e:#ff6b6b;--ph-s:#9775fa}
+.views{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:1100px){.views{grid-template-columns:minmax(0,1fr)}}
+.vcard{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px;display:grid;gap:10px;min-width:0}
+.vcard canvas{width:100%;display:block;background:var(--bg);border-radius:8px}
+#cEng{height:300px} #cCrk{height:330px}
+.card-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.card-h span{font-family:var(--f-display);font-weight:700;font-size:20px}
+.card-h small{font-size:12.5px;color:var(--muted)}
+.scrub-row{display:grid;grid-template-columns:minmax(0,1fr) 84px 22px;gap:8px;align-items:center}
+.ord{display:flex;flex-wrap:wrap;gap:6px;align-items:center;list-style:none;margin:0;padding:0}
+.ord li{font-family:var(--f-mono);font-size:14px;font-weight:700;min-width:30px;text-align:center;padding:3px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg)}
+.ord li.on{border-color:var(--ph-e);box-shadow:inset 0 0 0 1px var(--ph-e);color:var(--ph-e)}
+.ord .sep{border:0;background:none;min-width:0;padding:0;color:var(--muted);font-weight:400}
+.phleg{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--muted)}
+.phleg span{display:flex;align-items:center;gap:6px}
+.phleg b{font-family:var(--f-mono);font-size:11.5px;min-width:24px;text-align:center;padding:1px 5px;border-radius:4px;color:var(--fg);border:1px solid var(--line)}
+.ph-A{background:color-mix(in srgb,var(--ph-a) 28%,transparent)} .ph-C{background:color-mix(in srgb,var(--ph-c) 34%,transparent)}
+.ph-E{background:color-mix(in srgb,var(--ph-e) 30%,transparent)} .ph-Es{background:color-mix(in srgb,var(--ph-s) 28%,transparent)}
+#tPh{table-layout:fixed;min-width:calc(56px + var(--nc,4)*44px)} #tPh th:first-child{width:64px} #tValv td.txt{white-space:normal;text-align:left;min-width:150px} #tValv th:nth-child(2){text-align:left}
+#tPh td,#tPh th{text-align:center;padding:5px 4px;min-width:40px}
+#tPh td:first-child,#tPh th:first-child{text-align:left;min-width:0;padding-left:8px}
+#tPh td.ph{font-weight:700;border-left:1px solid var(--surface)}
+#tPh td.st{box-shadow:inset 3px 0 0 var(--ph-e)}
+#tPh .cur{outline:2px solid var(--accent);outline-offset:-2px}
+#tPh tr.fire td{font-weight:700;color:var(--ph-e);border-top:2px solid var(--line)}
+#tPh tr.turn th{color:var(--fg);font-size:12.5px}
+.opts{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+.opt{min-width:46px;font-family:var(--f-mono)}
+.opt[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.fb{margin-top:10px}
+.fb.ok{border-left-color:var(--accent)}
+.vlive{display:grid;gap:4px;font-size:14px;margin:6px 0 10px}
+.vlive b{font-family:var(--f-mono)}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media (max-width:900px){.two{grid-template-columns:minmax(0,1fr)}}
+.kpi .v.ordv{font-size:20px}
+select.big{font-family:var(--f-body);font-size:14px;padding:6px 8px}
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="top">
+    <div class="eyebrow">Simulador · Introducción a Motores · Unidad 3 — Cigüeñal y orden de encendido</div>
+    <h1>Orden de <span class="acc">Encendido</span></h1>
+    <p class="lede">Gire el cigüeñal y observe en qué tiempo está cada cilindro. El desfase entre muñequillas y el árbol de levas fijan el orden en que explotan los cilindros; con la tabla de fases y la utilidad de calibración puede practicar lo que se hace en el taller para reglar válvulas.</p>
+  </header>
+  <div class="layout">
+    <aside class="panel" aria-label="Parámetros del motor">
+      <section><h2>Motor</h2>
+        <div class="prm"><div class="prm-h"><label for="cfgSel">Configuración y orden de encendido</label></div>
+          <div class="prm-in sel"><select id="cfgSel" class="big"></select></div><div class="hint" id="hnCfg"></div></div>
+        <div class="prm"><div class="prm-h"><label for="ttSel">Ciclo de trabajo</label></div>
+          <div class="prm-in sel"><select id="ttSel" class="big"><option value="4">4 tiempos (720° por ciclo)</option><option value="2">2 tiempos (360° por ciclo)</option></select></div><div class="hint" id="hnTt"></div></div>
+      </section>
+      <section><h2>Giro del cigüeñal</h2>
+        <div class="prm"><div class="prm-h"><label for="in_th">Ángulo del cigüeñal</label><span class="sym">θ</span></div>
+          <div class="prm-in"><input type="range" id="rg_th" min="0" max="720" step="1" aria-label="Ángulo del cigüeñal (deslizador)"><input type="number" id="in_th" step="1"><span class="unit">°</span></div>
+          <div class="hint" id="hn_th"></div></div>
+        <div class="btns">
+          <button type="button" class="pri" id="playBtn">▶ Animar</button>
+          <button type="button" id="stepBtn" title="Avanza hasta la siguiente explosión">Siguiente explosión ▶</button>
+          <button type="button" id="zeroBtn">θ = 0°</button>
+        </div>
+        <div class="prm"><div class="prm-h"><label for="speedSel">Velocidad de la animación</label></div>
+          <div class="prm-in sel"><select id="speedSel"><option value="30">30 °/s (lenta)</option><option value="90" selected>90 °/s</option><option value="240">240 °/s (rápida)</option></select></div></div>
+      </section>
+      <details class="adv"><summary>Distribución real (calibración)</summary><div id="timing"></div>
+        <div class="hint">Cotas típicas de un motor de turismo. Solo afectan al dibujo de las válvulas y a la utilidad de calibración; los colores de las fases siguen el modelo ideal de 180°.</div></details>
+      <div class="msgs" id="msgs" aria-live="polite"></div>
+    </aside>
+    <main class="work">
+      <section class="views">
+        <div class="vcard">
+          <div class="card-h"><span>Motor en marcha</span><small id="engSub"></small></div>
+          <ul class="ord" id="ordChips" aria-label="Orden de encendido"></ul>
+          <canvas id="cEng" aria-label="Fila de cilindros con la posición del pistón y el tiempo de cada cilindro"></canvas>
+          <div class="phleg" id="phLeg"></div>
+        </div>
+        <div class="vcard">
+          <div class="card-h"><span>Cigüeñal visto de frente</span><small>Giro horario</small></div>
+          <canvas id="cCrk" aria-label="Posición angular de las muñequillas del cigüeñal vistas de frente"></canvas>
+          <div class="hint" id="crkNote"></div>
+        </div>
+      </section>
+      <section class="kpis" id="kpis" aria-label="Resultados"></section>
+      <section class="tables" style="grid-template-columns:minmax(0,1fr)">
+        <div class="tbl"><div class="sec-h" id="tPhTitle">Tabla de fases cilindro × ángulo</div>
+          <div class="tbl-scroll"><table id="tPh"></table></div>
+          <div class="hint" style="margin-top:6px">Cada celda indica el tiempo del cilindro en ese tramo de giro. El borde rojo marca dónde empieza cada explosión; la fila inferior repite el orden de encendido. El recuadro de color de acento sigue al ángulo actual.</div></div>
+      </section>
+      <section class="two">
+        <div class="card" id="quiz">
+          <h3>Ejercicio de taller</h3>
+          <p id="qText" style="margin:0"></p>
+          <div class="opts" id="qOpts" role="group" aria-label="Opciones de respuesta"></div>
+          <div class="btns"><button type="button" class="pri" id="qCheck">Comprobar</button><button type="button" id="qNew">Nueva pregunta</button><button type="button" id="qShow">Ver este instante</button></div>
+          <div class="msg fb" id="qFb" hidden aria-live="polite"></div>
+          <div class="hint" id="qScore" style="margin-top:8px"></div>
+        </div>
+        <div class="card">
+          <h3>Calibración de válvulas</h3>
+          <p class="eq-note">Una válvula se puede calibrar cuando está cerrada: su taqué o balancín apoya en el círculo base de la leva. Se usan las cotas de distribución real del panel.</p>
+          <div class="vlive" id="vLive"></div>
+          <div class="tbl-scroll"><table id="tValv"></table></div>
+          <p class="eq-note" id="vNote" style="margin-top:8px"></p>
+        </div>
+      </section>
+      <section class="theory">
+        <div class="card">
+          <h3>Ecuaciones y convenciones</h3>
+          <p class="eq-note">Desfase entre explosiones para Z cilindros de encendido regular</p>
+          <div class="eq">4T: Δθ = 720°/Z &nbsp;·&nbsp; 2T: Δθ = 360°/Z</div>
+          <div class="eq">Explosiones por vuelta: 4T → Z/2 &nbsp;·&nbsp; 2T → Z</div>
+          <p class="eq-note">Ángulo propio del cilindro i (θ<sub>i</sub> = ángulo en que el cilindro i explota)</p>
+          <div class="eq">φ<sub>i</sub> = (θ − θ<sub>i</sub>) mod 720°</div>
+          <div class="eq">φ: 0–180° E · 180–360° Es · 360–540° A · 540–720° C</div>
+          <p class="eq-note">Posición de la muñequilla del cilindro i (ψ<sub>i</sub> = ángulo del eje del cilindro; 0° en línea)</p>
+          <div class="eq">α<sub>i</sub> = (ψ<sub>i</sub> − θ<sub>i</sub>) mod 360°</div>
+          <p class="live" data-live="eq"></p>
+          <p class="eq-note">Convención: θ = 0° cuando el cilindro 1 está en el PMS al final de la compresión (inicio de la explosión). Las fases son ideales de 180° (sin avances ni retrasos). Un cilindro que está justo en un punto muerto se asigna a la fase que empieza; por eso a 0° en el 1‑3‑4‑2 el cilindro 2 figura en escape (acaba de terminar la explosión) y el 3 en compresión.</p>
+        </div>
+        <div class="card">
+          <h3>Experimentos guiados</h3>
+          <ol>
+            <li>Con el 4 en línea 1‑3‑4‑2 en θ = 0°, anote el tiempo de cada cilindro. Cambie a 1‑2‑4‑3: ¿cambia la posición de las muñequillas en la vista frontal? Entonces, ¿qué pieza distinta hace que cambie el orden de encendido?</li>
+            <li>Elija el 3 en línea y avance con <i>Siguiente explosión</i>. Explosión dura 180° y el desfase es 240°: ¿cuántos grados de cada ciclo pasan sin ningún cilindro en explosión? Compárelo con el 6 en línea (desfase 120°): ¿cuántos cilindros están en explosión a la vez en algunos tramos?</li>
+            <li>En la utilidad de calibración del 4 en línea, compruebe la regla del taller: cuando un cilindro está en cruce de válvulas (balancines «en balanza»), su cilindro gemelo está en PMS de compresión. ¿Qué pares de gemelos tiene el 1‑3‑4‑2? ¿Y el 6 en línea?</li>
+            <li>Compare el V8 cruzado con el 4 en línea: explosiones por vuelta y desfase. Mire la vista frontal del V8: ¿por qué dos cilindros comparten cada muñequilla?</li>
+            <li>Active 2 tiempos en el 2 en línea y observe cómo cambia el cigüeñal: con 4T las muñequillas están alineadas (0°) y con 2T quedan a 180°. Explique por qué con Δθ = 360°/Z.</li>
+          </ol>
+        </div>
+      </section>
+    </main>
+  </div>
+  <footer>Modelo cinemático ideal con velocidad de giro constante: cada tiempo dura exactamente 180° en 4T; en 2T se toma expansión 0–110°, escape y barrido 110–250° y compresión 250–360°. Posición del pistón con relación de biela λ = 0.3. Numeración de cilindros desde la distribución (frente); en los motores en V, impares en un banco y pares en el otro (numeración tipo GM; cada fabricante numera distinto, consulte siempre el manual de taller). V6 a 60° con muñequillas desplazadas 60° (una por cilindro), orden 1‑2‑3‑4‑5‑6; V8 a 90° con cigüeñal cruzado, orden 1‑8‑4‑3‑6‑5‑7‑2. La calibración se basa en las cotas de distribución del panel más un margen de seguridad por las rampas de la leva. Material de apoyo para prácticas de Mecánica Automotriz.</footer>
+</div>
+
+<script>
+(function(){
+'use strict';
+const $=s=>document.querySelector(s);
+const DEG=Math.PI/180;
+const mod=(a,n)=>((a%n)+n)%n;
+const fx=(x,d)=>Number.isFinite(x)?x.toFixed(d):'—';
+function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+function pal(){return {bg:css('--surface'),page:css('--bg'),sunk:css('--sunk'),fg:css('--fg'),muted:css('--muted'),grid:css('--grid'),line:css('--line'),hot:css('--hot'),acc:css('--accent'),adi:css('--adi'),
+  A:css('--ph-a'),C:css('--ph-c'),E:css('--ph-e'),Es:css('--ph-s')};}
+function setupCanvas(cv){
+  const dpr=window.devicePixelRatio||1, W=cv.clientWidth, H=cv.clientHeight;
+  if(cv.width!==Math.round(W*dpr)||cv.height!==Math.round(H*dpr)){cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr);}
+  const ctx=cv.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,W,H); return {ctx,W,H};
+}
+function textOn(col){ // texto legible sobre un color hex
+  const m=/^#?([0-9a-f]{6})$/i.exec(col||''); if(!m) return '#111';
+  const n=parseInt(m[1],16), c=[n>>16&255,n>>8&255,n&255].map(v=>{v/=255; return v<=0.03928?v/12.92:Math.pow((v+0.055)/1.055,2.4);});
+  return (0.2126*c[0]+0.7152*c[1]+0.0722*c[2])>0.28?'#111418':'#ffffff';
+}
+const gcd=(a,b)=>b?gcd(b,a%b):a;
+
+/* ---------- configuraciones ---------- */
+const CFG=[
+  {id:'1',   name:'1 cilindro', z:1, order:[1], two:true, note:'Una sola muñequilla: una explosión cada 2 vueltas (4T).'},
+  {id:'2L',  name:'2 en línea · encendido a 360°', z:2, order:[1,2], two:true, note:'Muñequillas alineadas (0°): los dos pistones suben y bajan juntos, pero explotan en vueltas distintas.'},
+  {id:'3L',  name:'3 en línea · 1‑2‑3', z:3, order:[1,2,3], two:true, note:'Muñequillas a 120°. Motor típico de los pequeños turismos actuales.'},
+  {id:'4A',  name:'4 en línea · 1‑3‑4‑2', z:4, order:[1,3,4,2], note:'Cigüeñal plano: muñequillas 1‑4 arriba y 2‑3 abajo (180°). Es el orden más usado.'},
+  {id:'4B',  name:'4 en línea · 1‑2‑4‑3', z:4, order:[1,2,4,3], note:'Mismo cigüeñal que el 1‑3‑4‑2; cambia solo el árbol de levas.'},
+  {id:'5L',  name:'5 en línea · 1‑2‑4‑5‑3', z:5, order:[1,2,4,5,3], note:'Muñequillas a 72°; explosión cada 144°.'},
+  {id:'6L',  name:'6 en línea · 1‑5‑3‑6‑2‑4', z:6, order:[1,5,3,6,2,4], note:'Muñequillas a 120° por parejas (1‑6, 2‑5, 3‑4): motor muy equilibrado.'},
+  {id:'V6',  name:'V6 a 60° · 1‑2‑3‑4‑5‑6', z:6, order:[1,2,3,4,5,6], V:60, psi:i=>i%2?-30:30, pos:i=>Math.ceil(i/2)-1,
+   note:'Bancos a 60°; cada cilindro tiene su muñequilla y las de cada pareja 1‑2, 3‑4, 5‑6 están desplazadas 60° para lograr explosiones regulares cada 120°.'},
+  {id:'V8',  name:'V8 a 90° cruzado · 1‑8‑4‑3‑6‑5‑7‑2', z:8, order:[1,8,4,3,6,5,7,2], V:90, psi:i=>i%2?45:-45, pos:i=>Math.ceil(i/2)-1,
+   note:'Cigüeñal cruzado (muñequillas a 90°); cada muñequilla lleva dos bielas, una de cada banco (1‑2, 3‑4, 5‑6, 7‑8).'}
+];
+const PH4=[{k:'E',n:'Explosión',a:0,b:180},{k:'Es',n:'Escape',a:180,b:360},{k:'A',n:'Admisión',a:360,b:540},{k:'C',n:'Compresión',a:540,b:720}];
+const PH2=[{k:'E',n:'Explosión (expansión)',a:0,b:110},{k:'Es',n:'Escape y barrido',a:110,b:250,lt:'Es·A'},{k:'C',n:'Compresión',a:250,b:360}];
+const TIM=[
+  {id:'AAA',label:'Avance apertura admisión',sym:'AAA',min:0,max:60,step:1,value:10,hint:'Grados antes del PMS de escape'},
+  {id:'RCA',label:'Retraso cierre admisión',sym:'RCA',min:0,max:90,step:1,value:50,hint:'Grados después del PMI'},
+  {id:'AAE',label:'Avance apertura escape',sym:'AAE',min:0,max:90,step:1,value:50,hint:'Grados antes del PMI de explosión'},
+  {id:'RCE',label:'Retraso cierre escape',sym:'RCE',min:0,max:60,step:1,value:10,hint:'Grados después del PMS'},
+  {id:'MRG',label:'Margen por rampas de la leva',sym:'m',min:0,max:45,step:1,value:20,hint:'Una válvula solo se calibra si le faltan al menos m grados para abrir y lleva m grados cerrada'}
+];
+const S={cfg:'4A',tt:4,th:0,playing:false,speed:90,tim:{},err:[],q:null,score:{ok:0,n:0}};
+
+function model(){
+  const c=CFG.find(x=>x.id===S.cfg), tt=(c.two&&S.tt===2)?2:4, Tc=tt===4?720:360, Z=c.z, iv=Tc/Z;
+  const cyl=[];
+  for(let i=1;i<=Z;i++){
+    const k=c.order.indexOf(i), F=k*iv, psi=c.psi?c.psi(i):0;
+    cyl.push({i,F,psi,pin:mod(psi-F,360),pos:c.pos?c.pos(i):i-1,row:c.V?(psi<0?0:1):0});
+  }
+  return {c,tt,Tc,Z,iv,cyl,ph:tt===4?PH4:PH2,rows:c.V?2:1,cols:c.V?Z/2:Z};
+}
+function phi(M,cy,th){return mod(th-cy.F,M.Tc);}
+function phaseAt(M,f){return M.ph.find(p=>f>=p.a-1e-9&&f<p.b-1e-9)||M.ph[0];}
+function inWin(f,a,b){f=mod(f,720); a=mod(a,720); b=mod(b,720); return a<=b?(f>=a&&f<=b):(f>=a||f<=b);}
+function valves(f){const t=S.tim; return {
+  adm:inWin(f,360-t.AAA,540+t.RCA), esc:inWin(f,180-t.AAE,360+t.RCE),
+  la:lift(f,360-t.AAA,540+t.RCA), le:lift(f,180-t.AAE,360+t.RCE)};}
+function lift(f,a,b){const L=mod(b-a,720), u=mod(f-a,720); return u<=L?Math.sin(Math.PI*u/L):0;}
+function pistonX(delta){const l=0.3, s=Math.sin(delta*DEG); return ((1-Math.cos(delta*DEG))+(1-Math.sqrt(1-l*l*s*s))/l)/2;} // 0 PMS … 1 PMI
+
+/* ---------- dibujo: fila de cilindros ---------- */
+function drawEngine(M){
+  const cv=$('#cEng'); cv.style.height=(M.rows===2?470:300)+'px';
+  const {ctx,W,H}=setupCanvas(cv), P=pal();
+  const rh=H/M.rows, cw=Math.min(110,(W-16)/M.cols), x0=(W-cw*M.cols)/2;
+  M.cyl.forEach(cy=>{
+    const f=phi(M,cy,S.th), ph=phaseAt(M,f), col=P[ph.k];
+    const top=cy.row*rh+(M.rows===2?16:0), cx=x0+cw*(cy.pos+0.5);
+    const bore=cw*0.6, lft=cx-bore/2;
+    const showName=cw>=78, headY=top+24, chamber=8, pH=16, stroke=Math.max(24,Math.min(80,(rh-(M.rows===2?16:0)-24-14-chamber-pH-(showName?50:34))/2.7)), rodL=stroke*1.2, rr=stroke/2;
+    const gasTop=headY+14, xN=pistonX(mod(S.th+cy.pin-cy.psi,360)), crown=gasTop+chamber+xN*stroke;
+    const crankY=gasTop+chamber+stroke+pH/2+rodL;
+    // número
+    ctx.fillStyle=P.fg; ctx.font='700 13px "JetBrains Mono", ui-monospace, monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(String(cy.i),cx,top+11);
+    // gas coloreado según la fase
+    ctx.fillStyle=col; ctx.globalAlpha=0.5; ctx.fillRect(lft,gasTop,bore,crown-gasTop); ctx.globalAlpha=1;
+    // destello de explosión
+    if(ph.k==='E'&&f<35){const k=1-f/35; ctx.fillStyle=P.E; ctx.globalAlpha=0.35+0.5*k; ctx.fillRect(lft,gasTop,bore,crown-gasTop); ctx.globalAlpha=1;
+      ctx.strokeStyle=P.C; ctx.lineWidth=2; for(let a=0;a<8;a++){const an=a*Math.PI/4; ctx.beginPath(); ctx.moveTo(cx+Math.cos(an)*3,gasTop+5+Math.sin(an)*3); ctx.lineTo(cx+Math.cos(an)*(6+10*k),gasTop+5+Math.sin(an)*(6+10*k)); ctx.stroke();}}
+    // culata y válvulas
+    ctx.fillStyle=P.sunk; ctx.strokeStyle=P.fg; ctx.lineWidth=1.3; ctx.fillRect(lft-6,headY,bore+12,14); ctx.strokeRect(lft-6,headY,bore+12,14);
+    ctx.fillStyle=P.muted; ctx.fillRect(cx-2,headY-7,4,9);
+    if(M.tt===4){ const v=valves(f);
+      [[lft+bore*0.22,v.la,P.A],[lft+bore*0.78,v.le,P.Es]].forEach(([vx,l,c])=>{const d=l*7; ctx.strokeStyle=P.fg; ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(vx,headY-4); ctx.lineTo(vx,gasTop+d); ctx.stroke();
+        ctx.fillStyle=l>0?c:P.adi; ctx.fillRect(vx-bore*0.13,gasTop-2+d,bore*0.26,3);});
+    }
+    // paredes
+    ctx.strokeStyle=P.fg; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(lft,gasTop); ctx.lineTo(lft,gasTop+chamber+stroke+pH+4); ctx.moveTo(lft+bore,gasTop); ctx.lineTo(lft+bore,gasTop+chamber+stroke+pH+4); ctx.stroke();
+    // biela y manivela
+    const pa=mod(S.th+cy.pin-cy.psi,360)*DEG, kx=cx+rr*Math.sin(pa), ky=crankY-rr*Math.cos(pa);
+    ctx.strokeStyle=P.line; ctx.lineWidth=1; ctx.beginPath(); ctx.arc(cx,crankY,rr,0,Math.PI*2); ctx.stroke();
+    ctx.strokeStyle=P.adi; ctx.lineWidth=4; ctx.lineCap='round'; ctx.beginPath(); ctx.moveTo(cx,crown+pH/2); ctx.lineTo(kx,ky); ctx.stroke();
+    ctx.strokeStyle=P.muted; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(cx,crankY); ctx.lineTo(kx,ky); ctx.stroke(); ctx.lineCap='butt';
+    ctx.fillStyle=P.fg; ctx.beginPath(); ctx.arc(cx,crankY,2.5,0,Math.PI*2); ctx.fill();
+    // pistón
+    ctx.fillStyle=P.adi; ctx.fillRect(lft+1.5,crown,bore-3,pH); ctx.strokeStyle=P.fg; ctx.lineWidth=1.2; ctx.strokeRect(lft+1.5,crown,bore-3,pH);
+    // insignia de fase (letra, no depende del color)
+    const lt=ph.lt||ph.k, by=crankY+rr+8;
+    ctx.font='700 12px "JetBrains Mono", ui-monospace, monospace'; const bw=Math.max(26,ctx.measureText(lt).width+10);
+    ctx.fillStyle=col; ctx.beginPath(); ctx.roundRect?ctx.roundRect(cx-bw/2,by,bw,19,4):ctx.rect(cx-bw/2,by,bw,19); ctx.fill();
+    ctx.fillStyle=textOn(col); ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(lt,cx,by+10);
+    if(showName){ctx.fillStyle=P.muted; ctx.font='11px Barlow, system-ui, sans-serif'; ctx.fillText(ph.n.replace(' (expansión)',''),cx,by+30);}
+  });
+  if(M.rows===2){ ctx.font='600 11.5px Barlow, system-ui, sans-serif'; ctx.fillStyle=P.muted; ctx.textAlign='left'; ctx.textBaseline='middle';
+    [0,1].forEach(r=>{const list=M.cyl.filter(c=>c.row===r).map(c=>c.i).join('‑'); ctx.fillText(`Banco ${r===0?'izquierdo':'derecho'} de la vista frontal (${list})`,6,r*rh+10);});
+    ctx.strokeStyle=P.line; ctx.beginPath(); ctx.moveTo(8,rh); ctx.lineTo(W-8,rh); ctx.stroke(); }
+}
+
+/* ---------- dibujo: cigüeñal de frente ---------- */
+function drawCrank(M){
+  const cv=$('#cCrk'), {ctx,W,H}=setupCanvas(cv), P=pal();
+  const cx=W/2, cy=H/2+18, R=Math.min(W,H)*0.27;
+  // ejes de cilindros
+  const axes=M.c.V?[...new Set(M.cyl.map(c=>c.psi))]:[0];
+  ctx.setLineDash([5,4]); ctx.strokeStyle=P.muted; ctx.lineWidth=1;
+  axes.forEach(a=>{const ex=cx+Math.sin(a*DEG)*(R+60), ey=cy-Math.cos(a*DEG)*(R+60); ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(ex,ey); ctx.stroke();});
+  ctx.setLineDash([]); ctx.font='600 11px Barlow, system-ui, sans-serif'; ctx.fillStyle=P.muted; ctx.textAlign='center'; ctx.textBaseline='bottom';
+  axes.forEach(a=>{const lst=M.cyl.filter(c=>c.psi===a).map(c=>c.i).join('‑'); const ex=cx+Math.sin(a*DEG)*(R+64), ey=cy-Math.cos(a*DEG)*(R+64);
+    ctx.fillText(M.c.V?`Banco ${a<0?'izq.':'der.'} (${lst})`:'Eje de los cilindros',Math.max(60,Math.min(W-60,ex)),Math.max(14,ey));});
+  // círculo y bancada
+  ctx.strokeStyle=P.line; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.stroke();
+  // flecha de giro
+  ctx.strokeStyle=P.muted; ctx.lineWidth=1.4; ctx.beginPath(); ctx.arc(cx,cy,R+20,-0.35*Math.PI,-0.1*Math.PI); ctx.stroke();
+  const ea=-0.1*Math.PI, ex=cx+Math.cos(ea)*(R+20), ey=cy+Math.sin(ea)*(R+20); ctx.fillStyle=P.muted; ctx.beginPath(); ctx.moveTo(ex+5,ey-4); ctx.lineTo(ex-3,ey+6); ctx.lineTo(ex+8,ey+6); ctx.closePath(); ctx.fill();
+  // grupos de muñequillas por ángulo
+  const groups={}; M.cyl.forEach(c=>{const k=Math.round(c.pin*10)/10; (groups[k]=groups[k]||[]).push(c);});
+  Object.keys(groups).forEach(k=>{
+    const cs=groups[k], a=(S.th+(+k))*DEG, px=cx+Math.sin(a)*R, py=cy-Math.cos(a)*R;
+    const fire=cs.some(c=>{const f=phi(M,c,S.th); return phaseAt(M,f).k==='E'&&f<35;});
+    ctx.strokeStyle=P.adi; ctx.lineWidth=7; ctx.lineCap='round'; ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(px,py); ctx.stroke(); ctx.lineCap='butt';
+    ctx.beginPath(); ctx.arc(px,py,11,0,Math.PI*2); ctx.fillStyle=fire?P.E:P.sunk; ctx.fill(); ctx.strokeStyle=P.fg; ctx.lineWidth=1.5; ctx.stroke();
+    const lbl=cs.map(c=>c.i).join('·'), lx=cx+Math.sin(a)*(R+28), ly=cy-Math.cos(a)*(R+28);
+    ctx.font='700 13px "JetBrains Mono", ui-monospace, monospace'; const tw=ctx.measureText(lbl).width+8;
+    ctx.fillStyle=P.page; ctx.globalAlpha=.9; ctx.fillRect(lx-tw/2,ly-9,tw,18); ctx.globalAlpha=1;
+    ctx.fillStyle=fire?P.E:P.fg; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(lbl,lx,ly);
+  });
+  ctx.beginPath(); ctx.arc(cx,cy,9,0,Math.PI*2); ctx.fillStyle=P.page; ctx.fill(); ctx.strokeStyle=P.fg; ctx.lineWidth=1.5; ctx.stroke();
+  ctx.fillStyle=P.fg; ctx.font='600 12px "JetBrains Mono", ui-monospace, monospace'; ctx.textAlign='left'; ctx.textBaseline='top';
+  ctx.fillText(`θ = ${fx(S.th,0)}°`,8,8);
+  ctx.fillStyle=P.muted; ctx.font='11px "JetBrains Mono", ui-monospace, monospace'; ctx.fillText(`vuelta ${Math.floor(S.th/360)+1} de ${M.Tc/360}`,8,24);
+}
+
+/* ---------- tabla de fases ---------- */
+function renderPhaseTable(M){
+  const step=M.tt===4?gcd(180,M.iv):Math.min(30,M.iv), ncol=Math.round(M.Tc/step), cur=Math.min(ncol-1,Math.floor(S.th/step));
+  $('#tPhTitle').textContent=`Tabla de fases cilindro × ángulo (tramos de ${step}°)`;
+  let h='<thead>';
+  if(M.tt===4) h+=`<tr class="turn"><th></th><th colspan="${ncol/2}">1.ª vuelta del cigüeñal</th><th colspan="${ncol/2}">2.ª vuelta</th></tr>`;
+  h+='<tr><th>Cil.</th>'; for(let j=0;j<ncol;j++) h+=`<th${j===cur?' class="cur"':''}>${j*step}–${(j+1)*step}</th>`; h+='</tr></thead><tbody>';
+  M.cyl.forEach(cy=>{h+=`<tr><td>${cy.i}</td>`;
+    for(let j=0;j<ncol;j++){const f=phi(M,cy,j*step+step/2), p=phaseAt(M,f), start=mod(cy.F-j*step,M.Tc)<step-1e-9;
+      h+=`<td class="ph ph-${p.k}${start?' st':''}${j===cur?' cur':''}" title="${p.n}">${p.lt||p.k}</td>`;}
+    h+='</tr>';});
+  h+='<tr class="fire"><td class="txt">Explota</td>';
+  for(let j=0;j<ncol;j++){const who=M.cyl.filter(cy=>cy.F>=j*step-1e-9&&cy.F<(j+1)*step-1e-9).map(cy=>cy.i); h+=`<td${j===cur?' class="cur"':''}>${who.join(' ')||''}</td>`;}
+  $('#tPh').innerHTML=h+'</tr></tbody>'; $('#tPh').style.setProperty('--nc',ncol);
+}
+
+/* ---------- calibración de válvulas ---------- */
+function valveSets(M,th){const t=S.tim, m=t.MRG, adm=[],esc=[],cruce=[]; M.cyl.forEach(cy=>{const f=phi(M,cy,th), v=valves(f);
+  if(!inWin(f,360-t.AAA-m,540+t.RCA+m)) adm.push(cy.i); if(!inWin(f,180-t.AAE-m,360+t.RCE+m)) esc.push(cy.i); if(v.adm&&v.esc) cruce.push(cy.i);}); return {adm,esc,cruce};}
+function atPMScomp(M,th){return M.cyl.filter(cy=>Math.abs(mod(th-cy.F+1,M.Tc)-1)<1e-6).map(cy=>cy.i);}
+function renderValves(M){
+  if(M.tt!==4){ $('#vLive').innerHTML='<div>Los motores de 2 tiempos de este modelo no tienen válvulas: la carga entra y el gas sale por lumbreras que abre y cierra el propio pistón.</div>'; $('#tValv').innerHTML=''; $('#vNote').textContent=''; return; }
+  const L=valveSets(M,S.th), j=a=>a.length?a.join(', '):'ninguna';
+  $('#vLive').innerHTML=`<div>En θ = <b>${fx(S.th,0)}°</b> se pueden calibrar (margen ${S.tim.MRG}°):</div><div>Admisión: <b>${j(L.adm)}</b></div><div>Escape: <b>${j(L.esc)}</b></div>`+
+    (L.cruce.length?`<div>En cruce de válvulas (no calibrar): <b>${L.cruce.join(', ')}</b></div>`:'');
+  const c1=M.cyl.find(c=>c.i===1), steps=[c1.F,c1.F+360].map(t=>mod(t,720));
+  const sets=steps.map(t=>valveSets(M,t)); const all=M.cyl.map(c=>c.i);
+  const missA=all.filter(i=>!sets.some(s=>s.adm.includes(i))), missE=all.filter(i=>!sets.some(s=>s.esc.includes(i)));
+  let h='<thead><tr><th>Paso</th><th>Posición</th><th>Admisión</th><th>Escape</th><th></th></tr></thead><tbody>';
+  steps.forEach((t,k)=>{const pms=atPMScomp(M,t), s=sets[k];
+    const pos=k===0?'Cil. 1 en PMS de compresión':(pms.length?`Girar 360°: cil. ${pms.join(', ')} en PMS de compresión`:'Girar 360° (cil. 1 en cruce)');
+    h+=`<tr><td>${k+1}</td><td class="txt">${pos}</td><td>${s.adm.join(', ')||'—'}</td><td>${s.esc.join(', ')||'—'}</td><td><button type="button" class="goV" data-t="${t}">Ir</button></td></tr>`;});
+  $('#tValv').innerHTML=h+'</tbody>';
+  document.querySelectorAll('.goV').forEach(b=>b.addEventListener('click',()=>{setPlaying(false); setTh(+b.dataset.t);}));
+  const twin=[]; if(M.Z>1) M.cyl.forEach(cy=>{const o=M.cyl.find(c=>c!==cy&&mod(c.F-cy.F,720)===360); if(o&&cy.i<o.i) twin.push(`${cy.i}‑${o.i}`);});
+  $('#vNote').innerHTML=(missA.length||missE.length?`Con dos posiciones no se cubren todas: faltan admisión ${missA.join(', ')||'—'} y escape ${missE.join(', ')||'—'}. Lleve esos cilindros a su PMS de compresión y calíbrelos allí.`:'Con estas dos posiciones (una vuelta de cigüeñal entre ellas) se calibran todas las válvulas.')+
+    (twin.length?` Cilindros gemelos (desfase 360°): <b>${twin.join(', ')}</b>; cuando uno está en cruce, el otro está en PMS de compresión.`:'');
+}
+
+/* ---------- ejercicio ---------- */
+function rnd(n){return Math.floor(Math.random()*n);}
+function newQuestion(){
+  const M=model(); let q;
+  if(M.Z===1){ q={type:'ang',th:0,text:`En un motor de 1 cilindro de ${M.tt} tiempos, ¿cada cuántos grados de cigüeñal se produce una explosión?`,opts:[180,360,720].map(String),ans:[String(M.Tc)],expl:`Hay un ciclo completo por explosión: ${M.Tc}° (${M.Tc/360} vuelta${M.Tc>360?'s':''}).`}; }
+  else {
+    const t=rnd(3), k=M.cyl[rnd(M.Z)];
+    if(t===0){
+      const others=M.cyl.filter(c=>c!==k), cand=M.ph.filter(p=>p.k!=='E'||M.Z>3);
+      const tp=cand[rnd(cand.length)], ans=others.filter(c=>phaseAt(M,phi(M,c,k.F)).k===tp.k).map(c=>String(c.i));
+      q={type:'set',th:k.F,text:`Cuando el cilindro ${k.i} está en el PMS de explosión (acaba de saltar la chispa), ¿qué cilindro o cilindros están en <b>${tp.n.toLowerCase()}</b>? Puede marcar varios.`,
+        opts:others.map(c=>String(c.i)).concat(['Ninguno']),ans:ans.length?ans:['Ninguno'],
+        expl:'En ese instante: '+M.cyl.map(c=>{const f=phi(M,c,k.F); return `cil. ${c.i} en ${phaseAt(M,f).n.toLowerCase()} (φ = ${fx(f,0)}°)`;}).join(' · ')+'.'};
+    } else if(t===1){
+      const o=M.c.order, n=o[(o.indexOf(k.i)+1)%M.Z];
+      q={type:'one',th:k.F,text:`Según el orden de encendido, ¿qué cilindro explota justo después del cilindro ${k.i}?`,opts:M.cyl.filter(c=>c!==k).map(c=>String(c.i)),ans:[String(n)],
+        expl:`Orden ${o.join('‑')}: después del ${k.i} explota el ${n}, ${fx(M.iv,0)}° de cigüeñal más tarde.`};
+    } else {
+      const others=M.cyl.filter(c=>c!==k), j=others[rnd(others.length)], d=mod(j.F-k.F,M.Tc);
+      const set=new Set([d]); for(let m=1;m<M.Z&&set.size<4;m++) set.add(m*M.iv); if(set.size<4) set.add(M.Tc);
+      const opts=[...set].slice(0,4).sort((a,b)=>a-b).map(v=>fx(v,0)+'°');
+      q={type:'one',th:k.F,text:`¿Cuántos grados gira el cigüeñal desde la explosión del cilindro ${k.i} hasta la siguiente explosión del cilindro ${j.i}?`,opts,ans:[fx(d,0)+'°'],
+        expl:`El ${j.i} va ${Math.round(d/M.iv)} puesto(s) después del ${k.i} en el orden ${M.c.order.join('‑')}: ${Math.round(d/M.iv)} × ${fx(M.iv,0)}° = ${fx(d,0)}°.`};
+    }
+  }
+  S.q=q; $('#qText').innerHTML=q.text; $('#qFb').hidden=true;
+  $('#qOpts').innerHTML=q.opts.map(o=>`<button type="button" class="opt" aria-pressed="false" data-v="${o}">${o}</button>`).join('');
+  document.querySelectorAll('#qOpts .opt').forEach(b=>b.addEventListener('click',()=>{
+    const multi=S.q.type==='set', on=b.getAttribute('aria-pressed')==='true';
+    if(!multi) document.querySelectorAll('#qOpts .opt').forEach(x=>x.setAttribute('aria-pressed','false'));
+    if(multi&&b.dataset.v==='Ninguno') document.querySelectorAll('#qOpts .opt').forEach(x=>x.setAttribute('aria-pressed','false'));
+    if(multi&&b.dataset.v!=='Ninguno') { const n=document.querySelector('#qOpts .opt[data-v="Ninguno"]'); if(n) n.setAttribute('aria-pressed','false'); }
+    b.setAttribute('aria-pressed',on&&multi?'false':'true');}));
+}
+function checkQuestion(){
+  const q=S.q; if(!q) return;
+  const sel=[...document.querySelectorAll('#qOpts .opt[aria-pressed="true"]')].map(b=>b.dataset.v);
+  const fb=$('#qFb'); fb.hidden=false;
+  if(!sel.length){fb.className='msg fb warn'; fb.innerHTML='Seleccione al menos una opción y pulse Comprobar.'; return;}
+  const ok=sel.length===q.ans.length&&sel.every(v=>q.ans.includes(v));
+  S.score.n++; if(ok) S.score.ok++;
+  fb.className='msg fb '+(ok?'ok':'err');
+  fb.innerHTML=(ok?'<b>Correcto.</b> ':`<b>No es correcto.</b> Respuesta: ${q.ans.join(', ')}. `)+q.expl+' Pulse «Ver este instante» para comprobarlo en el motor.';
+  $('#qScore').textContent=`Aciertos: ${S.score.ok} de ${S.score.n}`;
+}
+
+/* ---------- KPI, mensajes y texto ---------- */
+function kpi(l,v,u,s,main,cls){return `<div class="kpi${main?' main':''}"><div class="l">${l}</div><div class="v${cls?' '+cls:''}">${v}${u?`<small>${u}</small>`:''}</div>${s?`<div class="s">${s}</div>`:''}</div>`;}
+function pinText(M){
+  if(M.Z===1) return ['—','Una sola muñequilla'];
+  const ang=[...new Set(M.cyl.map(c=>Math.round(mod(c.pin,360))))].sort((a,b)=>a-b);
+  if(ang.length===1) return ['0°','Todas alineadas'];
+  const sp=360/ang.length;
+  if(M.c.id==='V6') return ['60°','Muñequillas desplazadas (una por cilindro)'];
+  if(M.c.id==='V8') return ['90°','Cruzado · 2 bielas por muñequilla'];
+  return [fx(sp,0)+'°',`${ang.length} posiciones distintas`+(ang.length<M.Z?' (compartidas por parejas)':'')];
+}
+function renderKpis(M){
+  const now=M.cyl.filter(c=>phaseAt(M,phi(M,c,S.th)).k==='E').map(c=>c.i), pt=pinText(M);
+  let h='';
+  h+=kpi('Orden de encendido',M.c.order.join('‑'),'',M.c.name.split('·')[0].trim(),true,'ordv');
+  h+=kpi('Desfase entre explosiones',fx(M.iv,0),'°',`${M.Tc}° / ${M.Z}`);
+  h+=kpi('Explosiones por vuelta',fx(M.Z*360/M.Tc,1).replace('.0',''),'',M.tt===4?'Z/2 en 4 tiempos':'Z en 2 tiempos');
+  h+=kpi('Ángulo entre muñequillas',pt[0],'',pt[1]);
+  h+=kpi('En explosión ahora',now.join(', ')||'ninguno','',now.length>1?'Explosiones solapadas':now.length?'':'Tramo sin trabajo motor');
+  h+=kpi('Ciclo completo',M.Tc,'°',M.tt===4?'2 vueltas de cigüeñal':'1 vuelta de cigüeñal');
+  $('#kpis').innerHTML=h;
+}
+function renderChips(M){
+  const act=M.cyl.filter(c=>{const f=phi(M,c,S.th); return phaseAt(M,f).k==='E';}).sort((a,b)=>phi(M,a,S.th)-phi(M,b,S.th))[0];
+  $('#ordChips').innerHTML=M.c.order.map((i,k)=>`${k?'<li class="sep" aria-hidden="true">→</li>':''}<li class="${act&&act.i===i?'on':''}">${i}</li>`).join('');
+  $('#engSub').textContent=`${M.tt} tiempos · desfase ${fx(M.iv,0)}°`;
+}
+function renderLegend(M){
+  $('#phLeg').innerHTML=M.ph.map(p=>`<span><b class="ph-${p.k}">${p.lt||p.k}</b>${p.n}</span>`).join('')+(M.tt===4?'<span>Válvulas: izquierda admisión, derecha escape (se dibujan bajadas cuando están abiertas)</span>':'')+'<span>Destello rojo: salta la chispa</span>';
+}
+function renderLive(M){
+  const c1=M.cyl.find(c=>c.i===1), f=phi(M,c1,S.th);
+  document.querySelector('[data-live="eq"]').innerHTML=`Ahora: Δθ = ${M.Tc}°/${M.Z} = ${fx(M.iv,0)}° · cilindro 1: φ₁ = (${fx(S.th,0)} − 0) mod ${M.Tc} = ${fx(f,0)}° → ${phaseAt(M,f).n.toLowerCase()}`;
+}
+function renderMsgs(){
+  let h=''; S.err.forEach(e=>h+=`<div class="msg err">${e}</div>`);
+  const c=CFG.find(x=>x.id===S.cfg); if(S.tt===2&&!c.two) h+='<div class="msg warn">El modo 2 tiempos solo está disponible para 1 a 3 cilindros; se usa 4 tiempos.</div>';
+  $('#msgs').innerHTML=h;
+}
+function renderDynamic(){
+  const M=model(); drawEngine(M); drawCrank(M); renderPhaseTable(M); renderValves(M); renderKpis(M); renderChips(M); renderLive(M);
+  $('#rg_th').value=S.th; if(document.activeElement!==$('#in_th')) $('#in_th').value=Math.round(S.th);
+  const c1=M.cyl.find(c=>c.i===1), f=phi(M,c1,S.th);
+  $('#hn_th').innerHTML=`Cilindro 1: φ = <b>${fx(f,0)}°</b>, ${phaseAt(M,f).n.toLowerCase()}`;
+}
+function renderAll(){
+  const M=model();
+  $('#rg_th').max=M.Tc; $('#in_th').max=M.Tc; if(S.th>M.Tc) S.th=mod(S.th,M.Tc);
+  $('#hnCfg').textContent=M.c.note;
+  const c=M.c; $('#ttSel').disabled=!c.two; $('#hnTt').textContent=c.two?'Opción 2T disponible para 1 a 3 cilindros.':'Esta configuración solo se estudia en 4 tiempos.';
+  if(!c.two) $('#ttSel').value='4';
+  $('#crkNote').textContent=M.c.V?'Vista desde la distribución. Cada eje discontinuo es un banco; un cilindro está en PMS cuando su muñequilla apunta a su eje.':'Vista desde la distribución. Un cilindro está en PMS cuando su muñequilla apunta hacia arriba; los números indican qué bielas van en cada muñequilla.';
+  renderLegend(M); renderMsgs(); renderDynamic();
+}
+
+/* ---------- animación ---------- */
+let last=0;
+function tick(ts){ if(!S.playing){last=0; return;}
+  if(last){const dt=Math.min(0.1,(ts-last)/1000); S.th=mod(S.th+S.speed*dt,model().Tc);}
+  last=ts; renderDynamic(); requestAnimationFrame(tick);}
+function setPlaying(on){S.playing=on; $('#playBtn').textContent=on?'❚❚ Pausar':'▶ Animar'; if(on) requestAnimationFrame(tick);}
+function setTh(v){const M=model(); S.th=v>=M.Tc?mod(v,M.Tc):Math.max(0,v); renderDynamic();}
+
+/* ---------- inicio ---------- */
+function init(){
+  $('#cfgSel').innerHTML=CFG.map(c=>`<option value="${c.id}">${c.name}</option>`).join(''); $('#cfgSel').value=S.cfg;
+  TIM.forEach(d=>{S.tim[d.id]=d.value; const row=document.createElement('div'); row.className='prm';
+    row.innerHTML=`<div class="prm-h"><label for="in_${d.id}">${d.label}</label><span class="sym">${d.sym}</span></div>
+      <div class="prm-in"><input type="range" id="rg_${d.id}" min="${d.min}" max="${d.max}" step="${d.step}" value="${d.value}" aria-label="${d.label} (deslizador)"><input type="number" id="in_${d.id}" step="${d.step}" value="${d.value}"><span class="unit">°</span></div><div class="hint">${d.hint}</div>`;
+    $('#timing').appendChild(row);
+    const rg=row.querySelector('input[type=range]'), nb=row.querySelector('input[type=number]');
+    const set=v=>{S.err=S.err.filter(e=>!e.startsWith(d.sym)); if(!(v>=0&&v<=90)){S.err.push(`${d.sym}: use un valor entre 0 y 90°; con cotas mayores las válvulas quedarían abiertas casi todo el ciclo.`); renderMsgs(); return;} S.tim[d.id]=v; renderMsgs(); renderDynamic();};
+    rg.addEventListener('input',()=>{nb.value=rg.value; set(+rg.value);});
+    nb.addEventListener('input',()=>{const v=parseFloat(nb.value); if(Number.isFinite(v)){rg.value=v; set(v);}});});
+  $('#cfgSel').addEventListener('change',e=>{S.cfg=e.target.value; S.th=0; renderAll(); newQuestion();});
+  $('#ttSel').addEventListener('change',e=>{S.tt=+e.target.value; S.th=0; renderAll(); newQuestion();});
+  $('#rg_th').addEventListener('input',e=>{setPlaying(false); setTh(+e.target.value);});
+  $('#in_th').addEventListener('input',e=>{const v=parseFloat(e.target.value); S.err=S.err.filter(x=>!x.startsWith('θ'));
+    if(!Number.isFinite(v)) return; if(v<0){S.err.push('θ no puede ser negativo: escriba un ángulo entre 0 y '+model().Tc+'°.'); renderMsgs(); return;} renderMsgs(); setPlaying(false); setTh(v);});
+  $('#playBtn').addEventListener('click',()=>setPlaying(!S.playing));
+  $('#zeroBtn').addEventListener('click',()=>{setPlaying(false); setTh(0);});
+  $('#stepBtn').addEventListener('click',()=>{setPlaying(false); const M=model(); const nxt=(Math.floor(S.th/M.iv+1e-6)+1)*M.iv; setTh(mod(nxt,M.Tc));});
+  $('#speedSel').addEventListener('change',e=>S.speed=+e.target.value);
+  $('#qNew').addEventListener('click',newQuestion); $('#qCheck').addEventListener('click',checkQuestion);
+  $('#qShow').addEventListener('click',()=>{if(S.q){setPlaying(false); setTh(S.q.th); $('#cEng').scrollIntoView({behavior:'smooth',block:'center'});}});
+  const redraw=()=>{const M=model(); drawEngine(M); drawCrank(M);};
+  if(window.ResizeObserver){const ro=new ResizeObserver(redraw); ro.observe($('#cEng')); ro.observe($('#cCrk'));} else window.addEventListener('resize',redraw);
+  try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',redraw);}catch(e){}
+  new MutationObserver(redraw).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme','class','style']});
+  if(document.fonts&&document.fonts.ready) document.fonts.ready.then(redraw);
+  renderAll(); newQuestion();
+  window.__oe={model,phi,phaseAt,valveSets,S,CFG,setTh,renderAll};
+}
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
+})();
+</script>
+
+</body>
+</html>

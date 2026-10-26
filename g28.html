@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulador – Caja de cambios transversal (transeje) de 5 velocidades y reversa</title>
+</head>
+<body style="margin:0;padding:12px;background:#e9ebe8;">
+
+<!-- ===== INICIO DEL SIMULADOR TRANSVERSAL (bloque autocontenido) ===== -->
+<div id="cxt" tabindex="0">
+<style>
+#cxt{font-family:"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;color:#1c2420;max-width:1000px;margin:0 auto;background:#f6f7f5;border:1px solid #cfd4cd;border-radius:10px;padding:16px;box-sizing:border-box;outline:none}
+#cxt *{box-sizing:border-box}
+#cxt:focus-visible{box-shadow:0 0 0 3px #c9a40055}
+#cxt h2{margin:0 0 2px;font-size:1.25rem;font-weight:700;letter-spacing:-.01em}
+#cxt h3{margin:0 0 8px;font-size:1rem;font-weight:700}
+#cxt .cxt-sub{margin:0 0 12px;color:#56615a;font-size:.9rem;line-height:1.4;max-width:95ch}
+#cxt .cxt-stage{background:#fff;border:1px solid #dde1db;border-radius:8px;overflow:hidden}
+#cxt #cxt-box{display:block;width:100%;height:auto}
+#cxt .cxt-panel{display:grid;grid-template-columns:180px 1fr;gap:18px;margin-top:14px;align-items:start}
+@media (max-width:680px){#cxt .cxt-panel{grid-template-columns:1fr}#cxt .cxt-left{max-width:220px;margin:0 auto}}
+#cxt .cxt-left svg{width:100%;height:auto;display:block;cursor:pointer}
+#cxt .cxt-gears{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;justify-content:center}
+#cxt .cxt-gears button{min-width:36px;height:36px;border:1px solid #b9c0b8;background:#fff;border-radius:6px;font-weight:700;font-size:.95rem;color:#28312b;cursor:pointer}
+#cxt .cxt-gears button:hover{border-color:#b89500}
+#cxt .cxt-gears button.on{background:#e3b800;border-color:#c9a400;color:#1c2420}
+#cxt button:focus-visible,#cxt input:focus-visible{outline:2px solid #b89500;outline-offset:2px}
+#cxt .cxt-read{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+#cxt .cxt-read div{background:#fff;border:1px solid #dde1db;border-radius:6px;padding:8px 10px}
+#cxt .cxt-read span{display:block;font-size:.75rem;color:#5d6862}
+#cxt .cxt-read b{display:block;font-size:1.1rem;margin-top:2px;font-variant-numeric:tabular-nums}
+#cxt .cxt-formula{margin:10px 0 4px;padding:8px 10px;background:#fbf5d9;border-left:4px solid #d4ab00;border-radius:4px;font-size:.95rem;font-variant-numeric:tabular-nums;line-height:1.5}
+#cxt .cxt-desc{margin:6px 0 10px;font-size:.9rem;line-height:1.5;color:#2d3731;max-width:75ch}
+#cxt .cxt-ctrl{display:flex;flex-wrap:wrap;gap:14px 22px;align-items:center;font-size:.85rem;color:#3a443e}
+#cxt .cxt-ctrl label{display:flex;align-items:center;gap:8px}
+#cxt .cxt-ctrl input[type=range]{width:150px;accent-color:#c9a400}
+#cxt .cxt-ctrl input[type=checkbox]{accent-color:#c9a400;width:16px;height:16px}
+#cxt .cxt-ctrl output{font-weight:700;min-width:70px;font-variant-numeric:tabular-nums}
+#cxt .cxt-btn{border:1px solid #b9c0b8;background:#fff;border-radius:6px;padding:6px 12px;font-size:.85rem;cursor:pointer;color:#28312b}
+#cxt .cxt-btn:hover{border-color:#b89500}
+#cxt .cxt-teeth{margin-top:16px;background:#fff;border:1px solid #dde1db;border-radius:8px;padding:12px 14px}
+#cxt .cxt-teeth p{margin:0 0 10px;font-size:.85rem;color:#4d5852;line-height:1.45;max-width:85ch}
+#cxt .cxt-tt{width:100%;border-collapse:collapse;font-size:.88rem;font-variant-numeric:tabular-nums}
+#cxt .cxt-tt th{text-align:left;font-weight:600;font-size:.78rem;color:#5d6862;padding:4px 6px;border-bottom:1px solid #dde1db}
+#cxt .cxt-tt td{padding:5px 6px;border-bottom:1px solid #eef0ec}
+#cxt .cxt-tt tr.cur td{background:#fbf5d9}
+#cxt .cxt-tt input{width:64px;padding:4px 6px;border:1px solid #b9c0b8;border-radius:5px;font:inherit;text-align:center}
+#cxt .cxt-tt input.chg{border-color:#c9a400;background:#fffbe8}
+#cxt .cxt-tt .cxt-sum.bad{color:#b0510b;font-weight:700}
+#cxt .cxt-warn{margin:10px 0 0;font-size:.82rem;color:#8a430a;background:#fdf3e8;border-left:4px solid #d9791c;padding:6px 10px;border-radius:4px}
+#cxt .cxt-warn[hidden]{display:none}
+#cxt .cxt-trow{display:flex;justify-content:flex-end;margin-top:10px}
+#cxt .cxt-note{margin:12px 0 0;font-size:.75rem;color:#6b756f;line-height:1.4}
+#cxt .cxt-tl{opacity:0;transition:opacity .3s}
+#cxt .cxt-tl.on{opacity:1}
+#cxt .cxt-tl.dim{opacity:.6}
+#cxt .cxt-tl.dim circle{stroke:#8d948f}
+#cxt .cxt-sl{transition:transform .26s ease-in-out}
+#cxt #cxt-kn{transition:transform .2s ease-in-out}
+#cxt #cxt-flow{transition:opacity .2s}
+@media (prefers-reduced-motion:reduce){#cxt .cxt-sl,#cxt #cxt-kn{transition:none}}
+</style>
+
+<h2>Caja de cambios transversal (transeje) de 5 velocidades y reversa</h2>
+<p class="cxt-sub">Disposición típica de tracción delantera: el árbol primario recibe el giro del embrague y el secundario lo entrega, por medio del piñón de ataque, a la corona del diferencial. Selecciona una marcha y sigue la flecha amarilla del flujo de potencia. Teclado: 1–5, R y N.</p>
+
+<div class="cxt-stage">
+  <svg id="cxt-box" viewBox="0 0 780 485" role="img" aria-label="Vista en corte de una caja de cambios transversal con árbol primario, árbol secundario, piñón de ataque y corona del diferencial"></svg>
+</div>
+
+<div class="cxt-panel">
+  <div class="cxt-left">
+    <svg id="cxt-knob" viewBox="0 0 160 170" aria-label="Palanca de cambios en H">
+      <defs>
+        <linearGradient id="cxt-kp" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#fbfbfb"/><stop offset="1" stop-color="#d5d8d6"/>
+        </linearGradient>
+        <radialGradient id="cxt-kb" cx=".35" cy=".3" r=".75">
+          <stop offset="0" stop-color="#ffffff"/><stop offset=".35" stop-color="#b8bcbf"/><stop offset="1" stop-color="#3c4144"/>
+        </radialGradient>
+      </defs>
+      <rect x="5" y="5" width="150" height="160" rx="14" fill="url(#cxt-kp)" stroke="#b3b8b4"/>
+      <path d="M40 38V132M80 38V132M120 38V132M40 85H120" stroke="#737a76" stroke-width="3" stroke-linecap="round" fill="none"/>
+      <g font-size="13" font-weight="700" fill="#3a423d" text-anchor="middle">
+        <text x="40" y="25">1</text><text x="80" y="25">3</text><text x="120" y="25">5</text>
+        <text x="40" y="155">2</text><text x="80" y="155">4</text><text x="120" y="155">R</text>
+      </g>
+      <g id="cxt-kn" style="transform:translate(80px,85px)">
+        <circle r="15" fill="url(#cxt-kb)" stroke="#2e3336" stroke-width=".8"/>
+      </g>
+      <g fill="transparent">
+        <circle data-g="1" cx="40" cy="38" r="17"/><circle data-g="3" cx="80" cy="38" r="17"/><circle data-g="5" cx="120" cy="38" r="17"/>
+        <circle data-g="2" cx="40" cy="132" r="17"/><circle data-g="4" cx="80" cy="132" r="17"/><circle data-g="R" cx="120" cy="132" r="17"/>
+        <circle data-g="N" cx="80" cy="85" r="14"/>
+      </g>
+    </svg>
+    <div class="cxt-gears">
+      <button data-g="N">N</button><button data-g="1">1</button><button data-g="2">2</button><button data-g="3">3</button>
+      <button data-g="4">4</button><button data-g="5">5</button><button data-g="R">R</button>
+    </div>
+  </div>
+
+  <div>
+    <div class="cxt-read">
+      <div><span>Marcha</span><b id="cxt-rg">Punto muerto</b></div>
+      <div><span>Relación de la caja</span><b id="cxt-ri">—</b></div>
+      <div><span>Relación total (con grupo final)</span><b id="cxt-rT">—</b></div>
+      <div><span>Árbol secundario</span><b id="cxt-rn">0 rpm</b></div>
+      <div><span>Ruedas</span><b id="cxt-rw">0 rpm</b></div>
+      <div><span>Velocidad aproximada</span><b id="cxt-rv">0 km/h</b></div>
+      <div><span>Par en las ruedas (ideal)</span><b id="cxt-rt">0 N·m</b></div>
+      <div><span>Movimiento del vehículo</span><b id="cxt-rs">—</b></div>
+    </div>
+    <p class="cxt-formula" id="cxt-rf"></p>
+    <p class="cxt-desc" id="cxt-rd"></p>
+    <div class="cxt-ctrl">
+      <label>Régimen del motor <input type="range" id="cxt-rpm" min="600" max="3000" step="50" value="1000"><output id="cxt-rpmo">1000 rpm</output></label>
+      <label>Par del motor <input type="range" id="cxt-tq" min="50" max="300" step="10" value="120"><output id="cxt-tqo">120 N·m</output></label>
+      <label><input type="checkbox" id="cxt-all"> Mostrar dientes de todos los piñones</label>
+      <button class="cxt-btn" id="cxt-play">Pausar</button>
+    </div>
+  </div>
+</div>
+
+<div class="cxt-teeth">
+  <h3>Número de dientes</h3>
+  <p>Cambia el número de dientes de cualquier piñón (entre 10 y 90) y todo se recalcula al instante. Los valores iniciales son típicos de un transeje de turismo; reemplázalos por los del manual de la caja que estés estudiando.</p>
+  <div style="overflow-x:auto">
+  <table class="cxt-tt">
+    <thead><tr><th>Par de piñones</th><th>Piñón conductor</th><th>Piñón conducido</th><th>Suma</th><th>Relación resultante</th></tr></thead>
+    <tbody id="cxt-tbody"></tbody>
+  </table>
+  </div>
+  <p class="cxt-warn" id="cxt-warn" hidden></p>
+  <div class="cxt-trow"><button class="cxt-btn" id="cxt-reset">Restablecer valores iniciales</button></div>
+</div>
+<p class="cxt-note">Valores ideales, sin pérdidas por rozamiento; embrague acoplado. Velocidad calculada con un radio de rueda de 0,30 m (neumático 185/65 R15 aprox.). El dibujo mantiene fija la distancia entre ejes, así que el tamaño de cada piñón se reparte según su número de dientes.</p>
+
+<script>
+(function(){
+  var root=document.getElementById('cxt');
+  var svg=root.querySelector('#cxt-box');
+  var NS='http://www.w3.org/2000/svg';
+  function el(tag,attrs,parent){var e=document.createElementNS(NS,tag);for(var k in attrs){e.setAttribute(k,attrs[k]);}if(parent)parent.appendChild(e);return e;}
+  function assign(a,b){var o={};for(var k in a)o[k]=a[k];for(var j in b)o[j]=b[j];return o;}
+  function fmt(v,d){return v.toFixed(d).replace('.',',');}
+
+  /* ---------- Número de dientes (editable): [conductor, conducido] ---------- */
+  var DEFAULT={'1':[12,42],'2':[19,35],'3':[23,31],'4':[26,28],'5':[30,24],R:[12,40],F:[17,69]};
+  var PAIRS={};
+  function resetPairs(){for(var k in DEFAULT)PAIRS[k]={zi:DEFAULT[k][0],zo:DEFAULT[k][1]};}
+  resetPairs();
+  var ORDER=['1','2','3','4','5','R','F'];
+  var PAIR_NAME={'1':'1.ª marcha','2':'2.ª marcha','3':'3.ª marcha','4':'4.ª marcha','5':'5.ª marcha',R:'Reversa (con piñón loco)',F:'Grupo final (piñón de ataque / corona)'};
+  var Z_IDLER=20, RW=0.30;
+
+  /* ---------- Geometría ---------- */
+  var IY=330, OY=195, RY=40;           // eje primario, eje secundario, eje de la corona
+  var DIO=135, DRP=155;                // distancias entre ejes
+  var S=9, W=S*1.6;
+
+  var GEARS={
+    N:{name:'Punto muerto'},
+    '1':{name:'1.ª marcha',pair:'1',sync:'B',side:1,x:555},
+    '2':{name:'2.ª marcha',pair:'2',sync:'B',side:-1,x:445},
+    '3':{name:'3.ª marcha',pair:'3',sync:'A',side:1,x:385},
+    '4':{name:'4.ª marcha',pair:'4',sync:'A',side:-1,x:275},
+    '5':{name:'5.ª marcha',pair:'5',sync:'C',side:1,x:160},
+    R:{name:'Reversa',pair:'R',rev:true,x:500}
+  };
+  var cur='N';
+  function gearRatio(pk){var P=PAIRS[pk];return P.zo/P.zi;}
+  function finalRatio(){return PAIRS.F.zo/PAIRS.F.zi;}
+  function wo(){                                   // velocidad del árbol secundario (entrada = +1)
+    if(cur==='N')return 0;
+    var P=PAIRS[GEARS[cur].pair];
+    return cur==='R'?P.zi/P.zo:-P.zi/P.zo;
+  }
+  function wFree(key){                             // piñones locos (libres) de cada árbol
+    var pk=key.slice(1),P=PAIRS[pk];
+    if(key[0]==='o')return -P.zi/P.zo;             // libres en el secundario (1.ª y 2.ª) movidos por el primario
+    return -wo()*P.zo/P.zi;                        // libres en el primario (3.ª, 4.ª, 5.ª) movidos por el secundario
+  }
+
+  /* ---------- Degradados y marcadores ---------- */
+  var defs=el('defs',{},svg);
+  function lin(id,stops,horiz){var g=el('linearGradient',{id:id,x1:0,y1:0,x2:horiz?1:0,y2:horiz?0:1},defs);
+    stops.forEach(function(s){el('stop',{offset:s[0],'stop-color':s[1],'stop-opacity':s[2]===undefined?1:s[2]},g);});}
+  lin('cxt-gm',[[0,'#5d646b'],[.12,'#aab1b7'],[.3,'#eef1f3'],[.46,'#c8cdd2'],[.72,'#8d949b'],[1,'#4c5258']]);
+  lin('cxt-gs',[[0,'#000',.28],[.3,'#fff',.2],[.52,'#fff',0],[1,'#000',.32]]);
+  lin('cxt-gh',[[0,'#4b5157'],[.3,'#e0e4e7'],[.55,'#b3b9be'],[1,'#41474d']]);
+  lin('cxt-gd',[[0,'#2a2e32'],[.4,'#747b82'],[1,'#23272b']]);
+  lin('cxt-gb',[[0,'#7a3c0a'],[.25,'#e88a2a'],[.45,'#ffc574'],[.7,'#d9791c'],[1,'#6e360a']]);
+  lin('cxt-gy',[[0,'#6f5310'],[.35,'#e7c35a'],[.5,'#fbe7a1'],[1,'#6f5310']]);
+  lin('cxt-gk',[[0,'#474d54'],[.35,'#c9cfd5'],[.5,'#eef1f3'],[1,'#3d434a']]);
+  lin('cxt-gg',[[0,'#202428'],[.5,'#5a6168'],[1,'#1d2125']]);
+  lin('cxt-gf',[[0,'#7f868d'],[.5,'#e6e9ec'],[1,'#737a82']],true);
+  lin('cxt-gc',[[0,'#8a8f93'],[.3,'#d9dcde'],[.6,'#aeb3b7'],[1,'#6d7276']]);
+  var mk=el('marker',{id:'cxt-arr',viewBox:'0 0 10 10',refX:3,refY:5,markerWidth:2.3,markerHeight:2.3,orient:'auto',markerUnits:'strokeWidth'},defs);
+  el('path',{d:'M0 0L10 5L0 10z',fill:'#e8c000'},mk);
+
+  /* ---------- Piezas giratorias ---------- */
+  var rotors=[], pid=0;
+  function patternPath(kind){
+    if(kind==='hR')return 'M0 '+S+'L'+W+' 0M'+(-W)+' '+(2*S)+'L0 '+S+'M'+W+' 0L'+(2*W)+' '+(-S)+'M'+(-W)+' '+S+'L0 0M'+W+' '+S+'L'+(2*W)+' 0';
+    if(kind==='hL')return 'M0 0L'+W+' '+S+'M'+(-W)+' '+(-S)+'L0 0M'+W+' '+S+'L'+(2*W)+' '+(2*S)+'M'+(-W)+' 0L0 '+S+'M'+W+' 0L'+(2*W)+' '+S;
+    return 'M0 '+(S/2)+'H'+S;
+  }
+  function rotor(parent,x,cy,w,r,kind,wf,base,alpha,rx){
+    base=base||'cxt-gm';alpha=alpha===undefined?.55:alpha;rx=rx===undefined?3:rx;
+    var id='cxt-p'+(pid++);
+    var p=el('pattern',{id:id,patternUnits:'userSpaceOnUse',width:kind==='st'?S:W,height:S},defs);
+    var d=patternPath(kind);
+    el('path',{d:d,fill:'none',stroke:'#262b31','stroke-opacity':alpha,'stroke-width':2.6},p);
+    el('path',{d:d,fill:'none',stroke:'#fff','stroke-opacity':alpha*.9,'stroke-width':.9,transform:'translate(0 -1.2)'},p);
+    var g=el('g',{},parent);
+    var a={x:x-w/2,y:cy-r,width:w,height:2*r,rx:rx};
+    var rects=[el('rect',assign(a,{fill:'url(#'+base+')'}),g),el('rect',assign(a,{fill:'url(#'+id+')'}),g),
+      el('rect',assign(a,{fill:'url(#cxt-gs)',stroke:'#353a40','stroke-opacity':.55,'stroke-width':1}),g)];
+    var rec={p:p,r:r,wf:wf,off:0,rects:rects,cy:cy};
+    rotors.push(rec);return rec;
+  }
+  function setGeom(rec,r,cy){if(cy!==undefined)rec.cy=cy;rec.r=r;rec.rects.forEach(function(e){e.setAttribute('y',rec.cy-r);e.setAttribute('height',2*r);});}
+  function bearing(parent,x,cy,r){
+    var g=el('g',{},parent);
+    el('rect',{x:x-12,y:cy-r,width:24,height:2*r,rx:6,fill:'url(#cxt-gb)',stroke:'#5a2d08','stroke-opacity':.6},g);
+    el('rect',{x:x-6,y:cy-r+7,width:12,height:2*r-14,rx:3,fill:'url(#cxt-gm)',stroke:'#444','stroke-opacity':.4},g);
+  }
+
+  /* ---------- Carcasa ---------- */
+  el('path',{d:'M36 88Q36 64 60 64H420V52H580V64H676V470H60Q36 470 36 446Z',fill:'#eef0ed',stroke:'#cfd4cd','stroke-width':1.5},svg);
+
+  /* ---------- Corona del diferencial (detrás del piñón de ataque) ---------- */
+  var gRing=el('g',{},svg);
+  var ring=rotor(gRing,600,RY,34,120,'hR',function(){return -wo()*PAIRS.F.zi/PAIRS.F.zo;});
+
+  /* ---------- Árboles, embrague y rodamientos ---------- */
+  var gShaft=el('g',{},svg);
+  rotor(gShaft,385,IY,630,15,'st',function(){return 1;},'cxt-gh',.22,3);                 // primario
+  rotor(gShaft,398,OY,536,17,'st',function(){return wo();},'cxt-gh',.22,3);              // secundario
+  rotor(gShaft,716,IY,44,118,'st',function(){return 1;},'cxt-gc',.18,8);                 // embrague (maza y plato)
+  rotor(gShaft,748,IY,16,138,'st',function(){return 1;},'cxt-gd',.8,3);                  // volante con corona de arranque
+  bearing(gShaft,215,IY,36);bearing(gShaft,640,IY,38);bearing(gShaft,215,OY,34);bearing(gShaft,645,OY,36);
+
+  var tx=el('g',{'font-size':11,fill:'#5b665f','font-weight':600},svg);
+  el('text',{x:560,y:398},tx).textContent='Árbol primario';
+  el('text',{x:140,y:106},tx).textContent='Árbol secundario';
+  el('text',{x:632,y:82},tx).textContent='Corona del';
+  el('text',{x:632,y:95},tx).textContent='diferencial';
+  el('text',{x:688,y:178},tx).textContent='Embrague';
+
+  /* ---------- Piñones ---------- */
+  var GEO={};
+  var LAYOUT=[['1',555,36],['2',445,36],['3',385,36],['4',275,36],['5',160,36]];
+  var gO=el('g',{},svg), gI=el('g',{},svg);
+  LAYOUT.forEach(function(d){
+    var pk=d[0],x=d[1],w=d[2];
+    var io='o'+pk, ii='i'+pk;
+    var outFree=(pk==='1'||pk==='2');
+    GEO[io]={x:x,w:w,cy:OY,rot:rotor(gO,x,OY,w,10,'hL',outFree?function(){return wFree(io);}:function(){return wo();})};
+    GEO[ii]={x:x,w:w,cy:IY,rot:rotor(gI,x,IY,w,10,'hR',outFree?function(){return 1;}:function(){return wFree(ii);})};
+  });
+  GEO.iR={x:500,w:20,cy:IY,rot:rotor(gI,500,IY,20,33,'st',function(){return 1;})};           // piñón de reversa del primario
+  GEO.pF={x:600,w:30,cy:OY,rot:rotor(gO,600,OY,30,33,'hL',function(){return wo();})};       // piñón de ataque
+  GEO.rF={x:600,w:34,cy:RY,rot:ring};
+
+  /* ---------- Sincronizadores ---------- */
+  var SY={
+    A:{x:330,cy:IY,L:293,R:367,lg:'i4',rg:'i3',tag:'Sinc. 3.ª–4.ª',rs:50,gr:42,dog:40,br:45,w:function(){return 1;}},
+    B:{x:500,cy:OY,L:463,R:537,lg:'o2',rg:'o1',tag:'Sinc. 1.ª–2.ª',rs:64,gr:54,dog:50,br:56,w:function(){return wo();},rev:true},
+    C:{x:105,cy:IY,L:null,R:142,lg:null,rg:'i5',tag:'Sinc. 5.ª',rs:50,gr:42,dog:40,br:45,w:function(){return 1;}}
+  };
+  var gSy=el('g',{},svg);
+  function dogW(key){return function(){var o=GEO[key];return o.rot.wf();};}
+  for(var k in SY){(function(s){
+    if(s.L!==null){rotor(gSy,s.L+4,s.cy,8,s.dog,'st',dogW(s.lg),'cxt-gk',.6,1);
+      el('rect',{x:(s.L+8+s.x-17)/2-2.5,y:s.cy-s.br,width:5,height:2*s.br,rx:1.5,fill:'url(#cxt-gy)'},gSy);}
+    rotor(gSy,s.R-4,s.cy,8,s.dog,'st',dogW(s.rg),'cxt-gk',.6,1);
+    el('rect',{x:(s.x+17+s.R-8)/2-2.5,y:s.cy-s.br,width:5,height:2*s.br,rx:1.5,fill:'url(#cxt-gy)'},gSy);
+    s.dL=s.L===null?0:(s.x-17)-(s.L+4); s.dR=(s.R-4)-(s.x+17);
+  })(SY[k]);}
+
+  /* ---------- Varillas y horquillas ---------- */
+  var rails=el('g',{},svg);
+  el('rect',{x:440,y:26,width:120,height:10,rx:5,fill:'url(#cxt-gh)',stroke:'#3b4046','stroke-opacity':.5},rails);
+  el('rect',{x:60,y:450,width:520,height:10,rx:5,fill:'url(#cxt-gh)',stroke:'#3b4046','stroke-opacity':.5},rails);
+  [74,84,94].forEach(function(x){el('circle',{cx:x,cy:455,r:2.4,fill:'#3a3f44'},rails);});
+  function fork(g,x,y0,y1){
+    var s=y1>y0?1:-1,L=Math.abs(y1-y0),f=function(t){return y0+s*t*L/110;};
+    el('path',{d:'M'+(x-5)+' '+f(0)+'H'+(x+5)+'V'+f(56)+'L'+(x+13)+' '+f(72)+'V'+f(82)+'L'+(x+4)+' '+f(90)+'V'+f(110)+'H'+(x-4)+'V'+f(90)+'L'+(x-13)+' '+f(82)+'V'+f(72)+'L'+(x-5)+' '+f(56)+'Z',
+      fill:'url(#cxt-gf)',stroke:'#3b4046','stroke-width':1},g);
+  }
+  for(var k2 in SY){(function(s){
+    var g=el('g',{'class':'cxt-sl'},svg); s.g=g;
+    rotor(g,s.x-10.5,s.cy,13,s.rs,'st',s.w,'cxt-gk',s.rev?.6:.5,2);
+    rotor(g,s.x+10.5,s.cy,13,s.rs,'st',s.w,'cxt-gk',s.rev?.6:.5,2);
+    el('rect',{x:s.x-4,y:s.cy-s.gr,width:8,height:2*s.gr,fill:'url(#cxt-gg)'},g);
+    var top=s.cy===OY, t;
+    if(top){fork(g,s.x,42,s.cy-s.gr+4);el('rect',{x:s.x-12,y:20,width:24,height:22,rx:4,fill:'url(#cxt-gk)',stroke:'#3b4046','stroke-opacity':.7},g);
+      t=el('text',{x:s.x,y:14,'text-anchor':'middle','font-size':10.5,'font-weight':700,fill:'#4a544e'},g);}
+    else{fork(g,s.x,444,s.cy+s.gr-4);el('rect',{x:s.x-12,y:444,width:24,height:22,rx:4,fill:'url(#cxt-gk)',stroke:'#3b4046','stroke-opacity':.7},g);
+      t=el('text',{x:s.x,y:480,'text-anchor':'middle','font-size':10.5,'font-weight':700,fill:'#4a544e'},g);}
+    t.textContent=s.tag;
+  })(SY[k2]);}
+
+  /* ---------- Piñón loco de reversa (se desliza) ---------- */
+  var idler=el('g',{'class':'cxt-sl',style:'transform:translateX(22px)'},svg);
+  var idlerRot=rotor(idler,500,278,18,24,'st',function(){return cur==='R'?-PAIRS.R.zi/Z_IDLER:0;},'cxt-gm',.6,3);
+  var idlerOut=el('rect',{x:491,width:18,rx:3,fill:'none',stroke:'#d9791c','stroke-width':1.6,'stroke-dasharray':'4 3'},idler);
+  var idlerTag=el('g',{opacity:0},idler);
+  el('rect',{x:514,width:44,height:20,rx:10,fill:'#fff',stroke:'#d9791c','stroke-width':1.5},idlerTag);
+  el('text',{x:536,'text-anchor':'middle','font-size':11,'font-weight':700,fill:'#9a4f0d'},idlerTag).textContent='loco';
+
+  /* ---------- Flujo de potencia ---------- */
+  var flowG=el('g',{id:'cxt-flow'},svg);
+  var flow=el('path',{fill:'none',stroke:'#f2d000','stroke-opacity':.75,'stroke-width':14,'stroke-linejoin':'miter','stroke-linecap':'butt'},flowG);
+  var flowDash=el('path',{fill:'none',stroke:'#fff','stroke-opacity':.7,'stroke-width':3,'stroke-dasharray':'6 16','stroke-linecap':'round','stroke-linejoin':'round'},flowG);
+  function flowD(g){
+    if(g==='N')return 'M772 '+IY+'H80';
+    return 'M772 '+IY+'H'+GEARS[g].x+'V'+OY+'H600V-6';
+  }
+
+  /* ---------- Etiquetas de número de dientes ---------- */
+  var labels={};
+  ['i1','o1','i2','o2','i3','o3','i4','o4','i5','o5','iR','oR','pF','rF'].forEach(function(key){
+    var g=el('g',{'class':'cxt-tl'},svg);
+    var c=el('circle',{r:13,fill:'#fff',stroke:'#d4ab00','stroke-width':2.6},g);
+    var t=el('text',{'text-anchor':'middle','font-size':12.5,'font-weight':800,fill:'#1f2a24'},g);
+    labels[key]={g:g,c:c,t:t};
+  });
+  function zOf(key){var P=PAIRS[key.slice(1)];if(key==='pF')return P.zi;if(key==='rF')return P.zo;return key[0]==='o'?P.zo:P.zi;}
+  function place(key,cx,cy){var L=labels[key];L.c.setAttribute('cx',cx);L.c.setAttribute('cy',cy);L.t.setAttribute('x',cx);L.t.setAttribute('y',cy+4.5);L.t.textContent=zOf(key);}
+
+  function applyGeometry(){
+    ['1','2','3','4','5'].forEach(function(pk){
+      var P=PAIRS[pk],sum=P.zi+P.zo,ri=DIO*P.zi/sum+3,ro=DIO*P.zo/sum+3;
+      setGeom(GEO['i'+pk].rot,ri); setGeom(GEO['o'+pk].rot,ro);
+      var x=GEO['i'+pk].x-18-6;
+      place('i'+pk,x,IY+ri+8); place('o'+pk,x,OY-ro-8);
+    });
+    var rR=Math.max(20,Math.min(46,2.6*PAIRS.R.zi+2));
+    setGeom(GEO.iR.rot,rR);
+    var top=OY+SY.B.rs, bot=IY-rR, icy=(top+bot)/2, ir=(bot-top)/2+6;
+    setGeom(idlerRot,ir,icy);
+    idlerOut.setAttribute('y',icy-ir);idlerOut.setAttribute('height',2*ir);
+    idlerTag.setAttribute('transform','translate(0 '+(icy-10)+')');
+    idlerTag.querySelector('text').setAttribute('y',14);
+    place('iR',476,IY+rR+10); place('oR',470,OY-SY.B.rs-10);
+    var F=PAIRS.F,fs=F.zi+F.zo;
+    setGeom(GEO.pF.rot,DRP*F.zi/fs+3); setGeom(ring,DRP*F.zo/fs+3);
+    place('pF',632,140); place('rF',655,24);
+  }
+  applyGeometry();
+
+  /* ---------- Panel ---------- */
+  var $=function(id){return root.querySelector('#'+id);};
+  var rpmIn=$('cxt-rpm'), tqIn=$('cxt-tq'), allCk=$('cxt-all'), knobG=$('cxt-kn');
+  function desc(g){
+    var F=PAIRS.F, tail=' El piñón de ataque ('+F.zi+' dientes) del secundario transmite el par a la corona del diferencial ('+F.zo+' dientes) y de ahí a los semiejes.';
+    if(g==='N')return 'Ningún sincronizador está acoplado y el piñón loco está fuera de toma. El primario gira con el motor y arrastra a los piñones libres de 1.ª y 2.ª, pero el secundario no recibe par.';
+    var P=PAIRS[GEARS[g].pair];
+    if(g==='R')return 'Ningún sincronizador se acopla: el piñón loco se desplaza y engrana a la vez con el piñón de reversa del primario ('+P.zi+' dientes) y con el dentado recto exterior del manguito de 1.ª–2.ª ('+P.zo+' dientes). Al intercalarse el piñón loco, el secundario gira en sentido contrario y el vehículo retrocede.'+tail;
+    if(g==='1'||g==='2')return 'El piñón de '+GEARS[g].name+' del primario ('+P.zi+' dientes, fijo al árbol) engrana con el del secundario ('+P.zo+' dientes), que gira libre hasta que el sincronizador de 1.ª–2.ª se desplaza hacia él y lo une al secundario.'+tail;
+    var sy=g==='5'?'5.ª':'3.ª–4.ª';
+    var extra=g==='4'?' A diferencia de la caja longitudinal, el transeje no tiene toma directa: incluso en 4.ª el par pasa por un par de piñones.':'';
+    var od=gearRatio(g)<1?' Como la relación es menor que 1, el secundario gira más rápido que el primario (sobremarcha).':'';
+    return 'El sincronizador de '+sy+', montado en el primario, se desplaza hacia el piñón de '+GEARS[g].name+' ('+P.zi+' dientes, libre en el primario) y lo une al árbol. Este engrana con el piñón del secundario ('+P.zo+' dientes, fijo al árbol).'+extra+od+tail;
+  }
+  var lastD='', fadeT=null;
+  function update(){
+    var G=GEARS[cur], rpm=+rpmIn.value, T=+tqIn.value;
+    $('cxt-rpmo').textContent=rpm+' rpm'; $('cxt-tqo').textContent=T+' N·m';
+    $('cxt-rg').textContent=G.name;
+    var F=PAIRS.F, iF=finalRatio();
+    if(cur==='N'){
+      ['cxt-ri','cxt-rT','cxt-rs'].forEach(function(id){$(id).textContent='—';});
+      $('cxt-rn').textContent='0 rpm';$('cxt-rw').textContent='0 rpm';$('cxt-rv').textContent='0 km/h';$('cxt-rt').textContent='0 N·m';
+      $('cxt-rf').textContent='Sin relación: no hay transmisión de par a las ruedas.';
+    }else{
+      var P=PAIRS[G.pair], ig=gearRatio(G.pair), it=ig*iF, nw=rpm/it;
+      $('cxt-ri').textContent=fmt(ig,2)+' : 1';
+      $('cxt-rT').textContent=fmt(it,2)+' : 1';
+      $('cxt-rn').textContent=Math.round(rpm/ig)+' rpm';
+      $('cxt-rw').textContent=Math.round(nw)+' rpm';
+      $('cxt-rv').textContent=fmt(nw*2*Math.PI*RW*60/1000,1)+' km/h';
+      $('cxt-rt').textContent=Math.round(T*it)+' N·m';
+      $('cxt-rs').textContent=cur==='R'?'Retroceso':'Avance';
+      $('cxt-rf').textContent='i caja = '+P.zo+' / '+P.zi+' = '+fmt(ig,3)+(cur==='R'?' (el piñón loco solo invierte el giro)':'')+
+        '   |   i total = i caja × ('+F.zo+' / '+F.zi+') = '+fmt(ig,3)+' × '+fmt(iF,3)+' = '+fmt(it,2);
+    }
+    $('cxt-rd').textContent=desc(cur);
+    var d=flowD(cur);
+    if(d!==lastD){
+      lastD=d; flowG.style.opacity=0; clearTimeout(fadeT);
+      fadeT=setTimeout(function(){flow.setAttribute('d',d);flowDash.setAttribute('d',d);
+        if(cur==='N')flow.removeAttribute('marker-end');else flow.setAttribute('marker-end','url(#cxt-arr)');
+        flowG.style.opacity=1;},170);
+    }
+    var act=cur==='N'?[]:['i'+G.pair,'o'+G.pair,'pF','rF'];
+    for(var key in labels){var on=act.indexOf(key)>=0;labels[key].g.setAttribute('class','cxt-tl'+(on?' on':(allCk.checked?' dim':'')));}
+    root.querySelectorAll('.cxt-gears button').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-g')===cur);});
+    updateTable();
+  }
+
+  /* ---------- Tabla de número de dientes ---------- */
+  var tbody=$('cxt-tbody'), rows={};
+  var WHO={'1':['Primario (fijo)','Secundario (libre)'],'2':['Primario (fijo)','Secundario (libre)'],'3':['Primario (libre)','Secundario (fijo)'],
+    '4':['Primario (libre)','Secundario (fijo)'],'5':['Primario (libre)','Secundario (fijo)'],R:['Primario','Manguito 1.ª–2.ª'],F:['Piñón de ataque','Corona']};
+  ORDER.forEach(function(pk){
+    var tr=document.createElement('tr');
+    var mkIn=function(which,title){var wrap=document.createElement('td');var inp=document.createElement('input');inp.type='number';inp.min=10;inp.max=90;inp.step=1;
+      inp.title=title;inp.setAttribute('aria-label',PAIR_NAME[pk]+' – '+title);
+      inp.addEventListener('input',function(){onTeeth(pk,which,inp,false);});
+      inp.addEventListener('change',function(){onTeeth(pk,which,inp,true);});
+      var sm=document.createElement('div');sm.textContent=title;sm.style.cssText='font-size:.72rem;color:#6b756f;margin-top:2px';
+      wrap.appendChild(inp);wrap.appendChild(sm);return {td:wrap,inp:inp};};
+    var tdN=document.createElement('td');tdN.textContent=PAIR_NAME[pk];
+    var a=mkIn('zi',WHO[pk][0]), b=mkIn('zo',WHO[pk][1]);
+    var tdS=document.createElement('td'), tdR=document.createElement('td'); tdS.className='cxt-sum';
+    [tdN,a.td,b.td,tdS,tdR].forEach(function(t){tr.appendChild(t);});
+    tbody.appendChild(tr);
+    rows[pk]={tr:tr,iI:a.inp,iO:b.inp,sum:tdS,res:tdR};
+  });
+  function fillInputs(){ORDER.forEach(function(pk){rows[pk].iI.value=PAIRS[pk].zi;rows[pk].iO.value=PAIRS[pk].zo;});}
+  function onTeeth(pk,which,inp,commit){
+    var v=parseInt(inp.value,10);
+    if(isNaN(v)){if(commit)inp.value=PAIRS[pk][which];return;}
+    var c=Math.max(10,Math.min(90,v));
+    if(commit||c===v){PAIRS[pk][which]=c;if(commit)inp.value=c;applyGeometry();update();}
+  }
+  function updateTable(){
+    var sums={},best=null,bestN=0;
+    ['1','2','3','4','5'].forEach(function(pk){var s=PAIRS[pk].zi+PAIRS[pk].zo;sums[s]=(sums[s]||0)+1;if(sums[s]>bestN){bestN=sums[s];best=s;}});
+    var bad=[];
+    ORDER.forEach(function(pk){
+      var P=PAIRS[pk],R=rows[pk],s=P.zi+P.zo;
+      R.sum.textContent=s;
+      var off=pk!=='R'&&pk!=='F'&&s!==best;R.sum.classList.toggle('bad',off);if(off)bad.push(PAIR_NAME[pk]);
+      R.res.textContent=fmt(P.zo/P.zi,2)+' : 1'+(pk==='R'?' (inversa)':'');
+      R.tr.classList.toggle('cur',cur!=='N'&&(GEARS[cur].pair===pk||pk==='F'));
+      R.iI.classList.toggle('chg',P.zi!==DEFAULT[pk][0]);R.iO.classList.toggle('chg',P.zo!==DEFAULT[pk][1]);
+    });
+    var w=$('cxt-warn');
+    if(bad.length){w.hidden=false;w.textContent='La suma de dientes de '+bad.join(', ')+' no coincide con la del resto de marchas ('+best+'). Como todos los pares comparten la misma distancia entre ejes, en una caja real esa diferencia se compensa con otro módulo, otro ángulo de hélice o corrección de dentado. La relación calculada sigue siendo válida.';}
+    else w.hidden=true;
+  }
+  $('cxt-reset').addEventListener('click',function(){resetPairs();fillInputs();applyGeometry();update();});
+  fillInputs();
+
+  /* ---------- Cambio de marcha ---------- */
+  var colOf={N:80,'1':40,'2':40,'3':80,'4':80,'5':120,R:120}, rowOf={'1':38,'3':38,'5':38,'2':132,'4':132,R:132};
+  var knobX=80, busy=false, pending=null;
+  function knob(x,y){knobG.style.transform='translate('+x+'px,'+y+'px)';knobX=x;}
+  function sleeve(k,side){var s=SY[k];var dx=side<0?-s.dL:side>0?s.dR:0;s.g.style.transform='translateX('+dx+'px)';}
+  function idlerIn(on){idler.style.transform='translateX('+(on?0:22)+'px)';idlerTag.setAttribute('opacity',on?1:0);}
+  function wait(ms){return new Promise(function(r){setTimeout(r,ms);});}
+  function shift(t){
+    if(busy){pending=t;return;}
+    if(t===cur)return;
+    busy=true;
+    var p=Promise.resolve();
+    if(cur!=='N'){p=p.then(function(){knob(colOf[cur],85);for(var k in SY)sleeve(k,0);idlerIn(false);return wait(270);}).then(function(){cur='N';update();});}
+    if(t!=='N'){
+      p=p.then(function(){if(knobX!==colOf[t]){knob(colOf[t],85);return wait(210);}})
+       .then(function(){knob(colOf[t],rowOf[t]);if(t==='R')idlerIn(true);else sleeve(GEARS[t].sync,GEARS[t].side);return wait(270);})
+       .then(function(){cur=t;update();});
+    }
+    p.then(function(){busy=false;if(pending!==null){var n=pending;pending=null;shift(n);}});
+  }
+  root.querySelectorAll('[data-g]').forEach(function(b){b.addEventListener('click',function(){shift(b.getAttribute('data-g'));});});
+  root.addEventListener('keydown',function(e){
+    if(e.target&&e.target.tagName==='INPUT'&&e.target.type==='number')return;
+    var k=e.key.toUpperCase();
+    if(['1','2','3','4','5','R','N'].indexOf(k)>=0){shift(k);e.preventDefault();}
+    else if(k==='0'){shift('N');e.preventDefault();}
+  });
+  rpmIn.addEventListener('input',update); tqIn.addEventListener('input',update); allCk.addEventListener('change',update);
+
+  /* ---------- Animación ---------- */
+  var running=!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  var playBtn=$('cxt-play'); playBtn.textContent=running?'Pausar':'Animar';
+  playBtn.addEventListener('click',function(){running=!running;playBtn.textContent=running?'Pausar':'Animar';});
+  var last=performance.now(), dash=0;
+  function tick(t){
+    var dt=Math.min(.05,(t-last)/1000); last=t;
+    if(running){
+      var rpm=+rpmIn.value;
+      for(var i=0;i<rotors.length;i++){var r=rotors[i];
+        var v=r.wf()*rpm*r.r*0.0011; v=Math.max(-240,Math.min(240,v));
+        r.off=(r.off+v*dt)%S; if(r.off<0)r.off+=S;
+        r.p.setAttribute('patternTransform','translate(0 '+r.off.toFixed(2)+')');}
+      dash-=dt*55*(rpm/1000); flowDash.setAttribute('stroke-dashoffset',dash.toFixed(1));
+    }
+    requestAnimationFrame(tick);
+  }
+  update(); requestAnimationFrame(tick);
+})();
+</script>
+</div>
+<!-- ===== FIN DEL SIMULADOR TRANSVERSAL ===== -->
+
+</body>
+</html>

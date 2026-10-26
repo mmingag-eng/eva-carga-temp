@@ -1,0 +1,1098 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Simulador Red CAN</title>
+<style>
+:root{--bg:#f3f5f8;--card:#fff;--ink:#1c2533;--muted:#5b6778;--line:#d9dfe7;--brand:#12355b;--brand2:#1f5a94;--accent:#e07b00;--ok:#1d8a4e;--okbg:#e6f4ec;--bad:#c62828;--badbg:#fdecea;--warnbg:#fff4e0;--wire:#2b3440;--flow:#ffb300;--canh:#d84315;--canl:#1565c0}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.45}
+header{background:linear-gradient(90deg,var(--brand),var(--brand2));color:#fff;padding:14px 22px}
+header h1{margin:0;font-size:1.35rem;font-weight:600}
+header p{margin:3px 0 0;opacity:.85;font-size:.9rem}
+main{max-width:1320px;margin:0 auto;padding:16px;display:grid;grid-template-columns:minmax(0,1.75fr) minmax(320px,1fr);gap:16px}
+@media(max-width:980px){main{grid-template-columns:1fr}}
+section,aside{min-width:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:16px}
+.card h2{font-size:1.02rem;margin:0 0 10px;color:var(--brand)}
+.card h3{font-size:.95rem;margin:12px 0 6px;color:var(--brand2)}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.tabs button,.btn{border:1px solid var(--line);background:#fff;color:var(--ink);padding:7px 13px;border-radius:7px;cursor:pointer;font-size:.9rem}
+.tabs button.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+.btn:hover,.tabs button:hover{border-color:var(--brand2)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.small{padding:4px 9px;font-size:.82rem}
+.btn.on{background:var(--brand2);color:#fff;border-color:var(--brand2)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+svg.view{width:100%;height:auto;background:#fbfcfe;border:1px solid var(--line);border-radius:8px;user-select:none;display:block}
+.lbl{font-size:13px;fill:var(--ink);font-weight:600}
+.lbl2{font-size:11px;fill:var(--muted)}
+.pin{cursor:pointer}
+.pin circle{fill:#fff;stroke:var(--brand);stroke-width:2}
+.pin:hover circle{fill:#dbe9f7}
+.pin text{font-size:9px;font-weight:700;fill:var(--brand);pointer-events:none}
+.ctl{margin-bottom:10px}
+.ctl label{display:block;font-size:.86rem;color:var(--muted);margin-bottom:3px}
+.ctl .row{display:flex;gap:8px;align-items:center}
+.ctl input[type=range]{flex:1;min-width:0}
+.ctl input[type=number],.ctl input[type=text]{width:90px;padding:4px 6px;border:1px solid var(--line);border-radius:6px}
+.ctl select{padding:5px 6px;border:1px solid var(--line);border-radius:6px;min-width:130px;max-width:100%}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:4px 18px}
+@media(max-width:620px){.grid2{grid-template-columns:1fr}}
+.eq{background:#f7f9fc;border-left:4px solid var(--brand2);padding:10px 14px;border-radius:6px;font-size:.92rem}
+.eq p{margin:5px 0}
+.f{font-family:"Cambria Math","Times New Roman",serif;font-size:1.05rem}
+.note{background:var(--warnbg);border-left:4px solid var(--accent);padding:8px 12px;border-radius:6px;font-size:.88rem;margin-top:10px}
+/* multímetro */
+.meter{background:#39414d;border-radius:14px;padding:14px;color:#fff;box-shadow:inset 0 0 0 3px #e0a100}
+.lcd{background:#b9c9a4;color:#1d2616;border-radius:6px;padding:10px 12px;font-family:"Consolas","Courier New",monospace;display:flex;justify-content:space-between;align-items:flex-end;min-height:66px;box-shadow:inset 0 2px 6px rgba(0,0,0,.35)}
+.lcd .val{font-size:2.2rem;font-weight:700;letter-spacing:1px}
+.lcd .unit{font-size:1.2rem;font-weight:700}
+.lcd .fn{font-size:.8rem;align-self:flex-start}
+.modes{display:flex;gap:6px;margin:12px 0 8px}
+.modes button{flex:1;padding:9px 0;border-radius:8px;border:0;background:#555f6d;color:#fff;font-weight:700;cursor:pointer;font-size:.95rem}
+.modes button.on{background:#e0a100;color:#1c1c1c}
+.probes{display:flex;gap:6px;align-items:center;font-size:.85rem;flex-wrap:wrap}
+.probes button{border:0;border-radius:6px;padding:5px 10px;cursor:pointer;font-weight:600}
+.pr{background:#e53935;color:#fff;opacity:.55}.pb{background:#111;color:#fff;opacity:.55;border:1px solid #888!important}
+.probes button.on{opacity:1;outline:2px solid #fff}
+.quick{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;font-size:.82rem;align-items:center}
+.quick button{background:#555f6d;color:#fff;border:0;border-radius:5px;padding:3px 8px;cursor:pointer;font-size:.8rem}
+.quick button:hover{background:#6b7686}
+.mnote{font-size:.83rem;color:#e7ecf2;margin-top:8px;min-height:2.4em}
+.mstat{font-size:.8rem;color:#c6cfda;margin-top:6px}
+/* osciloscopio */
+.scope{background:#39414d;border-radius:14px;padding:12px;color:#fff;box-shadow:inset 0 0 0 3px #7f8ea3}
+.scope canvas{width:100%;display:block;border-radius:6px;background:#0c1418;touch-action:none;cursor:ew-resize}
+.sctl{display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;margin-top:10px;font-size:.82rem}
+.sctl label{display:block;color:#c6cfda;margin-bottom:2px}
+.sctl select{width:100%;padding:4px;border-radius:5px;border:0;font-size:.85rem}
+.chs{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.chs button{border:0;border-radius:6px;padding:4px 9px;font-weight:700;cursor:pointer;font-size:.8rem;opacity:.45;color:#111}
+.chs button.on{opacity:1}
+.sread{font-family:"Consolas","Courier New",monospace;font-size:.78rem;background:#0c1418;color:#d8e4ea;border-radius:6px;padding:7px 9px;margin-top:8px;line-height:1.5}
+.sread b{font-weight:700}
+table{border-collapse:collapse;width:100%;font-size:.88rem}
+th,td{border-bottom:1px solid var(--line);padding:5px 6px;text-align:right}
+th:first-child,td:first-child{text-align:left}
+th{background:#eef2f7;color:var(--brand);font-weight:600}
+table.left td,table.left th{text-align:left}
+.tw{overflow-x:auto}
+td input,.ev input{width:80px;padding:3px 5px;border:1px solid var(--line);border-radius:5px;text-align:right}
+.ev select{padding:4px;border:1px solid var(--line);border-radius:5px;max-width:100%}
+.ok{background:var(--okbg)!important;border-color:var(--ok)!important}
+.bad{background:var(--badbg)!important;border-color:var(--bad)!important}
+.msgs div{padding:7px 10px;border-radius:6px;margin-bottom:6px;font-size:.87rem}
+.msgs .w{background:var(--warnbg);border-left:4px solid var(--accent)}
+.msgs .e{background:var(--badbg);border-left:4px solid var(--bad)}
+.msgs .i{background:#e8f1fb;border-left:4px solid var(--brand2)}
+.msgs .o{background:var(--okbg);border-left:4px solid var(--ok)}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center}
+.switch{display:flex;align-items:center;gap:8px;font-size:.9rem;margin:6px 0}
+details summary{cursor:pointer;font-weight:600;color:var(--brand)}
+details ol{padding-left:20px;margin:8px 0}
+.score{font-weight:700;margin-left:6px}
+.muted{color:var(--muted);font-size:.85rem}
+.st-ok{color:var(--ok);font-weight:700}.st-no{color:var(--bad);font-weight:700}.st-int{color:var(--accent);font-weight:700}.st-off{color:var(--muted);font-weight:700}
+.fb{font-size:.88rem;margin-top:10px}
+.fb p{margin:6px 0}
+.sym{background:#f7f9fc;border:1px dashed var(--brand2);border-radius:6px;padding:8px 10px;font-size:.88rem;margin:8px 0}
+.state{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.pill{font-size:.8rem;padding:3px 9px;border-radius:12px;background:#eef2f7;color:var(--brand)}
+.pill.bad{background:var(--badbg);color:var(--bad)}
+.pill.w{background:var(--warnbg);color:#8a4b00}
+footer{text-align:center;color:var(--muted);font-size:.8rem;padding:10px 0 24px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Simulador 13 · Red de comunicación CAN: medición y diagnóstico</h1>
+  <p>Electricidad Automotriz · Unidad 4: Redes de comunicación · Tecnología Superior en Mecánica Automotriz · ISTS</p>
+</header>
+
+<main>
+<section>
+  <div class="card">
+    <div class="tabs" id="tabs">
+      <button data-t="red" class="on">Red CAN y conector OBD-II</button>
+      <button data-t="trama">Estructura de la trama</button>
+      <button data-t="arb">Arbitraje</button>
+    </div>
+    <div id="vRed">
+      <svg id="net" class="view" viewBox="0 0 910 505" aria-label="Topología de la red CAN"></svg>
+      <div class="muted" style="margin-top:6px">Las cápsulas que viajan por el par trenzado representan tramas (identificadores ficticios, con fines didácticos). Al recibir una trama válida, cada módulo destella en verde (confirmación ACK). Haga clic en una vía del conector OBD-II o en un pin de un módulo (H, L, +B, M) para colocar la punta seleccionada del multímetro.</div>
+    </div>
+    <div id="vTrama" style="display:none">
+      <div class="grid2">
+        <div class="ctl"><label>Módulo emisor (precarga su identificador)</label><select id="frMod"></select></div>
+        <div class="ctl"><label>Identificador de 11 bits (hexadecimal, 000–7FF)</label><div class="row"><input type="text" id="frId" value="110"><span class="muted" id="frIdDec"></span></div></div>
+        <div class="ctl"><label>DLC · número de bytes de datos (0–8)</label><div class="row"><input type="range" id="frDlcR" min="0" max="8" step="1" value="2"><input type="number" id="frDlc" min="0" max="8" step="1" value="2"></div></div>
+        <div class="ctl"><label>Datos (bytes en hexadecimal separados por espacio)</label><div class="row"><input type="text" id="frData" value="0F A0" style="width:100%"></div></div>
+      </div>
+      <div class="bar" style="margin:0 0 10px"><button class="btn small" id="frRand">Datos aleatorios</button><button class="btn small" id="frStuff">Ejemplo con relleno de bits</button></div>
+      <svg id="frm" class="view" viewBox="0 0 900 330" aria-label="Trama CAN estándar"></svg>
+      <div id="frStats" class="muted" style="margin-top:6px"></div>
+      <div class="tw" style="margin-top:8px"><table class="left" id="frTbl"></table></div>
+    </div>
+    <div id="vArb" style="display:none">
+      <div class="grid2">
+        <div class="ctl"><label>ECU A · identificador (hex)</label><div class="row"><select id="arbA"></select><input type="text" id="arbAid" value="110"></div></div>
+        <div class="ctl"><label>ECU B · identificador (hex)</label><div class="row"><select id="arbB"></select><input type="text" id="arbBid" value="1A0"></div></div>
+      </div>
+      <div class="bar" style="margin:0 0 10px"><button class="btn primary small" id="arbGo">Iniciar arbitraje</button><button class="btn small" id="arbStep">Paso a paso</button><button class="btn small" id="arbReset">Reiniciar</button></div>
+      <svg id="arb" class="view" viewBox="0 0 900 360" aria-label="Arbitraje CAN"></svg>
+      <div id="arbTxt" class="muted" style="margin-top:6px"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Condiciones de la prueba y averías</h2>
+    <div class="state">
+      <button class="btn" id="btnBat">Desconectar batería</button>
+      <button class="btn on" id="btnKey">Contacto: ON</button>
+      <span class="pill" id="pillState"></span>
+    </div>
+    <div class="grid2">
+      <div class="ctl"><label>Avería simulada</label><select id="selFault"></select></div>
+      <div class="ctl"><label id="lblLoc">Ubicación / módulo afectado</label><select id="selLoc"></select></div>
+      <div class="ctl" id="boxVar"><label>Tipo de defecto de alimentación</label><select id="selVar"><option value="B">Alimentación +B interrumpida (fusible o cable)</option><option value="M">Masa de la ECU deficiente (resistencia alta)</option></select></div>
+      <div class="ctl" id="boxRc"><label>Resistencia de contacto en C1 (Ω)</label><div class="row"><input type="range" id="rcR" min="20" max="400" step="5" value="150"><input type="number" id="rcN" min="20" max="400" step="5" value="150"></div></div>
+      <div class="ctl"><label>Ocupación del bus (%)</label><div class="row"><input type="range" id="ldR" min="10" max="70" step="1" value="40"><input type="number" id="ldN" min="10" max="70" step="1" value="40"></div></div>
+      <div class="ctl"><label>Velocidad de transmisión</label><select id="selBr"><option value="500" selected>500 kbit/s (tren motriz, alta velocidad)</option><option value="250">250 kbit/s</option><option value="125">125 kbit/s</option></select></div>
+    </div>
+    <div class="bar"><button class="btn" id="btnReset">Restablecer red sana</button></div>
+  </div>
+
+  <div class="card">
+    <h2>Ecuaciones de trabajo y valores de referencia</h2>
+    <div class="eq">
+      <p class="f">R<sub>eq</sub> = (R<sub>T1</sub> · R<sub>T2</sub>) / (R<sub>T1</sub> + R<sub>T2</sub>) = (120 · 120) / (120 + 120) = 60 Ω</p>
+      <p class="f">U<sub>dif</sub> = U<sub>CAN-H</sub> − U<sub>CAN-L</sub> &nbsp;·&nbsp; recesivo: U<sub>dif</sub> ≈ 0 V (bit 1) &nbsp;·&nbsp; dominante: U<sub>dif</sub> ≈ 2 V (bit 0)</p>
+      <p class="f">t<sub>bit</sub> = 1 / f<sub>bit</sub> &nbsp;→&nbsp; 1 / 500 000 bit/s = 2 µs &nbsp;·&nbsp; t<sub>trama</sub> = N<sub>bits</sub> · t<sub>bit</sub></p>
+      <p class="f">U<sub>media</sub> ≈ U<sub>rec</sub> · (1 − d) + U<sub>dom</sub> · d &nbsp;(d = fracción del tiempo en estado dominante; es lo que indica el multímetro)</p>
+    </div>
+    <div class="note"><b>Nota técnica:</b> cada resistencia de terminación es de <b>120 Ω</b> y las dos están conectadas <b>en paralelo</b> entre CAN-H y CAN-L, una en cada extremo del bus; por eso entre las vías 6 y 14 se miden ≈ 60 Ω. Algunos textos lo explican de forma errónea como «dos resistencias de 60 Ω en serie»: en serie sumarían 120 Ω y no adaptarían la impedancia del cable (≈ 120 Ω) en cada extremo, que es su función (evitar reflexiones).</div>
+    <h3>Valores de referencia (CAN de alta velocidad, ISO 11898-2)</h3>
+    <div class="tw"><table class="left">
+      <tr><th>Medición</th><th>Condición</th><th>Valor sano</th></tr>
+      <tr><td>R entre vías 6 y 14</td><td>Batería desconectada, condensadores descargados</td><td>≈ 60 Ω (≈ 120 Ω: falta una terminación o tramo abierto hacia un extremo; OL: faltan ambas; ≈ 0 Ω: CAN-H y CAN-L en corto)</td></tr>
+      <tr><td>R 6–4, 14–4, 6–16, 14–16</td><td>Batería desconectada</td><td>Alta (MΩ u OL)</td></tr>
+      <tr><td>U 6–4 (CAN-H) con multímetro</td><td>Contacto ON, bus activo</td><td>≈ 2,6–2,7 V (valor medio)</td></tr>
+      <tr><td>U 14–4 (CAN-L) con multímetro</td><td>Contacto ON, bus activo</td><td>≈ 2,3–2,4 V (valor medio)</td></tr>
+      <tr><td>CAN-H recesivo / dominante</td><td>Osciloscopio</td><td>≈ 2,5 V / ≈ 3,5 V</td></tr>
+      <tr><td>CAN-L recesivo / dominante</td><td>Osciloscopio</td><td>≈ 2,5 V / ≈ 1,5 V</td></tr>
+      <tr><td>U<sub>dif</sub> recesivo / dominante</td><td>Osciloscopio (H − L)</td><td>≈ 0 V / ≈ 2 V</td></tr>
+      <tr><td>Tiempo de bit</td><td>500 / 250 / 125 kbit/s</td><td>2 / 4 / 8 µs</td></tr>
+      <tr><td>U 16–4</td><td>Batería conectada</td><td>Tensión de batería</td></tr>
+    </table></div>
+    <p class="muted">Niveles según ISO 11898-2; tensiones medias y resistencias a masa son orientativas: dependen de la carga del bus y de los transceptores. Consulte el manual del fabricante. Los DTC mostrados son códigos genéricos SAE J2012; la descripción exacta y el módulo que los registra dependen del fabricante.</p>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>¿Cómo usar el simulador?</summary>
+      <ol>
+        <li>En la pestaña «Red CAN y conector OBD-II» identifique los módulos, las dos terminaciones de 120 Ω (dentro de la ECU motor y del panel de instrumentos) y las vías del conector de diagnóstico: 6 (CAN-H), 14 (CAN-L), 4 y 5 (masas) y 16 (+12 V).</li>
+        <li><b>Tensiones:</b> con batería conectada y contacto ON, elija V⎓ y mida 6–4 (CAN-H) y 14–4 (CAN-L). El multímetro indica el <b>valor medio</b>: ≈ 2,6–2,7 V y ≈ 2,3–2,4 V en una red sana.</li>
+        <li><b>Osciloscopio:</b> CH1 en la vía 6, CH2 en la 14 y masa en la 4/5. Con 1 V/div y 10 µs/div verifique las señales en espejo alrededor de 2,5 V. Active «H − L» para ver la tensión diferencial y arrastre los cursores para medir el tiempo de bit (2 µs a 500 kbit/s). Cambie el punto de conexión para medir en el conector de cada módulo.</li>
+        <li><b>Resistencias:</b> pulse «Desconectar batería» y espere a que se descarguen los condensadores de los módulos (el simulador lo indica). Mida 6–14 (≈ 60 Ω) y luego 6–4, 14–4, 6–16 y 14–16 (deben ser altas). Si mide con el sistema energizado, la lectura no es válida.</li>
+        <li>Seleccione cada <b>avería</b>, repita las mediciones y compare con la red sana. Revise el panel «Diagnóstico con escáner»: qué módulos pierden la comunicación y qué DTC tipo U quedan registrados.</li>
+        <li>Use las pestañas «Estructura de la trama» (campos, CRC, relleno de bits, duración) y «Arbitraje» (el identificador menor gana porque el bit dominante 0 se impone).</li>
+        <li><b>Modo evaluación:</b> el simulador oculta una avería. Mida la resistencia 6–14 y las tensiones de CAN-H y CAN-L, observe el osciloscopio, elija el diagnóstico y pulse «Comprobar». La retroalimentación explica el porqué y asigna el puntaje.</li>
+        <li>Con «Registrar lectura» y «Registrar cursores» llene la tabla de mediciones y descárguela en CSV (se abre con Excel).</li>
+      </ol>
+    </details>
+  </div>
+</section>
+
+<aside>
+  <div class="card">
+    <h2>Multímetro digital</h2>
+    <div class="meter">
+      <div class="lcd"><span class="fn" id="lcdFn">V⎓</span><span><span class="val" id="lcdVal">- - -</span> <span class="unit" id="lcdUnit">V</span></span></div>
+      <div class="modes" id="modes"><button data-m="V" class="on">V⎓</button><button data-m="R">Ω</button><button data-m="OFF">OFF</button></div>
+      <div class="probes">Colocar punta:
+        <button class="pr on" id="pRed">● Roja (V/Ω)</button>
+        <button class="pb" id="pBlk">● Negra (COM)</button>
+      </div>
+      <div class="quick">Atajos OBD:
+        <button data-q="o6,o4">6–4</button><button data-q="o14,o4">14–4</button><button data-q="o6,o14">6–14</button><button data-q="o6,o16">6–16</button><button data-q="o14,o16">14–16</button><button data-q="o16,o4">16–4</button>
+      </div>
+      <div class="mstat" id="mstat"></div>
+      <div class="mnote" id="mnote"></div>
+      <div class="bar"><button class="btn small" id="btnLog">Registrar lectura</button></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Osciloscopio de dos canales</h2>
+    <div class="scope">
+      <canvas id="scope" width="440" height="352"></canvas>
+      <div class="chs">
+        <button data-c="h" class="on" style="background:#ffb74d">CH1 CAN-H</button>
+        <button data-c="l" class="on" style="background:#64b5f6">CH2 CAN-L</button>
+        <button data-c="d" style="background:#e58cff">H − L</button>
+        <button data-c="dec" class="on" style="background:#cfd8dc">Decodificar</button>
+      </div>
+      <div class="sctl">
+        <div><label>Punto de conexión (masa en vía 4/5)</label><select id="scPt"></select></div>
+        <div><label>Tensión/división</label><select id="scV"><option value="0.5">0,5 V/div</option><option value="1" selected>1 V/div</option><option value="2">2 V/div</option><option value="5">5 V/div</option></select></div>
+        <div><label>Tiempo/división</label><select id="scT"><option value="1">1 µs/div</option><option value="2">2 µs/div</option><option value="5">5 µs/div</option><option value="10" selected>10 µs/div</option><option value="20">20 µs/div</option><option value="50">50 µs/div</option></select></div>
+        <div><label>Adquisición (disparo en SOF)</label><button class="btn small" id="scRun" style="width:100%">■ Detener</button></div>
+      </div>
+      <div class="sread" id="sread"></div>
+      <div class="bar"><button class="btn small" id="btnLogS">Registrar cursores</button><span class="muted" style="color:#c6cfda">Arrastre las líneas C1 y C2 sobre la pantalla.</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Avisos</h2>
+    <div class="msgs" id="msgs"></div>
+  </div>
+
+  <div class="card">
+    <h2>Diagnóstico con escáner (OBD-II)</h2>
+    <div id="scan"></div>
+  </div>
+
+  <div class="card">
+    <h2>Modo evaluación</h2>
+    <label class="switch"><input type="checkbox" id="evalMode"> Activar modo evaluación (avería oculta)</label>
+    <div id="evBox" style="display:none" class="ev">
+      <div class="sym" id="evSym"></div>
+      <div class="tw"><table class="left">
+        <tr><td>R entre vías 6 y 14 (Ω; escriba OL si corresponde)</td><td><input id="evR" inputmode="decimal"></td></tr>
+        <tr><td>Tensión media CAN-H, vía 6–4 (V)</td><td><input id="evH" inputmode="decimal"></td></tr>
+        <tr><td>Tensión media CAN-L, vía 14–4 (V)</td><td><input id="evL" inputmode="decimal"></td></tr>
+        <tr><td>Diagnóstico</td><td><select id="evDiag"></select></td></tr>
+        <tr><td>Módulo o ubicación afectada</td><td><select id="evLoc"></select></td></tr>
+      </table></div>
+      <div class="bar"><button class="btn primary" id="btnCheck">Comprobar</button><button class="btn" id="btnNew">Nuevo caso</button><span class="score" id="score"></span></div>
+      <div class="fb" id="fb"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Registro de mediciones</h2>
+    <div class="tw" id="logTbl"></div>
+    <div class="bar">
+      <button class="btn small" id="btnCsv">Descargar CSV</button>
+      <button class="btn small" id="btnClr">Limpiar registro</button>
+    </div>
+  </div>
+</aside>
+</main>
+<footer>Simulador didáctico · Carrera de Mecánica Automotriz · Instituto Superior Tecnológico Sudamericano</footer>
+
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+function nf(x,d){return x.toLocaleString('es-EC',{minimumFractionDigits:d,maximumFractionDigits:d,useGrouping:false});}
+function parseNum(s){if(s==null)return NaN;s=String(s).trim().replace(',','.');return s===''?NaN:Number(s);}
+function fmtR(r){if(!isFinite(r))return ['OL','Ω'];if(r>=1e6)return [nf(r/1e6,2),'MΩ'];if(r>=1000)return [nf(r/1000,2),'kΩ'];return [nf(r,r<10?2:1),'Ω'];}
+function fmtRs(r){const t=fmtR(r);return t[0]+' '+t[1];}
+function hex3(v){return '0x'+v.toString(16).toUpperCase().padStart(3,'0');}
+function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+
+/* ---------- datos de la red ---------- */
+const MODS=[
+ {id:'ECM',name:'ECU motor',sub:'(ECM)',x:140,end:'L',rt:'RT1',dtc:'U0100',dtx:'Pérdida de comunicación con el ECM/PCM',cid:0x110,msg:'régimen y par del motor',col:'#8e24aa',box:[12,190,118,120]},
+ {id:'ABS',name:'ABS/ESP',sub:'frenos',x:380,pos:'top',dtc:'U0121',dtx:'Pérdida de comunicación con el módulo de control ABS',cid:0x1A0,msg:'velocidad de las ruedas',col:'#00897b',box:[325,64,110,72]},
+ {id:'TCM',name:'TCM',sub:'caja automática',x:540,pos:'bot',dtc:'U0101',dtx:'Pérdida de comunicación con el TCM',cid:0x230,msg:'marcha engranada',col:'#6d4c41',box:[485,356,110,72]},
+ {id:'BCM',name:'BCM',sub:'carrocería',x:660,pos:'top',dtc:'U0140',dtx:'Pérdida de comunicación con el módulo de carrocería (BCM)',cid:0x3B0,msg:'luces y puertas',col:'#3949ab',box:[605,64,110,72]},
+ {id:'PAN',name:'Panel de',name2:'instrumentos',sub:'pasarela',x:780,end:'R',rt:'RT2',dtc:'U0155',dtx:'Pérdida de comunicación con el panel de instrumentos (IPC)',cid:0x4F0,msg:'kilometraje y testigos',col:'#c2185b',box:[790,190,112,120]}];
+const MOD={};MODS.forEach(m=>MOD[m.id]=m);
+const MNAME={ECM:'ECU motor (ECM)',ABS:'ABS/ESP',TCM:'Caja automática (TCM)',BCM:'Carrocería (BCM)',PAN:'Panel de instrumentos (pasarela)'};
+const TAPS=['ECM','OBD','ABS','TCM','BCM','PAN'];
+const TAPX={ECM:140,OBD:260,ABS:380,TCM:540,BCM:660,PAN:780};
+const NEAR=new Set(['ECM','OBD','ABS']);
+const YC=250,TA=14,TP=40,YH=YC-TA,YL=YC+TA;
+const FAULTS={
+ none:{n:'Sin avería (red sana)'},
+ HG:{n:'CAN-H en corto a masa',loc:'mods'},
+ LG:{n:'CAN-L en corto a masa',loc:'mods'},
+ HB:{n:'CAN-H en corto a +12 V',loc:'mods'},
+ LB:{n:'CAN-L en corto a +12 V',loc:'mods'},
+ HL:{n:'CAN-H y CAN-L en corto entre sí',loc:'mods'},
+ TERM:{n:'Resistencia de terminación abierta',loc:'term'},
+ OPENH:{n:'Cable CAN-H abierto hacia una ECU',loc:'mods'},
+ PWR:{n:'ECU con alimentación o masa deficiente',loc:'mods'},
+ RC:{n:'Resistencia de contacto alta en CAN-H (conector C1)',loc:'none'}
+};
+const FKEYS=Object.keys(FAULTS);
+const LOCAPPLIES=new Set(['TERM','OPENH','PWR']);
+
+/* ---------- estado ---------- */
+const st={tab:'red',bat:true,key:true,disUntil:0,fault:'none',loc:'TCM',variant:'B',Rc:150,load:40,br:500,
+  mode:'V',place:'red',red:'o6',black:'o4',
+  sc:{pt:'OBD',vdiv:1,tdiv:10,h:true,l:true,d:false,dec:true,run:true,c1:1,c2:2},
+  ev:{on:false,cs:null,checked:false,n:0,pts:0,max:0},log:[],rot:0};
+function F(){return st.ev.on&&st.ev.cs?st.ev.cs:{fault:st.fault,loc:st.loc,variant:st.variant,Rc:st.Rc};}
+function cond(){return {bat:st.bat,key:st.key};}
+function discharging(){return !st.bat&&performance.now()<st.disUntil;}
+function Tb(){return 1000/st.br;}
+function dFrac(){return st.load/100*0.42;}
+
+/* ---------- modelo eléctrico: niveles de CAN-H / CAN-L ---------- */
+function flat(v){return {rec:v,dom:v,edge:'n',tau:0.04};}
+function norm(line){return line==='H'?{rec:2.5,dom:3.5,edge:'n',tau:0.04}:{rec:2.5,dom:1.5,edge:'n',tau:0.04};}
+function ringLv(line){return line==='H'?{rec:2.5,dom:3.75,edge:'ring',tau:0.04}:{rec:2.5,dom:1.25,edge:'ring',tau:0.04};}
+function rcFar(f){return {dom:2.5+120/(120+f.Rc),tau:f.Rc*0.010};}
+function lineLv(loc,line,f,c){
+  f=f||F();c=c||cond();
+  if(!c.bat)return flat(0);
+  const Ub=c.key?12.4:12.6,fl=f.fault;
+  if(!c.key){
+    if(fl==='HB')return flat(line==='H'?Ub:Ub-0.1);
+    if(fl==='LB')return flat(line==='L'?Ub:Ub-0.1);
+    return flat(0);
+  }
+  switch(fl){
+    case 'HG':return line==='H'?flat(0):{rec:0.05,dom:0.02,edge:'n',tau:0.04};
+    case 'LG':return line==='L'?flat(0):{rec:0.02,dom:3.4,edge:'n',tau:0.04};
+    case 'HB':return flat(line==='H'?Ub:Ub-0.1);
+    case 'LB':return flat(line==='L'?Ub:Ub-0.1);
+    case 'HL':return {rec:2.5,dom:2.35,edge:'n',tau:0.04};
+    case 'TERM':return ringLv(line);
+    case 'OPENH':{const m=MOD[f.loc];
+      if(loc===f.loc&&line==='H')return m.end?ringLv('L'):flat(2.5);
+      return m.end?ringLv(line):norm(line);}
+    case 'RC':{
+      if(line==='L')return norm('L');
+      if(NEAR.has(loc))return {rec:2.5,dom:3.5+0.35*f.Rc/(f.Rc+120),edge:'round',tau:f.Rc*0.002};
+      const r=rcFar(f);return {rec:2.5,dom:r.dom,edge:'round',tau:r.tau};}
+    default:return norm(line);
+  }
+}
+/* estado de la comunicación */
+function comm(f,c){
+  f=f||F();c=c||cond();
+  const r={bus:'ok',mods:{},dtc:[],note:''};
+  MODS.forEach(m=>r.mods[m.id]='ok');
+  if(!c.bat||!c.key){r.bus='off';MODS.forEach(m=>r.mods[m.id]='off');return r;}
+  const all=s=>MODS.forEach(m=>r.mods[m.id]=s);
+  switch(f.fault){
+    case 'HG':case 'HB':case 'LB':case 'HL':
+      r.bus='dead';all('no');
+      r.dtc=MODS.map(m=>[m.dtc,m.dtx,'']).concat([['U0001','Bus de comunicación CAN de alta velocidad',''],['U0073','Bus de comunicación del módulo de control desactivado (bus off)','']]);
+      r.note='El escáner no establece comunicación por las vías 6 y 14. Los códigos se leen después de reparar la red.';break;
+    case 'LG':
+      r.bus='deg';all('int');
+      r.dtc=[['U0001','Bus de comunicación CAN de alta velocidad','intermitente'],['U0073','Bus del módulo de control desactivado (bus off)','intermitente']];
+      r.note='Según el transceptor, la red puede seguir comunicando sin margen frente a interferencias, con errores y pérdidas intermitentes, o quedar inoperante.';break;
+    case 'TERM':
+      r.note='Con una sola terminación la red suele seguir comunicando en tramos cortos, pero las reflexiones pueden provocar errores esporádicos (más probables a mayor longitud y velocidad).';break;
+    case 'OPENH':{const m=MOD[f.loc];r.mods[m.id]='no';r.dtc=[[m.dtc,m.dtx,'registrado por los demás módulos']];
+      r.note=`${MNAME[m.id]} no recibe ni envía tramas: los demás módulos registran ${m.dtc}. Esa ECU también registra códigos U de los demás, pero no se pueden leer por la red.`+(m.end?' Además, su terminación queda fuera del bus: la red trabaja con una sola terminación.':'');break;}
+    case 'PWR':{const m=MOD[f.loc];r.mods[m.id]='no';r.dtc=[[m.dtc,m.dtx,'registrado por los demás módulos']];
+      r.note=`${MNAME[m.id]} no responde porque no tiene alimentación suficiente; la red y el cableado CAN están en buen estado.`;break;}
+    case 'RC':{const q=rcQuality(f);
+      ['TCM','BCM','PAN'].forEach(id=>{r.mods[id]=q;if(q!=='ok')r.dtc.push([MOD[id].dtc,MOD[id].dtx,q==='int'?'intermitente':'']);});
+      if(q!=='ok')r.bus='deg';
+      r.note=q==='ok'?'La resistencia de contacto todavía no impide la comunicación, pero ya reduce el margen de la señal.':'Los módulos situados después del conector C1 reciben una señal atenuada y con flancos lentos.';break;}
+  }
+  return r;
+}
+function rcQuality(f){const r=rcFar(f);const amp=(r.dom-1.5)*(1-Math.exp(-0.75*Tb()/r.tau));return amp>=1.2?'ok':amp>=0.9?'int':'no';}
+/* tensión media en cada punto de medición */
+function meanLv(lv,bus){const d=bus==='dead'?0.03:bus==='off'?0:dFrac();return lv.rec+(lv.dom-lv.rec)*d;}
+function pointV(p,f,c){
+  f=f||F();c=c||cond();
+  if(!c.bat)return 0;
+  const Ub=c.key?12.4:12.6,bus=comm(f,c).bus;
+  if(p==='o4'||p==='o5')return 0;
+  if(p==='o16')return Ub;
+  if(p==='o6')return meanLv(lineLv('OBD','H',f,c),bus);
+  if(p==='o14')return meanLv(lineLv('OBD','L',f,c),bus);
+  const [id,pin]=p.split('.');
+  if(pin==='H'||pin==='L')return meanLv(lineLv(id,pin,f,c),bus);
+  if(pin==='B')return (f.fault==='PWR'&&f.loc===id&&f.variant==='B')?0:Ub;
+  if(pin==='M')return (f.fault==='PWR'&&f.loc===id&&f.variant==='M'&&c.key)?7.9:(c.key?0.01:0);
+  return 0;
+}
+
+/* ---------- red resistiva (óhmetro, batería desconectada) ---------- */
+function gauss(A,b){
+  const n=b.length;
+  for(let c=0;c<n;c++){
+    let p=c;for(let r=c+1;r<n;r++)if(Math.abs(A[r][c])>Math.abs(A[p][c]))p=r;
+    [A[c],A[p]]=[A[p],A[c]];[b[c],b[p]]=[b[p],b[c]];
+    const d=A[c][c];if(Math.abs(d)<1e-300)continue;
+    for(let r=c+1;r<n;r++){const k=A[r][c]/d;if(k===0)continue;for(let j=c;j<n;j++)A[r][j]-=k*A[c][j];b[r]-=k*b[c];}
+  }
+  const x=new Float64Array(n);
+  for(let r=n-1;r>=0;r--){let s=b[r];for(let j=r+1;j<n;j++)s-=A[r][j]*x[j];x[r]=Math.abs(A[r][r])<1e-300?0:s/A[r][r];}
+  return x;
+}
+function network(f){
+  const E=[],add=(a,b,R)=>E.push({a,b,R});
+  for(let i=0;i<TAPS.length-1;i++){
+    const a=TAPS[i],b=TAPS[i+1];
+    add('H_'+a,'H_'+b,(f.fault==='RC'&&a==='ABS')?f.Rc+0.05:0.05);
+    add('L_'+a,'L_'+b,0.05);
+  }
+  add('o6','H_OBD',0.02);add('o14','L_OBD',0.02);add('o4','G',0.01);add('o5','G',0.02);add('o16','BP',0.02);
+  for(const m of MODS){
+    const k=m.id;
+    if(!(f.fault==='OPENH'&&f.loc===k))add(k+'.H','H_'+k,0.05);
+    add(k+'.L','L_'+k,0.05);
+    if(m.end&&!(f.fault==='TERM'&&(f.loc===k||f.loc==='BOTH')))add(k+'.H',k+'.L',120);
+    if(!(f.fault==='PWR'&&f.loc===k&&f.variant==='B'))add(k+'.B','BP',0.05);
+    add(k+'.M','G',(f.fault==='PWR'&&f.loc===k&&f.variant==='M')?30:0.02);
+    add(k+'.B',k+'.M',7500);
+  }
+  add('BP','G',3000);
+  const t=f.loc;
+  if(f.fault==='HG')add('H_'+t,'G',0.1);
+  if(f.fault==='LG')add('L_'+t,'G',0.1);
+  if(f.fault==='HB')add('H_'+t,'BP',0.1);
+  if(f.fault==='LB')add('L_'+t,'BP',0.1);
+  if(f.fault==='HL')add('H_'+t,'L_'+t,0.1);
+  return E;
+}
+function measR(a,b,f){
+  f=f||F();
+  if(a===b)return 0;
+  const E=network(f);
+  const adj={};E.forEach(e=>{(adj[e.a]??=[]).push(e.b);(adj[e.b]??=[]).push(e.a);});
+  const seen=new Set([a]),stack=[a];
+  while(stack.length){const u=stack.pop();for(const v of adj[u]||[])if(!seen.has(v)){seen.add(v);stack.push(v);}}
+  if(!seen.has(b))return Infinity;
+  const names=[...seen].filter(n=>n!=='G'),idx={};names.forEach((n,i)=>idx[n]=i);
+  const n=names.length,A=Array.from({length:n},()=>new Float64Array(n)),rhs=new Float64Array(n);
+  for(let i=0;i<n;i++)A[i][i]+=1e-12;
+  for(const e of E){if(!seen.has(e.a))continue;const g=1/e.R,i=idx[e.a],j=idx[e.b];
+    if(i!==undefined)A[i][i]+=g;if(j!==undefined)A[j][j]+=g;if(i!==undefined&&j!==undefined){A[i][j]-=g;A[j][i]-=g;}}
+  if(idx[a]!==undefined)rhs[idx[a]]+=1;if(idx[b]!==undefined)rhs[idx[b]]-=1;
+  const x=gauss(A,rhs),va=idx[a]!==undefined?x[idx[a]]:0,vb=idx[b]!==undefined?x[idx[b]]:0;
+  const R=va-vb;return R>4e7?Infinity:R;
+}
+
+/* ---------- trama CAN ---------- */
+function crc15(bits){let c=0;for(const b of bits){const n=b^((c>>14)&1);c=(c<<1)&0x7FFF;if(n)c^=0x4599;}return c;}
+function toBits(v,n){const a=[];for(let i=n-1;i>=0;i--)a.push((v>>i)&1);return a;}
+function buildFrame(id,data,ack=true){
+  const seq=[],push=(arr,f)=>arr.forEach(v=>seq.push({v,f}));
+  push([0],'SOF');push(toBits(id,11),'ID');push([0],'RTR');push([0,0],'CTRL');push(toBits(data.length,4),'CTRL');
+  data.forEach(b=>push(toBits(b,8),'DATA'));
+  const crc=crc15(seq.map(x=>x.v));push(toBits(crc,15),'CRC');
+  const out=[];let run=0,last=-1,ns=0;
+  for(const x of seq){
+    out.push({v:x.v,f:x.f,s:false});
+    if(x.v===last)run++;else{run=1;last=x.v;}
+    if(run===5){const sv=1-last;out.push({v:sv,f:x.f,s:true});ns++;last=sv;run=1;}
+  }
+  out.push({v:1,f:'CRC',s:false,del:true});
+  out.push({v:ack?0:1,f:'ACK',s:false});out.push({v:1,f:'ACK',s:false,del:true});
+  for(let i=0;i<7;i++)out.push({v:1,f:'EOF',s:false});
+  return {bits:out,crc,nStuff:ns,nRaw:seq.length,dlc:data.length};
+}
+const FCOL={SOF:'#90a4ae',ID:'#ffb74d',RTR:'#ffe082',CTRL:'#a5d6a7',DATA:'#90caf9',CRC:'#ce93d8',ACK:'#80cbc4',EOF:'#cfd8dc',IFS:'#eceff1'};
+const FNAME={SOF:'SOF',ID:'Identificador',RTR:'RTR',CTRL:'Control',DATA:'Datos',CRC:'CRC',ACK:'ACK',EOF:'EOF'};
+
+/* ---------- adquisición del osciloscopio ---------- */
+let ACQ=null;
+function acquire(){
+  const f=F(),c=cond(),cm=comm(f,c),T=Tb(),seed=(Math.random()*1e9)|0,rng=mulberry(seed);
+  const pre=Math.ceil(50/T)+3,need=pre+Math.ceil(470/T)+4;
+  const s=[],fields=[];
+  for(let i=0;i<pre;i++)s.push(1);
+  if(cm.bus==='off'){while(s.length<need)s.push(1);}
+  else if(cm.bus==='dead'){
+    while(s.length<need){s.push(0);const k=6+Math.floor(rng()*12);for(let i=0;i<k;i++)s.push(rng()<0.5?0:1);
+      for(let i=0;i<6;i++)s.push(0);for(let i=0;i<8;i++)s.push(1);const g=12+Math.floor(rng()*30);for(let i=0;i<g;i++)s.push(1);}
+  }else{
+    const alive=MODS.filter(m=>cm.mods[m.id]!=='no');
+    let first=true;
+    while(s.length<need&&alive.length){
+      const m=alive[st.rot++%alive.length];
+      const data=Array.from({length:8},()=>Math.floor(rng()*256));
+      const fr=buildFrame(m.cid,data,alive.length>1);
+      const base=s.length;
+      if(first){let cur=null,a=0;fr.bits.forEach((b,i)=>{if(b.f!==cur){if(cur)fields.push({f:cur,a:base+a,b:base+i});cur=b.f;a=i;}});fields.push({f:cur,a:base+a,b:base+fr.bits.length});first=false;}
+      fr.bits.forEach(b=>s.push(b.v));
+      const gap=Math.max(3,Math.round(fr.bits.length*(100/st.load-1)*(0.7+0.6*rng())));
+      for(let i=0;i<gap;i++)s.push(1);
+    }
+    while(s.length<need)s.push(1);
+  }
+  const loc=st.sc.pt;
+  const lv={h:lineLv(loc,'H',f,c),l:lineLv(loc,'L',f,c)};
+  const end={};
+  for(const k of ['h','l']){const L=lv[k],e=new Float64Array(s.length);let prev=L.rec;
+    for(let i=0;i<s.length;i++){const tg=s[i]?L.rec:L.dom;prev=tg+(prev-tg)*Math.exp(-T/L.tau);e[i]=prev;}end[k]=e;}
+  ACQ={s,pre,T,lv,end,seed,fields,loc,bus:cm.bus};
+}
+function vAt(k,t){
+  const A=ACQ,L=A.lv[k],T=A.T;
+  const i=A.pre+Math.floor(t/T);
+  if(i<1||i>=A.s.length)return L.rec;
+  const tau=t-(i-A.pre)*T,tg=A.s[i]?L.rec:L.dom,pe=A.end[k][i-1];
+  let v=tg+(pe-tg)*Math.exp(-tau/L.tau);
+  if(L.edge==='ring'&&A.s[i]!==A.s[i-1]){const ptg=A.s[i-1]?L.rec:L.dom;v+=0.45*(tg-ptg)*Math.exp(-tau/0.35)*Math.sin(2*Math.PI*2.5*tau);}
+  return v;
+}
+const cv=$('scope');let cw=440,ch=352;
+function sizeScope(){
+  const r=cv.getBoundingClientRect();if(r.width<10)return;
+  const dpr=window.devicePixelRatio||1;cw=r.width;ch=Math.round(r.width*0.8);
+  cv.style.height=ch+'px';cv.width=Math.round(cw*dpr);cv.height=Math.round(ch*dpr);
+  cv.getContext('2d').setTransform(dpr,0,0,dpr,0,0);drawScope();
+}
+function drawScope(){
+  if(!ACQ)acquire();
+  const g=cv.getContext('2d'),W=cw,H=ch,dx=W/10,dy=H/8,S=st.sc,vd=S.vdiv,td=S.tdiv;
+  g.fillStyle='#0c1418';g.fillRect(0,0,W,H);
+  g.strokeStyle='#23343c';g.lineWidth=1;
+  for(let i=1;i<10;i++){g.beginPath();g.moveTo(i*dx+.5,0);g.lineTo(i*dx+.5,H);g.stroke();}
+  for(let j=1;j<8;j++){g.beginPath();g.moveTo(0,j*dy+.5);g.lineTo(W,j*dy+.5);g.stroke();}
+  g.strokeStyle='#3b5561';g.beginPath();g.moveTo(5*dx+.5,0);g.lineTo(5*dx+.5,H);g.moveTo(0,4*dy+.5);g.lineTo(W,4*dy+.5);g.stroke();
+  const y0=H-2*dy,yOf=v=>y0-v/vd*dy;
+  // referencias de 0 V
+  g.font='bold 11px Consolas,monospace';
+  // disparo
+  g.fillStyle='#ffffff99';g.fillText('T',dx-3,11);
+  // decodificación
+  if(S.dec&&ACQ.fields.length){
+    for(const fd of ACQ.fields){
+      const ta=(fd.a-ACQ.pre)*ACQ.T,tb=(fd.b-ACQ.pre)*ACQ.T;
+      const xa=(ta/td+1)*dx,xb=(tb/td+1)*dx;if(xb<0||xa>W)continue;
+      const a=Math.max(0,xa),b=Math.min(W,xb);
+      g.fillStyle=FCOL[fd.f];g.globalAlpha=.85;g.fillRect(a,14,b-a-1,14);g.globalAlpha=1;
+      if(b-a>30){g.fillStyle='#111';g.font='10px Segoe UI,Arial';g.fillText(FNAME[fd.f],a+3,25);}
+    }
+  }
+  const rng=mulberry(ACQ.seed),N=Math.round(W*1.5);
+  const tr=(k,col,fn)=>{g.strokeStyle=col;g.lineWidth=1.6;g.beginPath();
+    for(let i=0;i<=N;i++){const x=i/N*W,t=(x/dx-1)*td;let v=fn(t)+(rng()-0.5)*0.03;const y=Math.max(-2,Math.min(H+2,yOf(v)));i?g.lineTo(x,y):g.moveTo(x,y);}g.stroke();};
+  if(S.h)tr('h','#ffb74d',t=>vAt('h',t));
+  if(S.l)tr('l','#64b5f6',t=>vAt('l',t));
+  if(S.d)tr('d','#e58cff',t=>vAt('h',t)-vAt('l',t));
+  // marcadores de 0 V
+  const mk=(col,txt,off)=>{const y=yOf(0);g.fillStyle=col;g.beginPath();g.moveTo(0,y-5);g.lineTo(8,y);g.lineTo(0,y+5);g.fill();g.fillText(txt,10+off,y+4);};
+  g.font='bold 10px Consolas,monospace';
+  if(S.h)mk('#ffb74d','1',0);if(S.l)mk('#64b5f6','2',8);if(S.d)mk('#e58cff','M',16);
+  // cursores
+  for(const [k,col] of [['c1','#fff176'],['c2','#80deea']]){
+    const x=S[k]*dx;g.strokeStyle=col;g.setLineDash([5,4]);g.lineWidth=1.2;g.beginPath();g.moveTo(x,30);g.lineTo(x,H);g.stroke();g.setLineDash([]);
+    g.fillStyle=col;g.font='bold 11px Consolas,monospace';g.fillText(k.toUpperCase(),Math.min(W-22,x+3),42);
+  }
+  // escala
+  g.fillStyle='#cfd8dc';g.font='11px Consolas,monospace';
+  const txt=`${nf(vd,vd<1?1:0)} V/div  ${nf(td,0)} µs/div  ${S.run?'RUN':'STOP'}`;
+  g.fillText(txt,W-g.measureText(txt).width-6,H-6);
+  updateSread();
+}
+function updateSread(){
+  const S=st.sc,td=S.tdiv,t1=(S.c1-1)*td,t2=(S.c2-1)*td,dt=t2-t1;
+  const v=(k,t)=>k==='d'?vAt('h',t)-vAt('l',t):vAt(k,t);
+  const f2=x=>nf(x,2);
+  let s=`C1: t = ${f2(t1)} µs · C2: t = ${f2(t2)} µs · <b>Δt = ${f2(Math.abs(dt))} µs</b>`;
+  if(Math.abs(dt)>1e-6)s+=` · 1/Δt = ${nf(1000/Math.abs(dt),1)} kHz`;
+  s+=`<br><span style="color:#ffb74d">CH1 (H):</span> ${f2(v('h',t1))} V → ${f2(v('h',t2))} V · <span style="color:#64b5f6">CH2 (L):</span> ${f2(v('l',t1))} V → ${f2(v('l',t2))} V`;
+  s+=`<br><span style="color:#e58cff">H − L:</span> ${f2(v('d',t1))} V → ${f2(v('d',t2))} V · t<sub>bit</sub> = ${nf(Tb(),0)} µs · punto: ${ptName(S.pt)}`;
+  $('sread').innerHTML=s;
+}
+function ptName(p){return p==='OBD'?'conector OBD-II (6/14)':'conector de '+MNAME[p];}
+let drag=null;
+cv.addEventListener('pointerdown',e=>{const r=cv.getBoundingClientRect(),x=e.clientX-r.left,dx=cw/10;
+  const d1=Math.abs(x-st.sc.c1*dx),d2=Math.abs(x-st.sc.c2*dx);drag=d1<=d2?'c1':'c2';cv.setPointerCapture(e.pointerId);moveC(e);});
+cv.addEventListener('pointermove',e=>{if(drag)moveC(e);});
+cv.addEventListener('pointerup',()=>{drag=null;});
+function moveC(e){const r=cv.getBoundingClientRect();let d=(e.clientX-r.left)/(cw/10);d=Math.max(0,Math.min(10,d));st.sc[drag]=d;drawScope();}
+
+/* ---------- dibujo de la red ---------- */
+const net=$('net');
+function twY(x,line){return YC+(line==='H'?-1:1)*TA*Math.cos(2*Math.PI*(x-140)/TP);}
+function twPath(line,x0,x1){let d='';for(let x=x0;x<=x1;x+=2)d+=(x===x0?'M':'L')+x+' '+twY(x,line).toFixed(1);return d;}
+function gnd(x,y){return `<path d="M${x} ${y}v6M${x-8} ${y+6}h16M${x-5} ${y+10}h10M${x-2} ${y+14}h4" stroke="#2b3440" stroke-width="2" fill="none"/>`;}
+function modPins(m){
+  const [bx,by,w,h]=m.box,P={};
+  if(m.end==='L'){P.H=[bx+w,YH];P.L=[bx+w,YL];P.B=[bx+36,by];P.M=[bx+36,by+h];}
+  else if(m.end==='R'){P.H=[bx,YH];P.L=[bx,YL];P.B=[bx+76,by];P.M=[bx+76,by+h];}
+  else if(m.pos==='top'){P.H=[m.x-14,by+h];P.L=[m.x+14,by+h];P.B=[bx,by+20];P.M=[bx+w,by+h-16];}
+  else{P.H=[m.x-14,by];P.L=[m.x+14,by];P.B=[bx,by+20];P.M=[bx+w,by+h-16];}
+  return P;
+}
+const PTS={};
+const OBDX=i=>i<=8?190+(i-1)*20:190+(i-9)*20,OBDY=i=>i<=8?408:432;
+[[4,'o4','OBD vía 4 (masa de chasis)'],[5,'o5','OBD vía 5 (masa de señal)'],[6,'o6','OBD vía 6 (CAN-H)'],[14,'o14','OBD vía 14 (CAN-L)'],[16,'o16','OBD vía 16 (+12 V)']].forEach(([i,k,n])=>PTS[k]={x:OBDX(i),y:OBDY(i),n});
+MODS.forEach(m=>{const P=modPins(m);for(const k in P)PTS[m.id+'.'+k]={x:P[k][0],y:P[k][1],n:`${MNAME[m.id]}: ${{H:'CAN-H',L:'CAN-L',B:'+B (alimentación)',M:'masa'}[k]}`};});
+
+function drawNet(){
+  const f=F(),cm=comm(),showF=!st.ev.on;let s='';
+  s+=`<text x="16" y="22" class="lbl">Bus CAN de alta velocidad (tren motriz) · ${st.br} kbit/s · par trenzado CAN-H / CAN-L</text>`;
+  s+=`<g font-size="11"><line x1="660" y1="36" x2="690" y2="36" stroke="var(--canh)" stroke-width="3"/><text x="695" y="40" class="lbl2">CAN-H</text><line x1="750" y1="36" x2="780" y2="36" stroke="var(--canl)" stroke-width="3"/><text x="785" y="40" class="lbl2">CAN-L</text></g>`;
+  // tronco trenzado
+  s+=`<path d="M130 ${YL}L140 ${YL}${twPath('L',140,780).replace('M','L')}L790 ${YL}" stroke="var(--canl)" stroke-width="3" fill="none"/>`;
+  s+=`<path d="M130 ${YH}L140 ${YH}${twPath('H',140,780).replace('M','L')}L790 ${YH}" stroke="var(--canh)" stroke-width="3" fill="none"/>`;
+  // conector intermedio C1
+  const rcBad=showF&&f.fault==='RC';
+  s+=`<rect x="451" y="${YH-6}" width="18" height="12" rx="2" fill="#fff" stroke="${rcBad?'#c62828':'#2b3440'}" stroke-width="${rcBad?2.5:1.5}"/><text x="460" y="${YH-10}" text-anchor="middle" class="lbl2">C1</text>`;
+  if(rcBad)s+=`<text x="460" y="${YC+38}" text-anchor="middle" font-size="12" font-weight="700" fill="#c62828">Rc = ${f.Rc} Ω</text>`;
+  // módulos
+  for(const m of MODS){
+    const [bx,by,w,h]=m.box,P=modPins(m),x=m.x,stt=cm.mods[m.id];
+    const led={ok:'#2e7d32',int:'#f9a825',no:'#c62828',off:'#9e9e9e'}[stt];
+    // derivaciones (stubs)
+    if(m.pos==='top'){s+=`<path d="M${P.H[0]} ${P.H[1]}V196L${x} ${YH}" stroke="var(--canh)" stroke-width="2.5" fill="none"/><path d="M${P.L[0]} ${P.L[1]}V206L${x} ${YL}" stroke="var(--canl)" stroke-width="2.5" fill="none"/>`;}
+    if(m.pos==='bot'){s+=`<path d="M${P.H[0]} ${P.H[1]}V300L${x} ${YH}" stroke="var(--canh)" stroke-width="2.5" fill="none"/><path d="M${P.L[0]} ${P.L[1]}V292L${x} ${YL}" stroke="var(--canl)" stroke-width="2.5" fill="none"/>`;}
+    if(!m.end){s+=`<circle cx="${x}" cy="${YH}" r="3.5" fill="var(--canh)"/><circle cx="${x}" cy="${YL}" r="3.5" fill="var(--canl)"/>`;}
+    s+=`<rect x="${bx}" y="${by}" width="${w}" height="${h}" rx="8" fill="${stt==='off'?'#f1f3f5':'#fff'}" stroke="${m.col}" stroke-width="2"/>`;
+    s+=`<circle cx="${bx+w-11}" cy="${by+11}" r="5" fill="${led}"/>`;
+    if(m.end){
+      const rx=m.end==='L'?bx+w-18:bx+18,termBad=showF&&f.fault==='TERM'&&(f.loc===m.id||f.loc==='BOTH');
+      s+=`<path d="M${P.H[0]} ${YH}H${rx}V${YC-10}M${P.L[0]} ${YL}H${rx}V${YC+10}" stroke="#2b3440" stroke-width="1.6" fill="none"/>`;
+      s+=`<rect x="${rx-5}" y="${YC-10}" width="10" height="20" fill="#fff" stroke="${termBad?'#c62828':'#2b3440'}" stroke-width="1.8"/>`;
+      if(termBad)s+=`<path d="M${rx-9} ${YC-8}l18 16M${rx+9} ${YC-8}l-18 16" stroke="#c62828" stroke-width="3"/>`;
+      const tx=m.end==='L'?rx-9:rx+9,an=m.end==='L'?'end':'start';
+      s+=`<text x="${tx}" y="${YC-2}" text-anchor="${an}" font-size="11" font-weight="700" fill="#2b3440">${m.rt}</text><text x="${tx}" y="${YC+12}" text-anchor="${an}" class="lbl2">120 Ω</text>`;
+      const cx=m.end==='L'?bx+44:bx+62;
+      s+=`<text x="${cx}" y="${by+26}" text-anchor="middle" class="lbl">${m.name}</text>`;
+      if(m.name2)s+=`<text x="${cx}" y="${by+41}" text-anchor="middle" class="lbl">${m.name2}</text>`;
+      s+=`<text x="${cx}" y="${m.name2?by+h-28:by+42}" text-anchor="middle" class="lbl2">${m.sub}</text>`;
+      s+=`<text x="${cx}" y="${by+h-12}" text-anchor="middle" class="lbl2">ID ${hex3(m.cid)}</text>`;
+    }else{
+      s+=`<text x="${bx+w/2}" y="${by+24}" text-anchor="middle" class="lbl">${m.name}</text><text x="${bx+w/2}" y="${by+39}" text-anchor="middle" class="lbl2">${m.sub}</text><text x="${bx+w/2}" y="${by+56}" text-anchor="middle" class="lbl2">ID ${hex3(m.cid)}</text>`;
+    }
+    // alimentación y masa
+    const pB=P.B,pM=P.M,pwB=showF&&f.fault==='PWR'&&f.loc===m.id&&f.variant==='B',pwM=showF&&f.fault==='PWR'&&f.loc===m.id&&f.variant==='M';
+    if(m.end){s+=`<path d="M${pB[0]} ${pB[1]}V${pB[1]-16}" stroke="#c62828" stroke-width="2"/><text x="${pB[0]}" y="${pB[1]-20}" text-anchor="middle" font-size="11" font-weight="700" fill="#c62828">+B</text>`;
+      s+=`<path d="M${pM[0]} ${pM[1]}V${pM[1]+12}" stroke="${pwM?'#c62828':'#2b3440'}" stroke-width="${pwM?3:2}" ${pwM?'stroke-dasharray="3 3"':''}/>`+gnd(pM[0],pM[1]+12);
+      if(pwB)s+=`<path d="M${pB[0]-6} ${pB[1]-14}l12 10M${pB[0]+6} ${pB[1]-14}l-12 10" stroke="#c62828" stroke-width="3"/>`;
+      if(pwM)s+=`<text x="${pM[0]+10}" y="${pM[1]+14}" font-size="11" font-weight="700" fill="#c62828">R alta</text>`;
+    }else{s+=`<path d="M${pB[0]} ${pB[1]}H${pB[0]-14}" stroke="#c62828" stroke-width="2"/><text x="${pB[0]-17}" y="${pB[1]+4}" text-anchor="end" font-size="11" font-weight="700" fill="#c62828">+B</text>`;
+      s+=`<path d="M${pM[0]} ${pM[1]}H${pM[0]+12}V${pM[1]+4}" stroke="${pwM?'#c62828':'#2b3440'}" stroke-width="${pwM?3:2}" fill="none" ${pwM?'stroke-dasharray="3 3"':''}/>`+gnd(pM[0]+12,pM[1]+4);
+      if(pwB)s+=`<path d="M${pB[0]-13} ${pB[1]-6}l10 12M${pB[0]-3} ${pB[1]-6}l-10 12" stroke="#c62828" stroke-width="3"/>`;
+      if(pwM)s+=`<text x="${pM[0]+4}" y="${pM[1]+30}" font-size="11" font-weight="700" fill="#c62828">R alta</text>`;}
+    // CAN-H abierto
+    if(showF&&f.fault==='OPENH'&&f.loc===m.id){
+      let cx,cy;if(m.end==='L'){cx=bx+w+5;cy=YH;}else if(m.end==='R'){cx=bx-5;cy=YH;}else if(m.pos==='top'){cx=P.H[0];cy=170;}else{cx=P.H[0];cy=330;}
+      s+=`<path d="M${cx-7} ${cy-7}l14 14M${cx+7} ${cy-7}l-14 14" stroke="#c62828" stroke-width="3.5"/><text x="${cx+(m.end==='R'?-10:10)}" y="${cy-10}" text-anchor="${m.end==='R'?'end':'start'}" font-size="11" font-weight="700" fill="#c62828">abierto</text>`;
+    }
+    // pines
+    for(const k of ['H','L','B','M']){const [px,py]=P[k];
+      s+=`<g class="pin" data-p="${m.id}.${k}"><circle cx="${px}" cy="${py}" r="6"/><text x="${px}" y="${py+3}" text-anchor="middle">${k==='B'?'+':k}</text></g>`;}
+  }
+  // cortocircuitos
+  if(showF&&['HG','LG','HB','LB','HL'].includes(f.fault)){
+    const off={ECM:26,ABS:28,TCM:-32,BCM:28,PAN:-28}[f.loc],x=TAPX[f.loc],bx=x+off,ln=f.fault[0]==='H'?'H':'L';
+    if(f.fault==='HL'){s+=`<path d="M${bx} ${twY(bx,'H')}V${twY(bx,'L')}" stroke="#c62828" stroke-width="3.5"/><text x="${bx}" y="${YC+36}" text-anchor="middle" font-size="11" font-weight="700" fill="#c62828">corto H–L</text>`;}
+    else{const y1=twY(bx,ln);s+=`<path d="M${bx} ${y1}V300" stroke="#c62828" stroke-width="2.5" stroke-dasharray="5 3"/>`;
+      if(f.fault[1]==='G')s+=gnd(bx,300).replace(/#2b3440/g,'#c62828');
+      else s+=`<rect x="${bx-20}" y="300" width="40" height="17" rx="4" fill="#c62828"/><text x="${bx}" y="313" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">+12 V</text>`;}
+  }
+  // conector OBD-II
+  s+=`<path d="M236 ${YH+20}V376H290V400" stroke="var(--canh)" stroke-width="2.5" fill="none"/><path d="M260 ${YH}L236 ${YH+20}" stroke="var(--canh)" stroke-width="2.5"/>`;
+  s+=`<path d="M260 ${YL}L272 ${YL+12}V366H362V458H290V440" stroke="var(--canl)" stroke-width="2.5" fill="none"/>`;
+  s+=`<circle cx="260" cy="${YH}" r="3.5" fill="var(--canh)"/><circle cx="260" cy="${YL}" r="3.5" fill="var(--canl)"/>`;
+  s+=`<path d="M172 392H348L338 448H182Z" fill="#eceff1" stroke="#2b3440" stroke-width="2"/>`;
+  for(let i=1;i<=16;i++){const x=OBDX(i),y=OBDY(i),k={4:'o4',5:'o5',6:'o6',14:'o14',16:'o16'}[i];
+    const fill={6:'#fbe0d6',14:'#dbe7f7',4:'#e0e0e0',5:'#e0e0e0',16:'#fde2e2'}[i];
+    if(k)s+=`<g class="pin" data-p="${k}"><circle cx="${x}" cy="${y}" r="8" style="fill:${fill}"/><text x="${x}" y="${y+3}" text-anchor="middle">${i}</text></g>`;
+    else s+=`<circle cx="${x}" cy="${y}" r="6" fill="#fff" stroke="#b0bec5" stroke-width="1.2"/><text x="${x}" y="${y+3}" text-anchor="middle" font-size="8" fill="#90a4ae">${i}</text>`;}
+  s+=`<text x="172" y="476" class="lbl">Conector de diagnóstico OBD-II (SAE J1962, 16 vías)</text>`;
+  s+=`<text x="172" y="494" class="lbl2">4 masa de chasis · 5 masa de señal · 6 CAN-H · 14 CAN-L · 16 +12 V de batería</text>`;
+  // puntas del multímetro
+  if(st.mode!=='OFF'){
+    const pr=(k,col,t,dy)=>{const p=PTS[k];if(!p)return '';return `<g pointer-events="none"><circle cx="${p.x}" cy="${p.y}" r="11" fill="none" stroke="${col}" stroke-width="3"/><rect x="${p.x+7}" y="${p.y+dy-9}" width="${t.length*8+8}" height="16" rx="4" fill="${col}"/><text x="${p.x+11}" y="${p.y+dy+3}" fill="#fff" font-size="10" font-weight="700">${t}</text></g>`;};
+    s+=pr(st.black,'#111','COM',st.red===st.black?20:12);s+=pr(st.red,'#e53935',st.mode==='R'?'Ω':'V',-12);
+  }
+  s+=`<g id="pk"></g>`;
+  net.innerHTML=s;
+}
+
+/* ---------- animación de tramas ---------- */
+const PK={list:[],next:0,flash:{}};
+function stepPackets(now){
+  const g=$('pk');if(!g)return;
+  const cm=comm(),f=F();
+  if(now>PK.next&&st.tab==='red'){
+    PK.next=now+1400-st.load*9;
+    if(cm.bus==='dead'){const m=MODS[Math.floor(Math.random()*MODS.length)];PK.list.push({x:TAPX[m.id],t0:now,err:true,col:m.col,id:m.cid});}
+    else if(cm.bus!=='off'){
+      const alive=MODS.filter(m=>cm.mods[m.id]!=='no');
+      if(alive.length){const m=alive[PK.rot=(PK.rot??-1)+1,PK.rot%alive.length];PK.list.push({x:TAPX[m.id],t0:now,col:m.col,id:m.cid,from:m.id,done:{}});}
+    }
+  }
+  let s='';const v=0.32;
+  PK.list=PK.list.filter(p=>{
+    const age=now-p.t0;
+    if(p.err){if(age>900)return false;const o=1-age/900;
+      s+=`<g opacity="${o.toFixed(2)}"><rect x="${p.x-30}" y="${YC-9}" width="60" height="18" rx="9" fill="#c62828"/><text x="${p.x}" y="${YC+4}" text-anchor="middle" font-size="10" font-weight="700" fill="#fff">ERROR</text></g>`;return true;}
+    const d=age*v;if(p.x-d<130&&p.x+d>790)return false;
+    for(const m of MODS){if(m.id===p.from||p.done[m.id])continue;
+      if(Math.abs(TAPX[m.id]-p.x)<=d){p.done[m.id]=1;const q=cm.mods[m.id];
+        if(q==='ok'||(q==='int'&&Math.random()<0.6))PK.flash[m.id]={t:now,c:'#2e7d32'};else PK.flash[m.id]={t:now,c:'#c62828'};}}
+    for(const x of [p.x-d,p.x+d]){if(x<130||x>790)continue;
+      const fade=f.fault==='RC'&&x>460&&cm.bus==='deg'?0.45:1;
+      s+=`<g opacity="${fade}"><rect x="${x-26}" y="${YC-8}" width="52" height="16" rx="8" fill="${p.col}" stroke="#fff" stroke-width="1.5"/><text x="${x}" y="${YC+4}" text-anchor="middle" font-size="10" font-weight="700" fill="#fff">${hex3(p.id)}</text></g>`;}
+    return true;
+  });
+  for(const id in PK.flash){const fl=PK.flash[id],a=now-fl.t;if(a>500){delete PK.flash[id];continue;}
+    const [bx,by,w,h]=MOD[id].box;s+=`<rect x="${bx-3}" y="${by-3}" width="${w+6}" height="${h+6}" rx="10" fill="none" stroke="${fl.c}" stroke-width="4" opacity="${(1-a/500).toFixed(2)}"/>`;}
+  g.innerHTML=s;
+}
+let lastAcq=0,lastMeter=0;
+function tick(now){
+  stepPackets(now);
+  if(st.sc.run&&now-lastAcq>700){lastAcq=now;acquire();drawScope();}
+  if(now-lastMeter>450){lastMeter=now;updateMeter();updateState();}
+  requestAnimationFrame(tick);
+}
+
+/* ---------- multímetro ---------- */
+function meter(){
+  if(st.mode==='OFF')return {v:'',u:'',note:'Instrumento apagado.'};
+  if(!st.red||!st.black)return {v:'- - -',u:st.mode==='R'?'Ω':'V',note:'Coloque la punta roja y la negra.'};
+  const a=st.red,b=st.black,ev=st.ev.on;
+  if(st.mode==='V'){
+    const va=pointV(a),vb=pointV(b),bus=comm().bus,j=(bus==='ok'||bus==='deg')&&Math.max(va,vb)>0.3&&/o6|o14|\.H|\.L/.test(a+b)?(Math.random()-0.5)*0.006:0;
+    const v=va-vb+j;
+    let note='';
+    if(!ev){
+      const pr=[a,b].sort().join('-');
+      if(!st.bat)note='Batería desconectada: no hay tensiones en la red.';
+      else if(!st.key&&/o6|o14/.test(a))note='Contacto apagado: la red está en reposo; los transceptores no polarizan el bus.';
+      else if(b==='o4'||b==='o5'){
+        if(a==='o6')note=v>2.55&&v<2.8?'CAN-H correcto: valor medio entre 2,5 V (recesivo) y 3,5 V (dominante).':v<0.3?'CAN-H prácticamente a 0 V: posible corto a masa de CAN-H o, si CAN-L también está a 0 V, del bus.':v>10?'CAN-H a tensión de batería: corto a +12 V en la red.':'CAN-H fuera del intervalo esperado (≈ 2,6–2,7 V).';
+        if(a==='o14')note=v>2.2&&v<2.45?'CAN-L correcto: valor medio entre 2,5 V (recesivo) y 1,5 V (dominante).':v<0.3?'CAN-L prácticamente a 0 V: corto a masa en la red (compare con CAN-H).':v>10?'CAN-L a tensión de batería: corto a +12 V en la red.':'CAN-L fuera del intervalo esperado (≈ 2,3–2,4 V).';
+      }
+      if(pr.includes('.B')&&pr.includes('.M')){const m=a.split('.')[0];if(Math.abs(v)<9)note=`Tensión de alimentación de ${MNAME[m]} insuficiente: revise el fusible, el cable +B y la masa (método de caída de tensión).`;}
+      if(v<-0.0005)note+=(note?' ':'')+'Lectura negativa: las puntas están invertidas.';
+    }
+    return {v:nf(v,Math.abs(v)<10?3:2),u:'V',raw:v,note};
+  }
+  // óhmetro
+  if(st.bat)return {v:'Err',u:'Ω',note:'¡Sistema energizado! Desconecte la batería y espere la descarga de los condensadores antes de medir resistencia. Con tensión presente la lectura es falsa y el instrumento o los transceptores pueden dañarse.'};
+  const R=measR(a,b);
+  if(discharging()){const left=Math.ceil((st.disUntil-performance.now())/1000);
+    const fake=(isFinite(R)?R:5000)*(1.6+0.9*Math.sin(performance.now()/180))+Math.random()*40;const t=fmtR(fake);
+    return {v:t[0],u:t[1],unstable:true,note:`Lectura inestable: los condensadores de los módulos todavía se están descargando. Espere ${left} s (en el vehículo real, el tiempo orientativo lo indica el fabricante; con frecuencia varios minutos).`};}
+  const t=fmtR(R);let note='';
+  if(!ev){
+    const pr=[a,b].sort().join('-');
+    if(pr==='o14-o6'){
+      if(!isFinite(R))note='OL: faltan ambas terminaciones o las dos líneas están interrumpidas.';
+      else if(R<5)note='≈ 0 Ω: CAN-H y CAN-L están en corto entre sí.';
+      else if(R<66)note='≈ 60 Ω correcto: dos terminaciones de 120 Ω en paralelo.';
+      else if(R>110&&R<130)note='≈ 120 Ω: falta una terminación o hay un tramo abierto hacia un extremo del bus.';
+      else note='Resistencia mayor que 60 Ω: resistencia de contacto en el bus o terminación fuera de valor.';
+    }else if(/o6|o14/.test(pr)&&/o4|o5|o16/.test(pr)){
+      note=R<5?'Resistencia casi nula: la línea CAN está en corto con ese punto.':R<5000?'Resistencia baja (se esperaba alta): la línea se une a masa o a +B a través de otro camino (corto en la otra línea más la terminación, o consumidores de +B).':'Resistencia alta: sin fuga hacia ese punto (correcto).';
+    }
+  }
+  return {v:t[0],u:t[1],raw:R,note};
+}
+function updateMeter(){
+  const m=meter();
+  $('lcdVal').textContent=m.v;$('lcdUnit').textContent=m.u;
+  $('lcdFn').textContent={V:'V⎓',R:'Ω',OFF:''}[st.mode];
+  $('mnote').textContent=m.note||'';
+  document.querySelectorAll('#modes button').forEach(b=>b.classList.toggle('on',b.dataset.m===st.mode));
+  $('pRed').classList.toggle('on',st.place==='red');$('pBlk').classList.toggle('on',st.place==='black');
+  $('mstat').textContent=st.mode==='OFF'?'':`Roja: ${PTS[st.red]?.n||'—'} · Negra (COM): ${PTS[st.black]?.n||'—'}`;
+  return m;
+}
+
+/* ---------- avisos ---------- */
+function updateMsgs(){
+  const f=F(),cm=comm(),w=[],ev=st.ev.on;
+  if(!st.bat){if(discharging())w.push(['w',`Batería desconectada. Espere a que se descarguen los condensadores de los módulos (${Math.ceil((st.disUntil-performance.now())/1000)} s en el simulador) antes de medir resistencia.`]);
+    else w.push(['i','Batería desconectada y condensadores descargados: puede medir resistencias en la red (6–14, 6–4, 14–4, 6–16, 14–16).']);}
+  else if(!st.key)w.push(['i','Contacto apagado: los módulos están en reposo y no hay tramas en el bus.']);
+  if(st.mode==='R'&&st.bat)w.push(['e','No mida resistencia con el sistema energizado: la lectura no es válida. Desconecte la batería.']);
+  if(ev){w.push(['i','Modo evaluación activo: la avería está oculta. Mida, observe el osciloscopio y el escáner, y elija el diagnóstico.']);}
+  else if(st.bat&&st.key){
+    const T={none:['o','Red sana: 60 Ω entre 6 y 14; CAN-H y CAN-L conmutan en espejo alrededor de 2,5 V (recesivo) y la tensión diferencial llega a ≈ 2 V en los bits dominantes.'],
+      HG:['e','CAN-H está unido a masa: CAN-H ≈ 0 V y CAN-L también cae a ≈ 0 V a través de las terminaciones. No hay tensión diferencial: bus de alta velocidad inoperante.'],
+      LG:['w','CAN-L está unido a masa: CAN-L ≈ 0 V y CAN-H conmuta entre ≈ 0 V y ≈ 3,4 V. Aún existe tensión diferencial, pero sin margen frente a interferencias: comunicación degradada o intermitente.'],
+      HB:['e','CAN-H está unido a +12 V: ambas líneas quedan cerca de la tensión de batería (CAN-L se iguala a través de las terminaciones). Bus inoperante.'],
+      LB:['e','CAN-L está unido a +12 V: ambas líneas quedan cerca de la tensión de batería. Bus inoperante.'],
+      HL:['e','CAN-H y CAN-L en corto entre sí: ambas líneas quedan en ≈ 2,5 V y la tensión diferencial es 0 V. Ningún módulo puede transmitir un bit dominante: bus inoperante; entre 6 y 14 se miden ≈ 0 Ω.'],
+      TERM:['w','Falta una terminación: entre 6 y 14 se miden ≈ 120 Ω. La amplitud diferencial aumenta (≈ 2,5 V) y aparecen oscilaciones (reflexiones) en los flancos.'],
+      OPENH:MOD[f.loc]&&['w',`CAN-H interrumpido hacia ${MNAME[f.loc]}: esa ECU no ve la tensión diferencial y queda sin comunicación. Mida en su conector: CAN-H no sigue a la red.`+(MOD[f.loc].end?' Como esa ECU contiene una terminación, entre 6 y 14 se miden ≈ 120 Ω y hay reflexiones.':' En el conector OBD-II la red se ve normal (60 Ω).')],
+      PWR:MOD[f.loc]&&['w',`${MNAME[f.loc]} sin alimentación suficiente (${f.variant==='B'?'+B interrumpido':'masa deficiente'}): la red está sana, pero esa ECU no responde. Mida la tensión entre sus pines +B y M.`],
+      RC:f.fault==='RC'&&['w',`Resistencia de contacto de ${f.Rc} Ω en CAN-H (C1): 6–14 ≈ ${nf(measR('o6','o14',f),1)} Ω; los flancos de CAN-H se redondean y la amplitud baja en los módulos alejados (TCM, BCM, panel).`]};
+    if(T[f.fault])w.push(T[f.fault]);
+  }
+  $('msgs').innerHTML=w.map(([c,t])=>`<div class="${c}">${t}</div>`).join('');
+}
+
+/* ---------- escáner ---------- */
+function updateScan(){
+  const cm=comm();
+  const lab={ok:['Comunica','st-ok'],int:['Intermitente','st-int'],no:['Sin comunicación','st-no'],off:['En reposo','st-off']};
+  let h='';
+  if(!st.bat)h+='<p class="muted">Batería desconectada: el escáner no tiene alimentación (vía 16).</p>';
+  else if(!st.key)h+='<p class="muted">Contacto apagado: conecte el contacto para comunicar con los módulos.</p>';
+  else{
+    if(cm.bus==='dead')h+='<div class="msgs"><div class="e">El escáner no establece comunicación con ningún módulo por CAN (vías 6 y 14).</div></div>';
+    h+='<div class="tw"><table class="left"><tr><th>Módulo</th><th>ID (didáctico)</th><th>Estado</th></tr>';
+    for(const m of MODS){const q=lab[cm.mods[m.id]];h+=`<tr><td>${MNAME[m.id]}</td><td>${hex3(m.cid)}</td><td class="${q[1]}">${q[0]}</td></tr>`;}
+    h+='</table></div>';
+    h+='<h3>DTC tipo U</h3>';
+    h+=cm.dtc.length?'<div class="tw"><table class="left"><tr><th>Código</th><th>Descripción genérica</th></tr>'+cm.dtc.map(d=>`<tr><td><b>${d[0]}</b></td><td>${d[1]}${d[2]?` <span class="muted">(${d[2]})</span>`:''}</td></tr>`).join('')+'</table></div>':'<p class="muted">Sin códigos de comunicación.</p>';
+    if(cm.note)h+=`<p class="muted">${cm.note}</p>`;
+  }
+  h+='<p class="muted">Códigos genéricos SAE J2012. La descripción exacta, el módulo que los registra y los códigos adicionales dependen del fabricante.</p>';
+  $('scan').innerHTML=h;
+}
+function updateState(){
+  const p=$('pillState');
+  if(st.bat){p.textContent=st.key?'Sistema energizado · bus activo':'Batería conectada · contacto apagado';p.className='pill'+(st.key?' w':'');}
+  else if(discharging()){p.textContent=`Descargando condensadores… ${Math.ceil((st.disUntil-performance.now())/1000)} s`;p.className='pill w';}
+  else{p.textContent='Desenergizado: puede medir resistencia';p.className='pill';}
+  if(!st.bat)updateMsgs();
+}
+
+/* ---------- controles ---------- */
+function fillLoc(){
+  const fl=st.fault,sel=$('selLoc'),t=FAULTS[fl].loc;
+  let opts=[];
+  if(t==='mods')opts=MODS.map(m=>[m.id,(fl==='OPENH'||fl==='PWR'?'':'Cerca de ')+MNAME[m.id]]);
+  else if(t==='term')opts=[['PAN','RT2 (panel de instrumentos)'],['ECM','RT1 (ECU motor)'],['BOTH','RT1 y RT2 (ambas)']];
+  else opts=[['-','No aplica']];
+  if(!opts.find(o=>o[0]===st.loc))st.loc=opts[0][0];
+  sel.innerHTML=opts.map(o=>`<option value="${o[0]}" ${o[0]===st.loc?'selected':''}>${o[1]}</option>`).join('');
+  sel.disabled=t==='none'||st.ev.on;
+  $('lblLoc').textContent=['HG','LG','HB','LB','HL'].includes(fl)?'Ubicación del cortocircuito':fl==='TERM'?'Terminación afectada':'Ubicación / módulo afectado';
+  $('boxVar').style.display=fl==='PWR'&&!st.ev.on?'':'none';
+  $('boxRc').style.display=fl==='RC'&&!st.ev.on?'':'none';
+}
+$('selFault').innerHTML=FKEYS.map(k=>`<option value="${k}">${FAULTS[k].n}</option>`).join('');
+$('selFault').onchange=e=>{st.fault=e.target.value;fillLoc();changed();};
+$('selLoc').onchange=e=>{st.loc=e.target.value;changed();};
+$('selVar').onchange=e=>{st.variant=e.target.value;changed();};
+function sync(r,n,fn){const h=src=>{const v=parseNum(src.value);if(!isFinite(v))return;const c=Math.max(+r.min,Math.min(+r.max,v));fn(c);if(src!==r)r.value=c;if(src!==n)n.value=c;changed();};r.oninput=()=>h(r);n.onchange=()=>h(n);}
+sync($('rcR'),$('rcN'),v=>st.Rc=v);
+sync($('ldR'),$('ldN'),v=>st.load=v);
+$('selBr').onchange=e=>{st.br=+e.target.value;changed();drawFrame();};
+$('btnBat').onclick=()=>{st.bat=!st.bat;if(!st.bat)st.disUntil=performance.now()+5000;$('btnBat').textContent=st.bat?'Desconectar batería':'Conectar batería';$('btnBat').classList.toggle('on',!st.bat);changed();};
+$('btnKey').onclick=()=>{st.key=!st.key;$('btnKey').textContent='Contacto: '+(st.key?'ON':'OFF');$('btnKey').classList.toggle('on',st.key);changed();};
+$('btnReset').onclick=()=>{st.fault='none';$('selFault').value='none';st.Rc=150;$('rcR').value=$('rcN').value=150;fillLoc();changed();};
+function changed(){acquire();render();}
+function render(){drawNet();updateMeter();updateMsgs();updateScan();updateState();drawScope();}
+
+net.addEventListener('click',ev=>{
+  const p=ev.target.closest('.pin');if(!p||st.mode==='OFF')return;
+  if(st.place==='red')st.red=p.dataset.p;else st.black=p.dataset.p;
+  drawNet();updateMeter();
+});
+document.querySelectorAll('#modes button').forEach(b=>b.onclick=()=>{st.mode=b.dataset.m;drawNet();updateMeter();updateMsgs();});
+$('pRed').onclick=()=>{st.place='red';updateMeter();};
+$('pBlk').onclick=()=>{st.place='black';updateMeter();};
+document.querySelectorAll('.quick button').forEach(b=>b.onclick=()=>{const [r,k]=b.dataset.q.split(',');st.red=r;st.black=k;if(st.mode==='OFF')st.mode='V';drawNet();updateMeter();updateMsgs();});
+// osciloscopio
+$('scPt').innerHTML=`<option value="OBD">OBD-II (vías 6 y 14)</option>`+MODS.map(m=>`<option value="${m.id}">Conector ${m.id==='PAN'?'panel':m.id}</option>`).join('');
+$('scPt').onchange=e=>{st.sc.pt=e.target.value;acquire();drawScope();};
+$('scV').onchange=e=>{st.sc.vdiv=+e.target.value;drawScope();};
+$('scT').onchange=e=>{st.sc.tdiv=+e.target.value;drawScope();};
+$('scRun').onclick=()=>{st.sc.run=!st.sc.run;$('scRun').textContent=st.sc.run?'■ Detener':'▶ Continuar';drawScope();};
+document.querySelectorAll('.chs button').forEach(b=>b.onclick=()=>{const k=b.dataset.c;st.sc[k]=!st.sc[k];b.classList.toggle('on',st.sc[k]);drawScope();});
+
+/* ---------- registro ---------- */
+function caseName(){return st.ev.on?`Evaluación, caso ${st.ev.n}`:FAULTS[st.fault].n;}
+function condName(){return !st.bat?(discharging()?'Batería desconectada (descargando)':'Batería desconectada'):st.key?'Contacto ON':'Contacto OFF';}
+function addLog(){
+  const m=updateMeter();if(!m.v||m.v==='- - -')return;
+  st.log.push({n:st.log.length+1,c:caseName(),k:condName(),i:st.mode==='V'?'Multímetro V⎓':'Multímetro Ω',p:`${PTS[st.red].n} → ${PTS[st.black].n}`,l:m.v+' '+m.u+(m.unstable?' (inestable)':'')});drawLog();
+}
+function addLogS(){
+  const S=st.sc,td=S.tdiv,t1=(S.c1-1)*td,t2=(S.c2-1)*td;
+  const l=`Δt = ${nf(Math.abs(t2-t1),2)} µs; CH1 ${nf(vAt('h',t1),2)}/${nf(vAt('h',t2),2)} V; CH2 ${nf(vAt('l',t1),2)}/${nf(vAt('l',t2),2)} V`;
+  st.log.push({n:st.log.length+1,c:caseName(),k:condName(),i:`Osciloscopio ${nf(S.vdiv,S.vdiv<1?1:0)} V/div, ${td} µs/div`,p:ptName(S.pt),l});drawLog();
+}
+function drawLog(){
+  $('logTbl').innerHTML=st.log.length?`<table class="left"><tr><th>N.º</th><th>Caso</th><th>Condición</th><th>Instrumento</th><th>Puntos</th><th>Lectura</th></tr>${st.log.map(r=>`<tr><td>${r.n}</td><td>${r.c}</td><td>${r.k}</td><td>${r.i}</td><td>${r.p}</td><td>${r.l}</td></tr>`).join('')}</table>`:'<p class="muted">Aún no hay lecturas registradas.</p>';
+}
+function csv(){
+  const lines=['N;Caso;Condición;Instrumento;Puntos;Lectura',...st.log.map(r=>[r.n,r.c,r.k,r.i,r.p,r.l].join(';'))];
+  const blob=new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='registro_red_CAN.csv';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+$('btnLog').onclick=addLog;$('btnLogS').onclick=addLogS;$('btnCsv').onclick=csv;$('btnClr').onclick=()=>{st.log=[];drawLog();};
+
+/* ---------- modo evaluación ---------- */
+const SIG={
+ none:'R 6–14 ≈ 60 Ω; CAN-H ≈ 2,6–2,7 V y CAN-L ≈ 2,3–2,4 V; señales en espejo (2,5/3,5 V y 2,5/1,5 V) y todos los módulos comunican.',
+ HG:'CAN-H ≈ 0 V y CAN-L ≈ 0 V; R 6–4 ≈ 0 Ω; R 6–14 sigue en ≈ 60 Ω; ningún módulo comunica.',
+ LG:'CAN-L ≈ 0 V; CAN-H conmuta entre ≈ 0 V y ≈ 3,4 V (valor medio bajo, ≈ 0,5–0,7 V); R 14–4 ≈ 0 Ω; comunicación degradada o intermitente.',
+ HB:'CAN-H ≈ tensión de batería y CAN-L casi igual; R 6–16 ≈ 0 Ω; bus inoperante.',
+ LB:'CAN-L ≈ tensión de batería y CAN-H casi igual; R 14–16 ≈ 0 Ω; bus inoperante.',
+ HL:'CAN-H = CAN-L ≈ 2,5 V (diferencial 0 V); R 6–14 ≈ 0 Ω; bus inoperante.',
+ TERM:'R 6–14 ≈ 120 Ω (u OL si faltan ambas); amplitud diferencial mayor (≈ 2,5 V) y oscilaciones en los flancos; los módulos suelen seguir comunicando.',
+ OPENH:'Solo esa ECU pierde la comunicación (los demás registran su DTC U); en su conector CAN-H no sigue a la red; si la ECU contiene una terminación, R 6–14 ≈ 120 Ω.',
+ PWR:'La red está sana (60 Ω, niveles y oscilograma correctos) pero una ECU no responde; en su conector la tensión entre +B y M es nula o baja.',
+ RC:'R 6–14 mayor que 60 Ω sin llegar a 120 Ω; flancos de CAN-H redondeados y amplitud reducida en los módulos alejados; fallas intermitentes de comunicación.'};
+function newCase(){
+  const rnd=a=>a[Math.floor(Math.random()*a.length)];
+  const fault=rnd(FKEYS);let loc='-';
+  if(FAULTS[fault].loc==='mods')loc=rnd(MODS).id;
+  if(fault==='TERM')loc=rnd(['ECM','PAN','PAN','ECM','BOTH']);
+  st.ev.cs={fault,loc,variant:rnd(['B','M']),Rc:rnd([150,200,250])};
+  st.ev.n++;st.ev.checked=false;
+  st.bat=true;st.key=true;$('btnBat').textContent='Desconectar batería';$('btnBat').classList.remove('on');$('btnKey').textContent='Contacto: ON';$('btnKey').classList.add('on');
+  ['evR','evH','evL'].forEach(k=>{$(k).value='';$(k).className='';});$('evDiag').value='';$('evLoc').value='';$('evDiag').className='';$('evLoc').className='';
+  $('fb').innerHTML='';$('score').textContent='';
+  const cm=comm(st.ev.cs,{bat:true,key:true});
+  let sym;
+  if(cm.bus==='dead')sym='Varios testigos encendidos en el panel; el escáner no se comunica con ningún módulo.';
+  else if(cm.bus==='deg')sym='El cliente reporta testigos que se encienden y apagan y fallas esporádicas; el escáner muestra comunicación inestable.';
+  else{const no=MODS.filter(m=>cm.mods[m.id]==='no');
+    sym=no.length?`Testigo encendido; el escáner no obtiene respuesta de: ${no.map(m=>MNAME[m.id]).join(', ')}.`:'Revisión de la red solicitada por el cliente (fallas esporádicas reportadas en otro taller). Compruebe el estado de la red.';}
+  $('evSym').innerHTML=`<b>Caso ${st.ev.n}.</b> ${sym}`;
+  fillLoc();changed();
+}
+function expected(){
+  const cs=st.ev.cs,c={bat:true,key:true};
+  return {R:measR('o6','o14',cs),H:pointV('o6',cs,c),L:pointV('o14',cs,c)};
+}
+function checkEval(){
+  const cs=st.ev.cs,E=expected();let pts=0;const out=[];
+  // resistencia
+  const rin=$('evR').value.trim().toUpperCase();let okR;
+  if(!isFinite(E.R))okR=rin==='OL';else{const r=parseNum(rin);okR=isFinite(r)&&Math.abs(r-E.R)<=Math.max(0.05*E.R,1);}
+  $('evR').className=okR?'ok':'bad';$('evR').title='Esperado ≈ '+fmtRs(E.R);if(okR)pts++;
+  const h=parseNum($('evH').value),l=parseNum($('evL').value),tol=v=>Math.max(0.1,0.02*Math.abs(v));
+  const okH=isFinite(h)&&Math.abs(h-E.H)<=tol(E.H),okL=isFinite(l)&&Math.abs(l-E.L)<=tol(E.L);
+  $('evH').className=okH?'ok':'bad';$('evL').className=okL?'ok':'bad';$('evH').title='Esperado ≈ '+nf(E.H,2)+' V';$('evL').title='Esperado ≈ '+nf(E.L,2)+' V';
+  if(okH&&okL)pts++;
+  const dg=$('evDiag').value,okD=dg===cs.fault;if(okD)pts+=3;$('evDiag').className=okD?'ok':'bad';
+  const lg=$('evLoc').value,wantLoc=LOCAPPLIES.has(cs.fault)?cs.loc:'-';
+  const okLoc=lg===wantLoc;if(okLoc)pts++;$('evLoc').className=okLoc?'ok':'bad';
+  if(!st.ev.checked){st.ev.pts+=pts;st.ev.max+=6;st.ev.checked=true;}
+  $('score').textContent=`${pts} / 6 puntos · acumulado ${st.ev.pts} / ${st.ev.max}`;
+  const locTxt=wantLoc==='-'?'No aplica (afecta a toda la red)':wantLoc==='BOTH'?'RT1 y RT2 (ambas)':MNAME[wantLoc];
+  let h2=`<p><b>Avería real:</b> ${FAULTS[cs.fault].n}${wantLoc!=='-'?' · '+locTxt:''}${cs.fault==='PWR'?(cs.variant==='B'?' (alimentación +B interrumpida)':' (masa deficiente)'):''}${cs.fault==='RC'?` (Rc = ${cs.Rc} Ω)`:''}.</p>`;
+  h2+=`<p>${okR?'✔':'✘'} <b>R 6–14:</b> esperado ≈ ${fmtRs(E.R)} (mida con la batería desconectada y los condensadores descargados; tolerancia ±5 %).</p>`;
+  h2+=`<p>${okH&&okL?'✔':'✘'} <b>Tensiones medias:</b> CAN-H ≈ ${nf(E.H,2)} V y CAN-L ≈ ${nf(E.L,2)} V (contacto ON; tolerancia ±0,1 V).</p>`;
+  h2+=`<p>${okD?'✔':'✘'} <b>Diagnóstico.</b> Por qué: ${SIG[cs.fault]}</p>`;
+  if(!okD&&dg)h2+=`<p class="muted">Con «${FAULTS[dg].n}» se habría observado: ${SIG[dg]}</p>`;
+  h2+=`<p>${okLoc?'✔':'✘'} <b>Ubicación:</b> ${locTxt}.${wantLoc==='-'?' En esta avería la ubicación exacta se localiza desconectando módulos o tramos; no se evalúa.':cs.fault==='TERM'?' Se localiza midiendo la resistencia de cada terminación con su módulo desconectado.':' Se confirma midiendo en el conector de ese módulo (CAN-H/CAN-L y +B/M).'}</p>`;
+  $('fb').innerHTML=h2;
+  render();
+}
+$('evDiag').innerHTML='<option value="">— elija —</option>'+FKEYS.map(k=>`<option value="${k}">${FAULTS[k].n}</option>`).join('');
+$('evLoc').innerHTML='<option value="">— elija —</option><option value="-">No aplica (afecta a toda la red)</option>'+MODS.map(m=>`<option value="${m.id}">${MNAME[m.id]}</option>`).join('')+'<option value="BOTH">RT1 y RT2 (ambas terminaciones)</option>';
+$('evalMode').onchange=e=>{st.ev.on=e.target.checked;$('evBox').style.display=st.ev.on?'':'none';$('selFault').disabled=st.ev.on;
+  if(st.ev.on)newCase();else{st.ev.cs=null;fillLoc();changed();}};
+$('btnCheck').onclick=checkEval;$('btnNew').onclick=newCase;
+
+/* ---------- pestaña: estructura de trama ---------- */
+$('frMod').innerHTML=MODS.map(m=>`<option value="${m.id}">${MNAME[m.id]} · ${hex3(m.cid)} · ${m.msg}</option>`).join('')+'<option value="x">Personalizado</option>';
+$('frMod').onchange=e=>{const m=MOD[e.target.value];if(m){$('frId').value=m.cid.toString(16).toUpperCase();}drawFrame();};
+function parseHexList(s){return s.trim()?s.trim().split(/[\s,;]+/).map(x=>parseInt(x,16)).filter(x=>isFinite(x)&&x>=0&&x<=255):[];}
+function frameInput(){
+  let id=parseInt($('frId').value,16);if(!isFinite(id)||id<0)id=0;if(id>0x7FF)id=0x7FF;
+  const dlc=Math.max(0,Math.min(8,Math.round(parseNum($('frDlc').value))||0));
+  let data=parseHexList($('frData').value).slice(0,dlc);while(data.length<dlc)data.push(0);
+  return {id,dlc,data};
+}
+function drawFrame(){
+  const {id,data}=frameInput();
+  $('frIdDec').textContent=`= ${id} decimal`;
+  const fr=buildFrame(id,data),bits=fr.bits.concat([{v:1,f:'IFS'},{v:1,f:'IFS'},{v:1,f:'IFS'}]);
+  const per=68,rows=Math.ceil(bits.length/per),pw=820/per;let s='';
+  s+=`<text x="16" y="20" class="lbl">Trama de datos estándar (CAN 2.0A, identificador de 11 bits) · bit dominante = 0 · bit recesivo = 1</text>`;
+  for(let r=0;r<rows;r++){
+    const y0=40+r*140,part=bits.slice(r*per,(r+1)*per),x0=60;
+    // bandas de campos
+    let cur=null,a=0;
+    const band=(f,i0,i1)=>{const xa=x0+i0*pw,xb=x0+i1*pw;s+=`<rect x="${xa}" y="${y0}" width="${xb-xa}" height="20" fill="${FCOL[f]}" stroke="#fff"/>`;
+      if(xb-xa>34)s+=`<text x="${(xa+xb)/2}" y="${y0+14}" text-anchor="middle" font-size="11" font-weight="600" fill="#1c2533">${f==='IFS'?'IFS':FNAME[f]}</text>`;};
+    part.forEach((b,i)=>{if(b.f!==cur){if(cur)band(cur,a,i);cur=b.f;a=i;}});band(cur,a,part.length);
+    // relleno
+    part.forEach((b,i)=>{if(b.s)s+=`<rect x="${x0+i*pw}" y="${y0+26}" width="${pw}" height="62" fill="#ffcc80" opacity=".8"/>`;});
+    // forma de onda lógica
+    const yR=y0+34,yD=y0+78;let d='';
+    part.forEach((b,i)=>{const y=b.v?yR:yD,x=x0+i*pw;d+=(i?`L${x} ${y}`:`M${x} ${y}`)+`L${x+pw} ${y}`;});
+    s+=`<path d="${d}" stroke="#12355b" stroke-width="2" fill="none"/>`;
+    s+=`<text x="${x0-6}" y="${yR+4}" text-anchor="end" class="lbl2">1 rec.</text><text x="${x0-6}" y="${yD+4}" text-anchor="end" class="lbl2">0 dom.</text>`;
+    // valores de bit
+    part.forEach((b,i)=>{s+=`<text x="${x0+i*pw+pw/2}" y="${y0+102}" text-anchor="middle" font-size="9" fill="${b.s?'#e07b00':'#5b6778'}" font-weight="${b.s?700:400}">${b.v}</text>`;});
+    for(let i=0;i<part.length;i+=10)s+=`<text x="${x0+i*pw}" y="${y0+118}" class="lbl2" font-size="9">${r*per+i}</text>`;
+  }
+  s+=`<rect x="60" y="${40+rows*140-6}" width="14" height="10" fill="#ffcc80"/><text x="80" y="${40+rows*140+3}" class="lbl2">bit de relleno (se inserta tras 5 bits iguales, desde SOF hasta el final del CRC)</text>`;
+  $('frm').setAttribute('viewBox',`0 0 900 ${50+rows*140}`);
+  $('frm').innerHTML=s;
+  const total=fr.bits.length,T=Tb();
+  $('frStats').innerHTML=`Bits sin relleno: <b>${total-fr.nStuff}</b> · bits de relleno: <b>${fr.nStuff}</b> · longitud total (hasta EOF): <b>${total} bits</b> → t<sub>trama</sub> = ${total} × ${nf(T,0)} µs = <b>${nf(total*T,0)} µs</b> a ${st.br} kbit/s (más 3 bits de espacio entre tramas, IFS).`;
+  const bin=(v,n)=>v.toString(2).padStart(n,'0');
+  $('frTbl').innerHTML=`<tr><th>Campo</th><th>Bits</th><th>Valor</th><th>Función</th></tr>
+   <tr><td>SOF</td><td>1</td><td>0</td><td>Inicio de trama: un bit dominante que sincroniza a todos los nodos.</td></tr>
+   <tr><td>Identificador</td><td>11</td><td>${hex3(id)} = ${bin(id,11)}</td><td>Prioridad y contenido del mensaje. Durante el arbitraje gana el identificador menor.</td></tr>
+   <tr><td>RTR</td><td>1</td><td>0</td><td>0 = trama de datos; 1 = solicitud remota.</td></tr>
+   <tr><td>Control (IDE, r0, DLC)</td><td>6</td><td>0 0 ${bin(data.length,4)}</td><td>IDE = 0 (formato estándar) y DLC = número de bytes de datos (${data.length}).</td></tr>
+   <tr><td>Datos</td><td>${data.length*8}</td><td>${data.map(b=>b.toString(16).toUpperCase().padStart(2,'0')).join(' ')||'—'}</td><td>De 0 a 8 bytes con la información (p. ej., ${MODS.find(m=>m.cid===id)?.msg||'señales del módulo'}).</td></tr>
+   <tr><td>CRC</td><td>15 + 1</td><td>0x${fr.crc.toString(16).toUpperCase().padStart(4,'0')}</td><td>Código de control (polinomio CAN 0x4599) y delimitador recesivo.</td></tr>
+   <tr><td>ACK</td><td>1 + 1</td><td>0 1</td><td>Los receptores escriben un bit dominante si recibieron bien la trama.</td></tr>
+   <tr><td>EOF</td><td>7</td><td>1111111</td><td>Fin de trama: siete bits recesivos.</td></tr>`;
+}
+['frId','frData'].forEach(k=>$(k).addEventListener('input',()=>{if(k==='frId')$('frMod').value=MODS.find(m=>m.cid===parseInt($('frId').value,16))?.id||'x';drawFrame();}));
+const dlcSync=src=>{let v=Math.max(0,Math.min(8,Math.round(parseNum(src.value))||0));$('frDlc').value=v;$('frDlcR').value=v;
+  const d=parseHexList($('frData').value);while(d.length<v)d.push(Math.floor(Math.random()*256));$('frData').value=d.slice(0,v).map(b=>b.toString(16).toUpperCase().padStart(2,'0')).join(' ');drawFrame();};
+$('frDlcR').oninput=()=>dlcSync($('frDlcR'));$('frDlc').onchange=()=>dlcSync($('frDlc'));
+$('frRand').onclick=()=>{const n=+$('frDlc').value;$('frData').value=Array.from({length:n},()=>Math.floor(Math.random()*256).toString(16).toUpperCase().padStart(2,'0')).join(' ');drawFrame();};
+$('frStuff').onclick=()=>{$('frMod').value='x';$('frId').value='000';$('frDlc').value=$('frDlcR').value=2;$('frData').value='00 FF';drawFrame();};
+
+/* ---------- pestaña: arbitraje ---------- */
+const AR={step:-1,timer:0,res:null};
+['arbA','arbB'].forEach((k,i)=>{$(k).innerHTML=MODS.map(m=>`<option value="${m.id}">${m.id} ${hex3(m.cid)}</option>`).join('')+'<option value="x">Otro</option>';$(k).value=i?'ABS':'ECM';
+  $(k).onchange=e=>{const m=MOD[e.target.value];if(m)$(k+'id').value=m.cid.toString(16).toUpperCase();arbReset();};
+  $(k+'id').addEventListener('input',()=>{$(k).value=MODS.find(m=>m.cid===parseInt($(k+'id').value,16))?.id||'x';arbReset();});});
+function arbIds(){const g=k=>{let v=parseInt($(k).value,16);if(!isFinite(v)||v<0)v=0;return Math.min(v,0x7FF);};return [g('arbAid'),g('arbBid')];}
+function arbCompute(){
+  const [a,b]=arbIds(),A=[0,...toBits(a,11),0],B=[0,...toBits(b,11),0];
+  let lost=null,at=-1;for(let i=0;i<A.length;i++){if(A[i]!==B[i]){lost=A[i]===1?'A':'B';at=i;break;}}
+  return {a,b,A,B,lost,at};
+}
+function drawArb(){
+  const R=arbCompute(),n=R.A.length,x0=190,cw=52,k=AR.step;let s='';
+  const labels=['SOF',...Array.from({length:11},(_,i)=>'ID'+(10-i)),'RTR'];
+  s+=`<text x="16" y="22" class="lbl">Arbitraje bit a bit (Y cableada): un bit dominante (0) se impone sobre un recesivo (1)</text>`;
+  labels.forEach((t,i)=>{s+=`<text x="${x0+i*cw+cw/2}" y="52" text-anchor="middle" class="lbl2" font-weight="${i===k?700:400}">${t}</text>`;
+    if(i===k)s+=`<rect x="${x0+i*cw}" y="58" width="${cw}" height="250" fill="#fff4e0" stroke="#e07b00"/>`;});
+  const row=(y,bits,name,col,who)=>{
+    s+=`<text x="16" y="${y+22}" class="lbl" fill="${col}" style="fill:${col}">${name}</text>`;
+    let d='';
+    for(let i=0;i<n&&i<=k;i++){const out=(R.lost===who&&i>R.at)?1:bits[i],yy=out?y:y+34,x=x0+i*cw;d+=(i?`L${x} ${yy}`:`M${x} ${yy}`)+`L${x+cw} ${yy}`;
+      const lostHere=R.lost===who&&i>=R.at;
+      s+=`<text x="${x+cw/2}" y="${y+56}" text-anchor="middle" font-size="12" font-weight="700" fill="${lostHere&&i>R.at?'#9e9e9e':col}">${lostHere&&i>R.at?'·':bits[i]}</text>`;}
+    s+=`<path d="${d}" stroke="${col}" stroke-width="2.5" fill="none"/>`;
+  };
+  row(70,R.A,`ECU A · ${hex3(R.a)}`,'#8e24aa','A');
+  row(150,R.B,`ECU B · ${hex3(R.b)}`,'#00897b','B');
+  // bus
+  s+=`<text x="16" y="252" class="lbl">Bus (lo que</text><text x="16" y="268" class="lbl">leen todos)</text>`;
+  let d='';for(let i=0;i<n&&i<=k;i++){const v=R.A[i]&R.B[i],yy=v?236:270,x=x0+i*cw;d+=(i?`L${x} ${yy}`:`M${x} ${yy}`)+`L${x+cw} ${yy}`;
+    s+=`<text x="${x+cw/2}" y="292" text-anchor="middle" font-size="12" font-weight="700" fill="#12355b">${v}</text>`;}
+  s+=`<path d="${d}" stroke="#12355b" stroke-width="3" fill="none"/>`;
+  if(R.lost&&k>=R.at){const x=x0+R.at*cw+cw/2,y=R.lost==='A'?64:144;
+    s+=`<text x="${x}" y="${y+2}" text-anchor="middle" font-size="11" font-weight="700" fill="#c62828">pierde</text>`;}
+  let txt='';
+  if(R.a===R.b)txt='Dos nodos no deben transmitir el mismo identificador: el arbitraje no se resuelve y aparecen errores. Elija identificadores distintos.';
+  else if(k>=n-1||(R.lost&&k>=R.at)){const w=R.lost==='A'?'B':'A',wi=w==='A'?R.a:R.b,li=w==='A'?R.b:R.a;
+    txt=`En el bit ${labels[R.at]} la ECU ${R.lost} envía un 1 (recesivo), pero lee un 0 (dominante) en el bus: detecta que perdió y pasa a recibir sin destruir la trama. <b>Gana la ECU ${w}</b> porque su identificador ${hex3(wi)} (${wi}) es menor que ${hex3(li)} (${li}): menor identificador = mayor prioridad.`;}
+  else txt='Pulse «Iniciar arbitraje» o «Paso a paso». Ambas ECU comienzan a transmitir a la vez tras detectar el bus libre.';
+  s+=`<text x="16" y="336" class="lbl2">A 500 kbit/s cada bit dura 2 µs: el arbitraje completo (SOF + 11 bits + RTR) tarda ${nf(13*Tb(),0)} µs.</text>`;
+  $('arb').innerHTML=s;$('arbTxt').innerHTML=txt;
+}
+function arbReset(){clearTimeout(AR.timer);AR.step=-1;drawArb();}
+$('arbGo').onclick=()=>{clearTimeout(AR.timer);AR.step=-1;const n=13;const go=()=>{AR.step++;drawArb();if(AR.step<n-1)AR.timer=setTimeout(go,450);};go();};
+$('arbStep').onclick=()=>{clearTimeout(AR.timer);if(AR.step<12)AR.step++;drawArb();};
+$('arbReset').onclick=arbReset;
+
+/* ---------- pestañas ---------- */
+document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{st.tab=b.dataset.t;
+  document.querySelectorAll('#tabs button').forEach(x=>x.classList.toggle('on',x===b));
+  $('vRed').style.display=st.tab==='red'?'':'none';$('vTrama').style.display=st.tab==='trama'?'':'none';$('vArb').style.display=st.tab==='arb'?'':'none';
+  if(st.tab==='trama')drawFrame();if(st.tab==='arb')drawArb();});
+
+window.addEventListener('resize',sizeScope);
+fillLoc();acquire();render();drawLog();drawFrame();drawArb();sizeScope();
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>

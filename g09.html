@@ -1,0 +1,1173 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Simulador Encendido por Ruptor</title>
+<style>
+:root{--bg:#f3f5f8;--card:#fff;--ink:#1c2533;--muted:#5b6778;--line:#d9dfe7;--brand:#12355b;--brand2:#1f5a94;--accent:#e07b00;--ok:#1d8a4e;--okbg:#e6f4ec;--bad:#c62828;--badbg:#fdecea;--warnbg:#fff4e0;--wire:#2b3440;--flow:#ffb300}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.45}
+header{background:linear-gradient(90deg,var(--brand),var(--brand2));color:#fff;padding:14px 22px}
+header h1{margin:0;font-size:1.35rem;font-weight:600}
+header p{margin:3px 0 0;opacity:.85;font-size:.9rem}
+main{max-width:1320px;margin:0 auto;padding:16px;display:grid;grid-template-columns:minmax(0,1.75fr) minmax(320px,1fr);gap:16px}
+@media(max-width:980px){main{grid-template-columns:minmax(0,1fr)}}
+section,aside{min-width:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:16px}
+.card h2{font-size:1.02rem;margin:0 0 10px;color:var(--brand)}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.tabs button,.btn{border:1px solid var(--line);background:#fff;color:var(--ink);padding:7px 13px;border-radius:7px;cursor:pointer;font-size:.9rem}
+.tabs button.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+.btn:hover,.tabs button:hover{border-color:var(--brand2)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.small{padding:4px 9px;font-size:.82rem}
+svg#view{width:100%;height:auto;background:#fbfcfe;border:1px solid var(--line);border-radius:8px;user-select:none;display:block}
+.wire{stroke:var(--wire);stroke-width:3;stroke-linecap:round;stroke-linejoin:round;fill:none}
+.wire.bad{stroke:var(--bad);stroke-dasharray:7 5}
+.flow{fill:none;stroke:var(--flow);stroke-width:4;stroke-dasharray:3 15;stroke-linecap:round;pointer-events:none}
+.sym{stroke:var(--wire);stroke-width:2.4;fill:#fff}
+.lbl{font-size:13px;fill:var(--ink);font-weight:600;paint-order:stroke;stroke:#fbfcfe;stroke-width:3px;stroke-linejoin:round}
+.lbl2{font-size:12px;fill:var(--muted);paint-order:stroke;stroke:#fbfcfe;stroke-width:3px;stroke-linejoin:round}
+.ttl{font-size:13.5px;font-weight:700;fill:var(--brand)}
+.lead{stroke:#7b8796;stroke-width:1.2;fill:none}
+.ax{stroke:#8a96a6;stroke-width:1.2;fill:none}
+.gr{stroke:#e3e8ef;stroke-width:1}
+.tk{font-size:11px;fill:var(--muted)}
+.ctl{margin-bottom:10px}
+.ctl label{display:block;font-size:.86rem;color:var(--muted);margin-bottom:3px}
+.ctl .row{display:flex;gap:8px;align-items:center}
+.ctl input[type=range]{flex:1;min-width:0}
+.ctl input[type=number]{width:90px;padding:4px 6px;border:1px solid var(--line);border-radius:6px}
+.ctl select{padding:5px 6px;border:1px solid var(--line);border-radius:6px;min-width:130px;max-width:100%}
+.ctl.chk label{color:var(--ink);display:flex;gap:8px;align-items:center}
+.ctl.hid{display:none}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:4px 18px}
+@media(max-width:620px){.grid2{grid-template-columns:1fr}}
+.eq{background:#f7f9fc;border-left:4px solid var(--brand2);padding:10px 14px;border-radius:6px;font-size:.92rem}
+.eq p{margin:5px 0}
+.f{font-family:"Cambria Math","Times New Roman",serif;font-size:1.05rem}
+/* instrumentos */
+.meter{background:#39414d;border-radius:14px;padding:14px;color:#fff;box-shadow:inset 0 0 0 3px #e0a100}
+.lcd{background:#b9c9a4;color:#1d2616;border-radius:6px;padding:10px 12px;font-family:"Consolas","Courier New",monospace;display:flex;justify-content:space-between;align-items:flex-end;min-height:66px;box-shadow:inset 0 2px 6px rgba(0,0,0,.35)}
+.lcd .val{font-size:2.2rem;font-weight:700;letter-spacing:1px}
+.lcd .unit{font-size:1.2rem;font-weight:700}
+.lcd .fn{font-size:.8rem;align-self:flex-start}
+.lcd.sm{min-height:54px;padding:8px 10px}
+.lcd.sm .val{font-size:1.7rem}
+.lcdrow{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.modes{display:flex;gap:6px;margin:12px 0 8px}
+.modes button{flex:1;padding:9px 0;border-radius:8px;border:0;background:#555f6d;color:#fff;font-weight:700;cursor:pointer;font-size:.95rem}
+.modes button.on{background:#e0a100;color:#1c1c1c}
+.meter select{width:100%;padding:6px;border-radius:6px;border:0;font-size:.88rem}
+.mnote{font-size:.83rem;color:#e7ecf2;margin-top:8px;min-height:2.4em}
+.mstat{font-size:.8rem;color:#c6cfda;margin-top:4px}
+.scope{background:#2f3640;border-radius:14px;padding:12px;color:#fff;box-shadow:inset 0 0 0 3px #7a8794}
+canvas#osc{width:100%;height:auto;display:block;border-radius:6px;background:#0b1a12}
+.scope .row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:8px}
+.scope label{font-size:.75rem;color:#c6cfda;display:block}
+.scope select{width:100%;padding:4px;border-radius:5px;border:0;font-size:.82rem}
+.oscinfo{font-size:.82rem;color:#e7ecf2;margin-top:8px;font-family:"Consolas","Courier New",monospace;line-height:1.5}
+.pane{display:none}.pane.on{display:block}
+table{border-collapse:collapse;width:100%;font-size:.88rem}
+th,td{border-bottom:1px solid var(--line);padding:5px 6px;text-align:right}
+th:first-child,td:first-child{text-align:left}
+th{background:#eef2f7;color:var(--brand);font-weight:600}
+table.ref td,table.ref th{text-align:left}
+.tw{overflow-x:auto}
+#logTbl td,#logTbl th{white-space:nowrap;text-align:left}
+td input,.calc input{width:90px;padding:3px 5px;border:1px solid var(--line);border-radius:5px;text-align:right}
+input.ok{background:var(--okbg);border-color:var(--ok)}
+input.bad{background:var(--badbg);border-color:var(--bad)}
+.msgs div,.fb div{padding:7px 10px;border-radius:6px;margin-bottom:6px;font-size:.87rem}
+.msgs .w,.fb .w{background:var(--warnbg);border-left:4px solid var(--accent)}
+.msgs .e,.fb .e{background:var(--badbg);border-left:4px solid var(--bad)}
+.msgs .i,.fb .i{background:#e8f1fb;border-left:4px solid var(--brand2)}
+.fb .g{background:var(--okbg);border-left:4px solid var(--ok)}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center}
+.bar select{padding:5px 6px;border:1px solid var(--line);border-radius:6px}
+.switch{display:flex;align-items:center;gap:8px;font-size:.9rem;margin:6px 0}
+details summary{cursor:pointer;font-weight:600;color:var(--brand)}
+details ol{padding-left:20px;margin:8px 0}
+details li{margin-bottom:4px}
+.score{font-weight:700;margin-left:6px}
+.muted{color:var(--muted);font-size:.85rem}
+.calc{display:grid;grid-template-columns:1fr auto;gap:6px 10px;align-items:center;font-size:.9rem;margin:8px 0}
+.stmt{background:#f7f9fc;border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-size:.88rem;margin:8px 0}
+.diag select{width:100%;padding:6px;border:1px solid var(--line);border-radius:6px;margin-top:4px}
+footer{text-align:center;color:var(--muted);font-size:.8rem;padding:10px 0 24px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Simulador 8 · Encendido convencional por ruptor (platinos)</h1>
+  <p>Electricidad Automotriz · Unidad 3: Práctica de encendido por ruptor · Tecnología Superior en Mecánica Automotriz · ISTS</p>
+</header>
+
+<main>
+<section>
+  <div class="card">
+    <div class="tabs" id="vtabs"></div>
+    <svg id="view" viewBox="0 0 760 470" aria-label="Vista del sistema de encendido"></svg>
+    <div class="bar">
+      <label class="muted">Animación: <select id="selSlow">
+        <option value="0.05">cámara lenta ×1/20</option>
+        <option value="0.02" selected>cámara lenta ×1/50</option>
+        <option value="0.01">cámara lenta ×1/100</option>
+      </select></label>
+      <button class="btn small" id="btnPause">Pausa</button>
+      <label class="switch" id="strobeWrap" style="display:none;margin:0"><input type="checkbox" id="chkStrobe" checked> Lámpara estroboscópica encendida</label>
+    </div>
+    <div class="muted" id="vcap" style="margin-top:6px"></div>
+  </div>
+
+  <div class="card">
+    <h2>Parámetros del sistema</h2>
+    <div class="grid2" id="controls"></div>
+    <div class="muted" id="evalHint" style="display:none;margin-top:4px">Modo evaluación: los datos de los componentes y la avería están ocultos. Mídalos con los instrumentos.</div>
+    <div class="bar">
+      <button class="btn" id="btnReset">Restablecer valores</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Ecuaciones de trabajo</h2>
+    <div class="eq">
+      <p class="f">n<sub>d</sub> = n / 2 &nbsp;·&nbsp; T<sub>chispa</sub> = 120 / (n · z) &nbsp;(z = número de cilindros = lóbulos de la leva)</p>
+      <p class="f">Dwell % = Dwell / (360° / z) · 100 &nbsp;·&nbsp; t<sub>c</sub> = (Dwell / 360°) · (60 / n<sub>d</sub>)</p>
+      <p class="f">I(t) = (U / R) · (1 − e<sup>−t·R/L</sup>) &nbsp;·&nbsp; τ = L / R &nbsp;·&nbsp; I<sub>corte</sub> = I(t<sub>c</sub>)</p>
+      <p class="f">W = ½ · L · I<sub>corte</sub>² &nbsp;·&nbsp; R = R<sub>cables</sub> + R<sub>v</sub> + R<sub>1</sub> + R<sub>contacto</sub></p>
+      <p class="f">U<sub>2,disp</sub> ≈ η · ü · I<sub>corte</sub> · √(L / C<sub>eq</sub>) &nbsp;·&nbsp; C<sub>eq</sub> = C + C<sub>s</sub> · ü² &nbsp;·&nbsp; f<sub>osc</sub> = 1 / (2π √(L · C<sub>eq</sub>))</p>
+      <p class="f">α<sub>total</sub> = α<sub>inicial</sub> − ΔDwell + α<sub>centrífugo</sub>(n) + α<sub>vacío</sub>(p) &nbsp;(° de cigüeñal APMS)</p>
+      <p class="muted">Modelo didáctico: η ≈ 0,5 (pérdidas y dispersión), C<sub>s</sub> ≈ 50 pF (capacidad del secundario y cables de alta). ΔDwell es el cambio respecto al Dwell con que se reglaron los platinos (0,425 mm): 1° más de Dwell ≈ 1° de cigüeñal de retraso. Si U<sub>2,disp</sub> &lt; U<sub>requerida</sub> la bujía no salta: fallo de encendido.</p>
+    </div>
+    <h2 style="margin-top:14px">Valores de referencia</h2>
+    <div class="tw"><table class="ref">
+      <tr><th>Magnitud</th><th>Valor típico</th></tr>
+      <tr><td>Abertura de platinos</td><td>0,35–0,55 mm (habitual 0,40–0,45 mm)</td></tr>
+      <tr><td>Dwell 4 cilindros</td><td>47–53° de leva (52–58 %)</td></tr>
+      <tr><td>Dwell 6 cilindros</td><td>36–42° de leva (60–70 %)</td></tr>
+      <tr><td>Condensador</td><td>0,20–0,30 µF</td></tr>
+      <tr><td>Primario de la bobina R<sub>1</sub></td><td>1,2–3 Ω (≈ 1,5 Ω con resistencia adicional; ≈ 3 Ω sin ella)</td></tr>
+      <tr><td>Inductancia del primario L</td><td>6–9 mH</td></tr>
+      <tr><td>Secundario R<sub>2</sub></td><td>6–12 kΩ</td></tr>
+      <tr><td>Relación de espiras</td><td>1 : 80 a 1 : 100</td></tr>
+      <tr><td>Resistencia adicional (balastro)</td><td>≈ 1,5 Ω, puenteada en el arranque</td></tr>
+      <tr><td>Caída en platinos cerrados (borne 1 a masa)</td><td>≤ 0,2 V</td></tr>
+      <tr><td>Línea de disparo en el primario</td><td>≈ 200–400 V</td></tr>
+      <tr><td>Tensión requerida en la bujía</td><td>≈ 8–15 kV (según carga, compresión y electrodos)</td></tr>
+      <tr><td>Avance inicial</td><td>6–10° APMS (ralentí, tubo de vacío desconectado)</td></tr>
+      <tr><td>Avance centrífugo</td><td>inicia ≈ 1000 rpm; máx. ≈ 22° de cigüeñal a ≈ 3500 rpm</td></tr>
+      <tr><td>Avance por vacío</td><td>inicia ≈ 15 kPa; máx. ≈ 12° a ≈ 45 kPa de depresión</td></tr>
+    </table></div>
+    <p class="muted">Valores orientativos tomados de la bibliografía técnica de encendido convencional (Bosch; Kershaw; Editex). Consulte siempre el manual del fabricante del vehículo.</p>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>¿Cómo usar el simulador?</summary>
+      <ol>
+        <li><b>Identificación:</b> en la pestaña «Distribuidor» reconozca la leva, el martillo con su talón de fibra, el yunque, el condensador, la cápsula de vacío, los contrapesos, el rotor y el orden de encendido. Observe cómo la abertura de los platinos cambia el tiempo que permanecen cerrados.</li>
+        <li><b>Pruebas estáticas (contacto quitado):</b> con el multímetro en Ω mida el primario (15–1), el secundario (4–1), la resistencia adicional, la resistencia de contacto de los platinos, el condensador y el aislamiento de la tapa. En la función µF mida la capacidad del condensador.</li>
+        <li><b>Contacto puesto, motor parado:</b> con platinos cerrados mida la caída de tensión del borne 1 a masa (≤ 0,2 V) y la tensión en el borne 15; con platinos abiertos el borne 1 debe tener tensión de batería.</li>
+        <li><b>Motor en marcha:</b> conecte el dwellímetro (borne 1 y masa), seleccione el número de cilindros y lea el Dwell en grados y en %, a ralentí y a 3000 rpm.</li>
+        <li><b>Punto de encendido:</b> en «Avance y estroboscopio», con el tubo de vacío desconectado y a ralentí, lea el avance inicial; suba las rpm para comprobar el avance centrífugo y conecte el tubo para comprobar la cápsula de vacío.</li>
+        <li><b>Osciloscopio:</b> observe el primario (atenuador 20:1, borne 1) o el secundario (sonda capacitiva): línea de disparo, línea de chispa, oscilaciones de la bobina y sección de cierre. En el laboratorio se usa el osciloscopio Hantek 1008C con el atenuador HT201 y la sonda HT25.</li>
+        <li><b>Averías:</b> seleccione una avería y compare todas las lecturas con el sistema en buen estado. Lea la interpretación en «Avisos».</li>
+        <li><b>Modo evaluación:</b> el simulador elige un caso oculto. Mida, registre sus lecturas, elija el diagnóstico, resuelva los cálculos y pulse «Comprobar». Descargue el registro en CSV para su informe.</li>
+      </ol>
+    </details>
+  </div>
+</section>
+
+<aside>
+  <div class="card">
+    <h2>Instrumentos</h2>
+    <div class="tabs" id="itabs">
+      <button data-i="dwell" class="on">Dwellímetro / tacómetro</button><button data-i="mm">Multímetro</button><button data-i="osc">Osciloscopio</button>
+    </div>
+    <div class="pane on" id="pane-dwell">
+      <div class="meter">
+        <div class="lcdrow">
+          <div class="lcd sm"><span class="fn">DWELL</span><span><span class="val" id="dwDeg">---</span> <span class="unit">°</span></span></div>
+          <div class="lcd sm"><span class="fn">DWELL</span><span><span class="val" id="dwPct">---</span> <span class="unit">%</span></span></div>
+        </div>
+        <div class="lcd sm" style="margin-top:8px"><span class="fn">TACÓMETRO</span><span><span class="val" id="dwRpm">---</span> <span class="unit">rpm</span></span></div>
+        <div class="modes" id="dwModes"><button data-n="4" class="on">4 cil</button><button data-n="6">6 cil</button></div>
+        <div class="mstat">Conexión: pinza roja al borne 1 de la bobina (ruptor), pinza negra a masa.</div>
+        <div class="mnote" id="dwNote"></div>
+      </div>
+    </div>
+    <div class="pane" id="pane-mm">
+      <div class="meter">
+        <div class="lcd"><span class="fn" id="mmFn">V⎓</span><span><span class="val" id="mmVal">- - -</span> <span class="unit" id="mmUnit">V</span></span></div>
+        <div class="modes" id="mmModes"><button data-m="V" class="on">V⎓</button><button data-m="R">Ω</button><button data-m="F">µF</button><button data-m="OFF">OFF</button></div>
+        <select id="mmPt" aria-label="Punto de medición"></select>
+        <div class="mnote" id="mmNote"></div>
+      </div>
+    </div>
+    <div class="pane" id="pane-osc">
+      <div class="scope">
+        <canvas id="osc" width="640" height="400"></canvas>
+        <div class="row">
+          <div><label>Canal</label><select id="oscCh"><option value="p">Primario (borne 1)</option><option value="s">Secundario (alta)</option></select></div>
+          <div><label>Base de tiempo</label><select id="oscT"><option value="auto">Automática</option><option value="0.5">0,5 ms/div</option><option value="1">1 ms/div</option><option value="2">2 ms/div</option><option value="5">5 ms/div</option><option value="10">10 ms/div</option><option value="20">20 ms/div</option><option value="50">50 ms/div</option></select></div>
+          <div><label>Escala vertical</label><select id="oscV"></select></div>
+        </div>
+        <div class="oscinfo" id="oscInfo"></div>
+      </div>
+    </div>
+    <div class="bar"><button class="btn small" id="btnLog">Registrar lectura</button></div>
+  </div>
+
+  <div class="card">
+    <h2>Avisos</h2>
+    <div class="msgs" id="msgs"></div>
+  </div>
+
+  <div class="card">
+    <h2>Resultados y evaluación</h2>
+    <label class="switch"><input type="checkbox" id="evalMode"> Modo evaluación (caso oculto)</label>
+    <div id="evalBox" style="display:none">
+      <div class="bar" style="margin-top:0"><button class="btn" id="btnNew">Nuevo caso</button></div>
+      <div class="diag" style="margin-top:10px"><b>1. Diagnóstico</b> (4 puntos)<select id="selDiag"></select></div>
+      <div style="margin-top:10px"><b>2. Cálculos</b> (2 puntos cada uno)</div>
+      <div class="stmt" id="calcStmt"></div>
+      <div class="calc">
+        <span>Tiempo de cierre t<sub>c</sub> (ms)</span><input id="inTc" inputmode="decimal">
+        <span>Corriente de corte I<sub>corte</sub> (A)</span><input id="inI" inputmode="decimal">
+        <span>Energía almacenada W (mJ)</span><input id="inW" inputmode="decimal">
+      </div>
+      <div class="bar"><button class="btn primary" id="btnCheck">Comprobar</button><span class="score" id="score"></span></div>
+      <div class="fb" id="feedback" style="margin-top:8px"></div>
+    </div>
+    <div id="results"></div>
+  </div>
+
+  <div class="card">
+    <h2>Registro de mediciones</h2>
+    <div class="tw" id="logTbl"></div>
+    <div class="bar">
+      <button class="btn small" id="btnCsv">Descargar CSV</button>
+      <button class="btn small" id="btnClr">Limpiar registro</button>
+    </div>
+  </div>
+</aside>
+</main>
+<footer>Simulador didáctico · Carrera de Mecánica Automotriz · Instituto Superior Tecnológico Sudamericano</footer>
+
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+const DEG=Math.PI/180;
+function nf(x,d){return Number(x).toLocaleString('es-EC',{minimumFractionDigits:d,maximumFractionDigits:d,useGrouping:false});}
+function parseNum(s){if(s==null)return NaN;s=String(s).trim().replace(',','.');return s===''?NaN:Number(s);}
+function fR(r){if(!isFinite(r))return 'OL';if(r>=1000)return nf(r/1000,2)+' kΩ';return nf(r,r<10?2:1)+' Ω';}
+
+/* ---------- datos del sistema ---------- */
+const CAM={4:{P:90,F:13.5,k:60,order:[1,3,4,2]},6:{P:60,F:4,k:40,order:[1,5,3,6,2,4]}};
+const LMAX=1.0,GAP_REF=0.425,ETA=0.5,CSEC=50e-12,RW=0.05,RV=1.5;
+const UB={off:12.6,contacto:12.4,calado:12.4,arranque:10.0,marcha:13.9};
+function dwellOf(N,g){const c=CAM[N];return clamp(c.P-c.F-c.k*g,3,c.P-1);}
+function liftAt(N,u){const c=CAM[N],s=2/c.k;const ph=((u%c.P)+c.P)%c.P;const x=Math.abs(ph-c.P/2);if(x<=c.F/2)return LMAX;const y=LMAX-s*(x-c.F/2);if(y>=0.3)return y;const e=0.3-y;return e>=0.6?0:0.3-e+e*e/1.2;}
+function cenCurve(n){if(n<=1000)return 0;if(n<=2000)return 12*(n-1000)/1000;if(n<=3500)return 12+10*(n-2000)/1500;return 22;}
+function vacCurve(p){if(p<=15)return 0;if(p>=45)return 12;return 12*(p-15)/30;}
+
+const FAULTS=[
+ {k:'ok',n:'Sin avería',
+  ex:'Sistema en buen estado: Dwell dentro de 47–53° (4 cil.), caída en platinos cerrados menor que 0,2 V, resistencias de bobina dentro de especificación, chispa fuerte en todos los cilindros y avance que crece con las rpm y con la depresión.',
+  sy:'todas las lecturas dentro de los valores de referencia'},
+ {k:'gapHi',n:'Abertura de platinos excesiva',
+  ex:'Con más abertura los contactos se separan antes y permanecen menos tiempo cerrados: el Dwell baja (≈ 44° / 49 % en 4 cil.) y el encendido se adelanta. A alto régimen el tiempo de cierre es tan corto que la corriente de corte y la tensión disponible caen y aparecen fallos a altas rpm.',
+  sy:'Dwell bajo (< 47°), avance mayor que el ajustado y tensión disponible baja a altas rpm'},
+ {k:'gapLo',n:'Abertura de platinos insuficiente',
+  ex:'Con poca abertura el Dwell sube (≈ 64° / 72 % en 4 cil.) y el encendido se retrasa. Al separarse poco los contactos, la chispa salta entre ellos (arco): los platinos se queman y la chispa en la bujía se debilita.',
+  sy:'Dwell alto (> 53°), encendido retrasado y arco en los platinos, con talón en buen estado'},
+ {k:'pitted',n:'Platinos picados o quemados',
+  ex:'La superficie de contacto quemada aumenta la resistencia de contacto (≈ 0,4 Ω): con platinos cerrados la caída del borne 1 a masa supera 0,2 V, baja la corriente primaria, la chispa se debilita y el Dwell oscila (lectura inestable, marca del estroboscopio que tiembla).',
+  sy:'caída de tensión en platinos cerrados > 0,2 V y Dwell inestable'},
+ {k:'condOpen',n:'Condensador abierto (sin capacidad)',
+  ex:'Sin condensador la autoinducción del primario forma un arco intenso entre los contactos: la corriente se corta lentamente, el pico del primario queda por debajo de 150 V sin oscilaciones limpias, la chispa es débil y los platinos se queman rápido. El capacímetro indica ≈ 0 µF.',
+  sy:'pico del primario bajo (< 150 V) y sin oscilaciones, capacidad ≈ 0 µF'},
+ {k:'condShort',n:'Condensador en cortocircuito',
+  ex:'El condensador en corto pone el borne 1 permanentemente a masa: la corriente primaria nunca se interrumpe, no hay chispa y el motor no arranca. El dwellímetro marca 100 % (lectura máxima), el tacómetro 0 rpm, y el óhmetro indica ≈ 0 Ω entre el terminal del condensador y su carcasa.',
+  sy:'Dwell 100 %, 0 rpm en el tacómetro, borne 1 siempre en 0 V y condensador ≈ 0 Ω'},
+ {k:'primOpen',n:'Bobina con el primario abierto',
+  ex:'Sin continuidad en el primario no circula corriente ni se almacena energía: no hay chispa. Con contacto puesto el borne 15 tiene tensión de batería, pero el borne 1 queda en 0 V aunque los platinos estén abiertos; el óhmetro indica OL entre 15 y 1.',
+  sy:'OL en el primario (15–1) y borne 1 en 0 V con platinos abiertos'},
+ {k:'secShort',n:'Bobina con espiras en corto en el secundario',
+  ex:'Las espiras en cortocircuito reducen la relación de transformación y consumen energía: la tensión disponible cae aproximadamente a la mitad, la resistencia del secundario es menor que la especificada y en el oscilograma desaparecen las oscilaciones de la bobina tras la chispa. Fallos en carga y a alto régimen.',
+  sy:'R₂ menor que la especificada y oscilograma sin oscilaciones tras la chispa'},
+ {k:'ballOpen',n:'Resistencia adicional (balastro) abierta',
+  ex:'En el arranque la resistencia está puenteada (borne 16/15a) y el motor arranca, pero al soltar la llave se apaga: en la posición de marcha la bobina queda sin alimentación (0 V en su borne 15, tensión de batería sobre la resistencia y OL en el óhmetro).',
+  sy:'arranca y se apaga al soltar la llave; 0 V en el borne 15 de la bobina'},
+ {k:'capTrack',n:'Tapa del distribuidor fisurada o carbonizada',
+  ex:'Una fisura o un camino de carbón deriva la alta tensión a masa: el cilindro afectado falla y su línea de disparo en el secundario es baja, aunque las mediciones del primario y el Dwell sean correctos. El óhmetro detecta fuga (≈ 180 kΩ) entre bornes de la tapa, donde debería indicar OL.',
+  sy:'un cilindro con línea de disparo baja y fuga en la tapa (≈ 180 kΩ)'},
+ {k:'heel',n:'Talón de fibra desgastado',
+  ex:'El talón se desgasta con el roce de la leva: la abertura efectiva disminuye poco a poco, el Dwell aumenta con el tiempo y el encendido se retrasa (≈ 1° de cigüeñal por cada grado de Dwell). Se reconoce por la deriva de la lectura del dwellímetro y por el talón rebajado en la inspección visual.',
+  sy:'Dwell que aumenta con el tiempo y talón rebajado'},
+ {k:'centStuck',n:'Avance centrífugo trabado',
+  ex:'Los contrapesos no se desplazan (muelles o eje agarrotados): con el tubo de vacío desconectado, la marca del estroboscopio no avanza al subir las rpm. Falta de potencia y consumo elevado a régimen medio y alto; primario y Dwell normales.',
+  sy:'avance que no aumenta con las rpm (vacío desconectado)'},
+ {k:'vacBroken',n:'Cápsula de vacío rota (membrana perforada)',
+  ex:'La membrana perforada no genera fuerza: al conectar o desconectar el tubo de vacío la marca del estroboscopio no se mueve. Mayor consumo a carga parcial; primario, Dwell y avance centrífugo normales.',
+  sy:'avance que no cambia al conectar el tubo de vacío'}
+];
+const FN=Object.fromEntries(FAULTS.map(f=>[f.k,f]));
+
+const DEF={estado:'marcha',rpm:900,cil:4,gap:0.42,C:0.25,ballast:true,R1:1.5,L:7.5,R2:8.5,ratio:90,vac:55,hose:true,ini:8,cam:'cerrados',fault:'ok'};
+let P={...DEF};
+const st={view:'dist',inst:'dwell',mmode:'V',mpt:{V:'c1',R:'prim',F:'cond',OFF:''},dwN:4,oscCh:'p',oscT:'auto',oscV:'auto',
+  slow:0.02,paused:false,strobe:true,theta:0,wear:0,evalOn:false,evalChecked:false,cs:null,log:[],
+  flash:{},arc:0,arcK:0,trk:0,strobeFl:0,jit:0,jitT:0,lastOpen:null,oscLast:0,wearT:0,M:null,refs:{}};
+const curFault=()=>st.evalOn&&st.cs?st.cs.fault:P.fault;
+const showAll=()=>!st.evalOn||st.evalChecked;
+
+/* ---------- modelo ---------- */
+function model(){
+  const f=curFault(),N=+P.cil,cam=CAM[N];
+  const w=f==='heel'?st.wear:0;
+  const gapSet=f==='gapHi'?0.65:f==='gapLo'?0.20:P.gap;
+  const gapEff=Math.max(0.02,gapSet-w);
+  const dwell=dwellOf(N,gapEff),dref=dwellOf(N,GAP_REF);
+  const Rc=f==='pitted'?0.40:0.02;
+  const R1=f==='primOpen'?Infinity:P.R1;
+  const hasRv=!!P.ballast;
+  let est=P.estado,note='';
+  if(est==='marcha'){
+    if(f==='condShort'||f==='primOpen'){est='arranque';note='nostart';}
+    else if(f==='ballOpen'&&hasRv){est='calado';note='stall';}
+  }
+  const n=est==='marcha'?P.rpm:est==='arranque'?200:0;
+  const Ub=UB[est],U=est==='off'?0:Ub;
+  const RvEff=!hasRv?0:est==='arranque'?0:(f==='ballOpen'?Infinity:RV);
+  const Rser=RW+RvEff+R1,Rtot=Rser+Rc;
+  const L=P.L/1000,running=n>0;
+  const T=running?120/(n*N):Infinity;
+  const d=dwell/cam.P,tc=d*T,To=(1-d)*T;
+  const tau=isFinite(Rtot)?L/Rtot:0;
+  const Iinf=isFinite(Rtot)?U/Rtot:0;
+  let Ic=running&&isFinite(Rtot)?Iinf*(1-Math.exp(-tc/tau)):0;
+  const switching=running&&Ic>0.05&&f!=='condShort';
+  const Icut=switching?Ic:0;
+  const W=0.5*L*Icut*Icut;
+  const ue=P.ratio,uE=f==='secShort'?0.6*ue:ue;
+  const Ceq=P.C*1e-6+CSEC*uE*uE;
+  const Z=Math.sqrt(L/Ceq);
+  const fosc=1/(2*Math.PI*Math.sqrt(L*Ceq))/1000; // kHz
+  const kf={condOpen:0.5,secShort:0.65,gapLo:0.85,pitted:0.9,heel:w>0.1?0.92:1}[f]||1;
+  const U2=ETA*uE*Icut*Z*kf/1000; // kV
+  const U1oc=Icut*Z;
+  const Ureq=est==='arranque'?10:9+5*(1-Math.min(P.vac,65)/65);
+  const cy=[];
+  for(let k=0;k<N;k++){
+    const track=f==='capTrack'&&k===1;
+    const U2c=track?6.0:(f==='capTrack'?U2*0.92:U2);
+    const fires=switching&&!track&&U2c>=Ureq;
+    const mode=!switching?'none':f==='condOpen'?'arc':track?'track':fires?'normal':'miss';
+    let p2=mode==='track'?U2c:fires?Ureq:U2c;
+    let p1;
+    if(mode==='arc')p1=95;
+    else if(mode==='normal'||mode==='track')p1=p2*1000/(ETA*ue)*(f==='secShort'?0.9:1);
+    else p1=Math.min(U1oc*kf,520);
+    const sl2=track?0.9:mode==='arc'?1.2:1.5;
+    const sl1=U+sl2*1000/ue;
+    let ts=1.5*(W/0.06)*(mode==='arc'?0.35:f==='secShort'?0.5:f==='pitted'?0.85:1)*(track?1.2:1);
+    ts=clamp(ts,0.2,2.0);ts=Math.min(ts,Math.max(0.15,To*1000-0.3));
+    cy.push({k,cyl:cam.order[k],track,U2c,fires,mode,p1,p2,sl1,sl2,ts});
+  }
+  const cen=running&&f!=='centStuck'?cenCurve(n):0;
+  const vacA=P.hose&&f!=='vacBroken'&&running?vacCurve(P.vac):0;
+  const dT=-(dwell-dref);
+  const adv=P.ini+dT+cen+vacA;
+  // tensiones del primario (voltímetro)
+  let V={bat:Ub,c15:0,c1:0,rv:0,I:0,avg:false};
+  if(est==='off'){V={bat:Ub,c15:0,c1:0,rv:0,I:0,avg:false};}
+  else if(!running){
+    const closed=P.cam==='cerrados'||f==='condShort';
+    const Rp=closed?(f==='condShort'?Rser:Rtot):Infinity;
+    const I=isFinite(Rp)?U/Rp:0;
+    const c15=RvEff===Infinity?0:U-I*(RW+RvEff);
+    const c1=(R1===Infinity||RvEff===Infinity)?0:closed?I*(f==='condShort'?0:Rc):c15;
+    const rv=!hasRv?0:RvEff===Infinity?U:I*RvEff;
+    V={bat:Ub-I*0.01,c15,c1,rv,I,avg:false,closed};
+  }else{
+    if(f==='condShort'){const I=isFinite(Rser)?U/Rser:0;V={bat:Ub,c15:U-I*(RW+RvEff),c1:0,rv:I*RvEff,I,avg:true};}
+    else if(!isFinite(Rtot)){V={bat:Ub,c15:RvEff===Infinity?0:U,c1:0,rv:RvEff===Infinity?U:0,I:0,avg:true};}
+    else{
+      const Iavg=d*Iinf*(1-(tau/tc)*(1-Math.exp(-tc/tau)));
+      const c15=U-Iavg*(RW+RvEff);
+      V={bat:Ub,c15,c1:(1-d)*c15+Iavg*Rc,rv:Iavg*RvEff,I:Iavg,avg:true};
+    }
+  }
+  const dwRead=!running?null:(f==='condShort'||f==='primOpen')?100:d*100;
+  const pulses=switching;
+  return {f,N,cam,w,gapSet,gapEff,dwell,dref,d,Rc,R1,hasRv,est,note,n,Ub,U,RvEff,Rser,Rtot,L,running,T,tc,To,tau,Iinf,Ic,Icut,switching,W,ue,uE,Ceq,Z,fosc,kf,U2,U1oc,Ureq,cy,cen,vacA,dT,adv,V,dwRead,pulses};
+}
+/* tensión disponible a otro régimen (para la curva) */
+function u2At(M,n){
+  const T=120/(n*M.N),tc=M.d*T;
+  if(!isFinite(M.Rtot)||M.f==='condShort')return 0;
+  const U=UB.marcha,RvE=M.hasRv?(M.f==='ballOpen'?Infinity:RV):0,R=RW+RvE+M.R1+M.Rc;
+  if(!isFinite(R))return 0;
+  const I=U/R*(1-Math.exp(-tc*R/M.L));
+  return ETA*M.uE*I*Math.sqrt(M.L/M.Ceq)*M.kf/1000;
+}
+
+/* ---------- vistas SVG ---------- */
+const svg=$('view');
+const VIEWS=[['dist','Distribuidor'],['circ','Circuito'],['adv','Avance y estroboscopio'],['curv','Corriente y tensión disponible']];
+const CX=215,CY=205,R0=58,SC=16,PV=[CX+92,CY+100],TIP=[CX+98,CY-92],MC=[CX+89,CY-84],LEV=100;
+const C2=[590,170];
+function rot(p,c,a){const s=Math.sin(a*DEG),co=Math.cos(a*DEG),x=p[0]-c[0],y=p[1]-c[1];return [c[0]+x*co-y*s,c[1]+x*s+y*co];}
+function camPath(N){
+  let d='';
+  for(let a=0;a<360;a+=1){const r=R0+liftAt(N,a)*SC;const x=CX+r*Math.cos(a*DEG),y=CY+r*Math.sin(a*DEG);d+=(a?'L':'M')+x.toFixed(1)+' '+y.toFixed(1);}
+  return d+'Z';
+}
+function plugX(N,i){return N===4?470+i*78:445+i*57;}
+function plugSVG(x,y,num,id){
+  return `<g><rect x="${x-7}" y="${y}" width="14" height="26" rx="3" fill="#f4f1ea" stroke="#6b7480"/>
+   <rect x="${x-10}" y="${y+26}" width="20" height="12" fill="#a9b2bd" stroke="#5f6874"/>
+   <line x1="${x}" y1="${y+38}" x2="${x}" y2="${y+46}" stroke="#444" stroke-width="3"/>
+   <path d="M${x-6} ${y+54} H${x+6}" stroke="#444" stroke-width="3"/>
+   <g id="${id}" opacity="0"><circle cx="${x}" cy="${y+50}" r="11" fill="#9fd3ff" opacity=".55"/><polyline points="${x},${y+46} ${x-3},${y+49} ${x+3},${y+51} ${x},${y+54}" fill="none" stroke="#fff" stroke-width="2.2"/></g>
+   <text class="lbl" x="${x}" y="${y+72}" text-anchor="middle">${num}</text></g>`;
+}
+function capAngles(M){const P_=M.cam.P;return M.cam.order.map((c,k)=>-90+k*P_);}
+function rotorOff(M){const P_=M.cam.P,Wref=P_-M.dref;return -90+P_/2+Wref/2;}
+function schemAng(N,k){return -60+k*120/(N-1);}
+function plateVis(M){return -M.vacA/2*1.5;}
+function cenVis(M){return M.cen/2;}
+
+function buildDist(M){
+  const N=M.N,sa=showAll();
+  let s=`<text class="ttl" x="14" y="22">Distribuidor sin tapa (vista superior)</text><text class="ttl" x="430" y="22">Tapa, rotor, cables de alta y bujías</text>`;
+  const dwTxt=sa?`Abertura ${nf(M.gapSet,2)} mm${M.w>0?` (efectiva ${nf(M.gapEff,2)} mm)`:''} · Dwell ${nf(M.dwell,1)}° (${nf(M.d*100,1)} %)`:'Abertura y Dwell: mídalos con los instrumentos';
+  s+=`<text class="lbl2" x="14" y="40">${dwTxt}</text>`;
+  // placa portarruptor
+  const hcSet=LMAX-M.gapSet,restDisp=(hcSet-LMAX)*SC,aRest=restDisp/LEV/DEG;
+  const mcR=rot(MC,PV,aRest),AN=[mcR[0]-12,mcR[1]];
+  s+=`<g id="plate" transform="rotate(${plateVis(M).toFixed(2)} ${CX} ${CY})">
+    <circle cx="${CX}" cy="${CY}" r="140" fill="#e7ebf0" stroke="#9aa6b4" stroke-width="2"/>
+    <circle cx="${CX}" cy="${CY}" r="92" fill="none" stroke="#d3d9e1" stroke-width="1.5"/>
+    <path d="M${CX+22} ${CY-104} L${AN[0]-4} ${AN[1]-5} L${AN[0]-4} ${AN[1]+5} L${CX+22} ${CY-92} Z" fill="#9aa4b0" stroke="#5f6874"/>
+    <circle cx="${CX+22}" cy="${CY-98}" r="7" fill="#c3cad3" stroke="#4d5763"/><line x1="${CX+17}" y1="${CY-98}" x2="${CX+27}" y2="${CY-98}" stroke="#4d5763" stroke-width="2"/>
+    <circle id="anv" cx="${AN[0].toFixed(1)}" cy="${AN[1].toFixed(1)}" r="6" fill="#c9ced6" stroke="#4d5763" stroke-width="1.5"/>
+    <rect x="${CX-78}" y="${CY+100}" width="70" height="22" rx="8" fill="#b9c1cb" stroke="#56606c"/>
+    <line x1="${CX-78}" y1="${CY+111}" x2="${CX-8}" y2="${CY+111}" stroke="#8e98a4"/>
+    <path d="M${CX-8} ${CY+111} C${CX+30} ${CY+118} ${CX+60} ${CY+104} ${CX+86} ${CY+96}" class="wire" style="stroke-width:2"/>
+    <circle cx="${PV[0]}" cy="${PV[1]}" r="7" fill="#8993a0" stroke="#3d4650"/>
+    <g id="arm">
+      <path d="M${PV[0]-4} ${PV[1]} L${TIP[0]-4} ${TIP[1]} L${TIP[0]+4} ${TIP[1]} L${PV[0]+4} ${PV[1]} Z" fill="#6d7784" stroke="#3d4650"/>
+      <rect x="${CX+74+M.w*SC}" y="${CY-8}" width="${Math.max(4,95-74-M.w*SC)}" height="16" rx="2" fill="${M.w>0.1?'#8a6a3e':'#c9a36b'}" stroke="#6a5030"/>
+      <path d="M${TIP[0]+4} ${TIP[1]+16} C${CX+116} ${CY-50} ${CX+116} ${CY+40} ${CX+97} ${CY+90}" fill="none" stroke="#9aa4b0" stroke-width="3"/>
+      <circle cx="${MC[0]}" cy="${MC[1]}" r="6" fill="#c9ced6" stroke="#4d5763" stroke-width="1.5"/>
+      ${M.f==='pitted'?`<circle cx="${MC[0]-2}" cy="${MC[1]-2}" r="1.6" fill="#333"/><circle cx="${MC[0]+1}" cy="${MC[1]+2}" r="1.3" fill="#333"/>`:''}
+    </g>
+    <circle id="arcfx" cx="${(AN[0]+6).toFixed(1)}" cy="${AN[1].toFixed(1)}" r="10" fill="#8fd0ff" opacity="0"/>
+  </g>`;
+  s+=`<g id="cam" transform="rotate(0 ${CX} ${CY})"><path d="${camPath(N)}" fill="#8d99a8" stroke="#4a5563" stroke-width="1.5"/>
+    <circle cx="${CX}" cy="${CY}" r="16" fill="#5d6773"/><circle cx="${CX}" cy="${CY}" r="5" fill="#2d343c"/><rect x="${CX-3}" y="${CY-30}" width="6" height="12" fill="#2d343c"/></g>`;
+  // etiquetas
+  s+=`<path class="lead" d="M92 96 L${CX-38} ${CY-38}"/><text class="lbl" x="14" y="92">Leva (${N} lóbulos)</text>
+    <path class="lead" d="M300 62 L${MC[0]-2} ${MC[1]-8}"/><text class="lbl" x="250" y="58">Martillo y yunque</text>
+    <path class="lead" d="M355 218 L${CX+88} ${CY+4}"/><text class="lbl" x="${CX+145}" y="232" >Talón</text>
+    <text class="lbl" x="${CX-43}" y="${CY+140}" text-anchor="middle">Condensador</text>
+    <text class="lbl2" x="${CX+60}" y="${CY+158}" text-anchor="middle" style="font-size:11px">Placa portarruptor</text>`;
+  if(M.w>0.02&&sa)s+=`<text class="lbl2" x="${CX+145}" y="248" style="fill:#8a4b00">desgaste ${nf(M.w,2)} mm</text>`;
+  // cápsula de vacío
+  const pa=rot([CX+140*Math.cos(145*DEG),CY+140*Math.sin(145*DEG)],[CX,CY],plateVis(M));
+  const bul=M.vacA/12*10;
+  s+=`<g><circle cx="62" cy="410" r="30" fill="#c9d0d8" stroke="#56606c" stroke-width="2"/>
+    <path d="M${62+bul} 382 Q${72+bul*1.6} 410 ${62+bul} 438" fill="none" stroke="${M.f==='vacBroken'&&sa?'#c62828':'#2b3440'}" stroke-width="2.5"/>
+    <line x1="${92+bul}" y1="410" x2="${pa[0].toFixed(1)}" y2="${pa[1].toFixed(1)}" stroke="#56606c" stroke-width="4" stroke-linecap="round"/>
+    <path d="M34 418 C18 430 18 448 30 458" fill="none" stroke="#333" stroke-width="6" stroke-linecap="round" ${P.hose?'':'stroke-dasharray="3 7"'}/>
+    <text class="lbl" x="100" y="444">Cápsula de vacío</text>
+    <text class="lbl2" x="100" y="460">${P.hose?`tubo: ${nf(P.vac,0)} kPa`:'tubo desconectado'}</text></g>`;
+  // contrapesos
+  s+=`<g><circle cx="320" cy="402" r="40" fill="#dfe4ea" stroke="#8a96a6"/>
+    <g id="wts" transform="rotate(0 320 402)">
+      <g id="w1" transform="rotate(0 302 385)"><path d="M302 385 C285 389 281 409 293 421 C299 413 303 401 310 395 Z" fill="#7d8894" stroke="#3d4650"/><circle cx="302" cy="385" r="3" fill="#222"/></g>
+      <g id="w2" transform="rotate(0 338 419)"><path d="M338 419 C355 415 359 395 347 383 C341 391 337 403 330 409 Z" fill="#7d8894" stroke="#3d4650"/><circle cx="338" cy="419" r="3" fill="#222"/></g>
+      <circle cx="320" cy="402" r="7" fill="#5d6773"/></g>
+    <text class="lbl" x="320" y="462" text-anchor="middle">Contrapesos centrífugos</text></g>`;
+  // tapa y rotor
+  const ang=capAngles(M);
+  for(let k=0;k<N;k++){
+    const a=ang[k]*DEG,ox=C2[0]+96*Math.cos(a),oy=C2[1]+96*Math.sin(a),px=plugX(N,M.cam.order[k]-1);
+    s+=`<path d="M${ox.toFixed(1)} ${oy.toFixed(1)} C${(ox+(ox-C2[0])*0.45).toFixed(1)} ${(oy+(oy-C2[1])*0.45).toFixed(1)} ${px} 318 ${px} 358" fill="none" stroke="#1f2328" stroke-width="4"/>`;
+  }
+  s+=`<circle cx="${C2[0]}" cy="${C2[1]}" r="96" fill="#f3ece6" stroke="#6b4a36" stroke-width="7"/>`;
+  for(let k=0;k<N;k++){
+    const a=ang[k]*DEG,tx=C2[0]+76*Math.cos(a),ty=C2[1]+76*Math.sin(a),cyl=M.cam.order[k];
+    s+=`<rect x="${(tx-6).toFixed(1)}" y="${(ty-6).toFixed(1)}" width="12" height="12" rx="2" fill="#c89b3c" stroke="#6b4a36"/>`;
+    const la=a+16*DEG,lx=C2[0]+114*Math.cos(la),ly=C2[1]+114*Math.sin(la);
+    s+=`<text class="lbl" x="${lx.toFixed(1)}" y="${(ly+5).toFixed(1)}" text-anchor="middle" style="fill:#6b4a36">${cyl}</text>`;
+    if(M.f==='capTrack'&&k===1){
+      const a2=(ang[k]+22)*DEG;
+      s+=`<polyline points="${tx.toFixed(1)},${ty.toFixed(1)} ${(C2[0]+80*Math.cos(a+0.12)).toFixed(1)},${(C2[1]+80*Math.sin(a+0.12)).toFixed(1)} ${(C2[0]+85*Math.cos(a2)).toFixed(1)},${(C2[1]+85*Math.sin(a2)).toFixed(1)} ${(C2[0]+93*Math.cos(a2+0.1)).toFixed(1)},${(C2[1]+93*Math.sin(a2+0.1)).toFixed(1)}" fill="none" stroke="#2a1a10" stroke-width="2.5"/>
+        <circle id="trkfx" cx="${(C2[0]+86*Math.cos(a2)).toFixed(1)}" cy="${(C2[1]+86*Math.sin(a2)).toFixed(1)}" r="9" fill="#ff9f43" opacity="0"/>`;
+    }
+  }
+  s+=`<g id="rotor" transform="rotate(0 ${C2[0]} ${C2[1]})"><rect x="${C2[0]-8}" y="${C2[1]-8}" width="72" height="16" rx="7" fill="#3b2a20"/><rect x="${C2[0]+52}" y="${C2[1]-4}" width="14" height="8" fill="#d9b14a"/><circle cx="${C2[0]}" cy="${C2[1]}" r="9" fill="#2a2a2a" stroke="#d9b14a" stroke-width="2"/></g>`;
+  {const a1=-150*DEG,a2=-118*DEG,r=128;const p1=[C2[0]+r*Math.cos(a1),C2[1]+r*Math.sin(a1)],p2=[C2[0]+r*Math.cos(a2),C2[1]+r*Math.sin(a2)];
+   s+=`<path d="M${p1[0].toFixed(1)} ${p1[1].toFixed(1)} A${r} ${r} 0 0 1 ${p2[0].toFixed(1)} ${p2[1].toFixed(1)}" fill="none" stroke="#1f5a94" stroke-width="2"/><path d="M${p2[0].toFixed(1)} ${p2[1].toFixed(1)} l-9 -5 l2 10 z" fill="#1f5a94"/><text class="lbl2" x="${(p1[0]-4).toFixed(1)}" y="${(p1[1]+16).toFixed(1)}" text-anchor="end">giro</text>`;}
+  s+=`<text class="lbl2" x="430" y="42">Orden de encendido ${M.cam.order.join('-')} · central: borne 4</text>`;
+  for(let i=0;i<N;i++)s+=plugSVG(plugX(N,i),358,'Cil. '+(i+1),'sp'+i);
+  return s;
+}
+
+function buildCirc(M){
+  const sa=showAll(),N=M.N,f=M.f,bad=(k)=>sa&&f===k;
+  const closedEst=M.est!=='off';
+  const crank=M.est==='arranque';
+  let s=`<text class="ttl" x="14" y="22">Esquema del encendido convencional por ruptor</text>`;
+  // batería
+  s+=`<line x1="40" y1="170" x2="80" y2="170" stroke="#2b3440" stroke-width="2.5"/><line x1="49" y1="182" x2="71" y2="182" stroke="#2b3440" stroke-width="6"/>
+    <text class="lbl" x="84" y="168">+</text><text class="lbl" x="76" y="205">Batería</text><text class="lbl2" x="76" y="220">${nf(M.Ub,1)} V</text>
+    <path class="wire" d="M60 170 V80 H100"/><path class="wire" d="M60 182 V420"/>`;
+  // llave
+  const on=M.est!=='off';
+  s+=`<circle cx="104" cy="80" r="4" fill="#2b3440"/><circle cx="150" cy="80" r="4" fill="#2b3440"/>
+    <line x1="104" y1="80" x2="${on?150:144}" y2="${on?80:60}" stroke="#2b3440" stroke-width="3" stroke-linecap="round"/>
+    <text class="lbl" x="98" y="54">Llave (30→15)</text><path class="wire" d="M150 80 H235"/>`;
+  // resistencia adicional y puente
+  if(M.hasRv){
+    s+=`<rect x="235" y="70" width="70" height="20" rx="2" fill="#fff" stroke="${bad('ballOpen')?'#c62828':'#2b3440'}" stroke-width="2.4"/>
+      ${bad('ballOpen')?'<line x1="262" y1="64" x2="278" y2="96" stroke="#c62828" stroke-width="3"/>':''}
+      <text class="lbl" x="270" y="60" text-anchor="middle">Rv</text><text class="lbl2" x="270" y="106" text-anchor="middle">${sa?'1,5 Ω':'?'}</text>
+      <path class="wire" d="M305 80 H405 V100"/>
+      <path class="wire" d="M210 80 V140 H240"/><circle cx="244" cy="140" r="3.5" fill="#2b3440"/><circle cx="296" cy="140" r="3.5" fill="#2b3440"/>
+      <line x1="244" y1="140" x2="${crank?296:290}" y2="${crank?140:124}" stroke="#2b3440" stroke-width="3" stroke-linecap="round"/>
+      <path class="wire" d="M296 140 H340 V80"/><text class="lbl2" x="200" y="164">puente en arranque (borne 16/15a)</text>`;
+  }else{
+    s+=`<path class="wire" d="M235 80 H405 V100"/><text class="lbl2" x="250" y="106">sin resistencia adicional</text>`;
+  }
+  // bobina
+  const pc=bad('primOpen')?'#c62828':'#2b3440',sc=bad('secShort')?'#c62828':'#2b3440';
+  s+=`<rect x="385" y="100" width="120" height="150" rx="10" fill="#f5f7fa" stroke="#56606c" stroke-width="2"/>`;
+  let pw='M405 100 V112';for(let i=0;i<6;i++)pw+=` a10 10 0 0 1 0 20`;pw+=' V250';
+  let sw='M485 100 V112';for(let i=0;i<12;i++)sw+=` a6 5 0 0 0 0 10`;sw+=' V240 H405';
+  s+=`<path d="${pw}" fill="none" stroke="${pc}" stroke-width="2.6" ${bad('primOpen')?'stroke-dasharray="10 6"':''}/>
+    <path d="${sw}" fill="none" stroke="${sc}" stroke-width="1.8"/>
+    <line x1="442" y1="112" x2="442" y2="232" stroke="#56606c" stroke-width="3"/><line x1="449" y1="112" x2="449" y2="232" stroke="#56606c" stroke-width="3"/>
+    <text class="lbl" x="410" y="94">15</text><text class="lbl" x="490" y="94">4</text><text class="lbl" x="412" y="266">1</text>
+    <text class="lbl" x="397" y="276" text-anchor="end">Bobina</text>
+    <text class="lbl2" x="397" y="292" text-anchor="end">${sa?`R₁ ${nf(P.R1,2)} Ω · L ${nf(P.L,1)} mH`:'datos ocultos'}</text>${sa?`<text class="lbl2" x="397" y="307" text-anchor="end">relación 1:${P.ratio}</text>`:''}`;
+  // borne 4 → distribuidor
+  s+=`<path class="wire" d="M485 100 V40 H600 V104" style="stroke-width:4;stroke:#1f2328"/>`;
+  // borne 1 → ruptor
+  s+=`<path class="wire" d="M405 250 V320 H580 V336"/><circle cx="580" cy="340" r="4" fill="#2b3440"/><circle cx="580" cy="388" r="4" fill="#2b3440"/>
+    <line id="brk" x1="580" y1="340" x2="580" y2="388" stroke="#2b3440" stroke-width="3.2" stroke-linecap="round"/>
+    <path class="wire" d="M580 388 V420"/><text class="lbl" x="592" y="370">Ruptor</text>`;
+  // condensador
+  const cc=(bad('condOpen')||bad('condShort'))?'#c62828':'#2b3440';
+  s+=`<path class="wire" d="M530 320 V352"/><line x1="514" y1="352" x2="546" y2="352" stroke="${cc}" stroke-width="3"/><line x1="514" y1="362" x2="546" y2="362" stroke="${cc}" stroke-width="3"/>
+    ${bad('condShort')?'<line x1="530" y1="352" x2="530" y2="362" stroke="#c62828" stroke-width="3"/>':''}${bad('condOpen')?'<line x1="522" y1="340" x2="538" y2="374" stroke="#c62828" stroke-width="2.5"/>':''}
+    <path class="wire" d="M530 362 V420"/><text class="lbl" x="${sa?468:482}" y="400">C ${sa?nf(P.C,2)+' µF':''}</text>`;
+  s+=`<path class="wire" d="M40 420 H720"/>`;
+  for(const x of [60,530,580,720])s+=`<path d="M${x-9} 428 H${x+9} M${x-6} 433 H${x+6} M${x-3} 438 H${x+3}" stroke="#2b3440" stroke-width="2"/>`;
+  s+=`<path class="wire" d="M${60} 420 V428"/>`;
+  // distribuidor
+  s+=`<rect x="505" y="60" width="160" height="385" rx="8" fill="none" stroke="#7b8796" stroke-dasharray="6 5"/><text class="lbl2" x="585" y="458" text-anchor="middle">Distribuidor</text>`;
+  s+=`<circle cx="600" cy="140" r="36" fill="#fff" stroke="#2b3440" stroke-width="2"/>`;
+  for(let k=0;k<N;k++){
+    const a=schemAng(N,k)*DEG,sx=600+44*Math.cos(a),sy=140+44*Math.sin(a),cyl=M.cam.order[k],i=cyl-1;
+    const py=N===4?90+i*52:78+i*38;
+    s+=`<rect x="${(sx-4).toFixed(1)}" y="${(sy-4).toFixed(1)}" width="8" height="8" fill="#2b3440"/>`;
+    s+=`<polyline points="${sx.toFixed(1)},${sy.toFixed(1)} ${(600+54*Math.cos(a)).toFixed(1)},${(140+54*Math.sin(a)).toFixed(1)} 676,${py} 694,${py}" fill="none" stroke="#1f2328" stroke-width="2.5"/>`;
+    s+=`<line x1="694" y1="${py}" x2="704" y2="${py}" stroke="#2b3440" stroke-width="3"/><line x1="710" y1="${py}" x2="720" y2="${py}" stroke="#2b3440" stroke-width="3"/>
+      <g id="csp${i}" opacity="0"><circle cx="707" cy="${py}" r="9" fill="#9fd3ff" opacity=".6"/><polyline points="704,${py} 706,${py-4} 708,${py+4} 710,${py}" fill="none" stroke="#1f5a94" stroke-width="2"/></g>
+      <text class="lbl2" x="707" y="${py-9}" text-anchor="middle">${cyl}</text>`;
+  }
+  s+=`<path class="wire" d="M720 ${N===4?90:78} V420"/>`;
+  s+=`<g id="rotor" transform="rotate(0 600 140)"><line x1="600" y1="140" x2="632" y2="140" stroke="#1f5a94" stroke-width="4" stroke-linecap="round"/><circle cx="600" cy="140" r="4" fill="#1f5a94"/></g>`;
+  s+=`<text class="lbl2" x="558" y="196" text-anchor="end">Rotor</text>`;
+  // flujo de corriente del primario
+  const via=M.hasRv&&crank?'M60 170 V80 H210 V140 H340 V80 H405 V250 V320 H580 V420 H60 V182':'M60 170 V80 H405 V250 V320 H580 V420 H60 V182';
+  s+=`<path id="pflow" class="flow" d="${via}" style="opacity:0"/>`;
+  if(M.f==='condShort'&&sa)s+=`<path id="cflow" class="flow" d="M530 320 V420" style="opacity:0"/>`;
+  // lecturas
+  if(sa){
+    const V=M.V;
+    s+=`<text class="lbl2" x="76" y="346">${V.avg?'Valores medios (motor girando):':'Valores instantáneos:'}</text>
+      <text class="lbl2" x="76" y="363">U borne 15 bobina = ${nf(V.c15,2)} V</text>
+      <text class="lbl2" x="76" y="379">U borne 1 bobina = ${nf(V.c1,2)} V</text>
+      <text class="lbl2" x="76" y="395">I primaria = ${nf(V.I,2)} A${V.avg?' (media)':''}</text>`;
+  }
+  return s;
+}
+
+function axes(x0,y0,w,h,xr,yr,xt,yt,xl,yl,fx,fy){
+  const X=v=>x0+(v-xr[0])/(xr[1]-xr[0])*w,Y=v=>y0+h-(v-yr[0])/(yr[1]-yr[0])*h;
+  let s='';
+  for(const v of yt)s+=`<line class="gr" x1="${x0}" y1="${Y(v).toFixed(1)}" x2="${x0+w}" y2="${Y(v).toFixed(1)}"/><text class="tk" x="${x0-6}" y="${(Y(v)+4).toFixed(1)}" text-anchor="end">${fy(v)}</text>`;
+  for(const v of xt)s+=`<line class="gr" x1="${X(v).toFixed(1)}" y1="${y0}" x2="${X(v).toFixed(1)}" y2="${y0+h}"/><text class="tk" x="${X(v).toFixed(1)}" y="${y0+h+15}" text-anchor="middle">${fx(v)}</text>`;
+  s+=`<path class="ax" d="M${x0} ${y0} V${y0+h} H${x0+w}"/>`;
+  s+=`<text class="tk" x="${x0+w/2}" y="${y0+h+31}" text-anchor="middle" style="font-weight:600">${xl}</text>`;
+  s+=`<text class="tk" x="${x0}" y="${y0-8}" style="font-weight:600">${yl}</text>`;
+  return {s,X,Y};
+}
+function buildAdv(M){
+  const sa=showAll();
+  let s=`<text class="ttl" x="14" y="22">Punto de encendido con lámpara estroboscópica (cilindro 1)</text>`;
+  const pc=[200,250],R=112;
+  // escala
+  for(let a=-10;a<=45;a+=5){
+    const w=-90-a,big=a%10===0,r1=R+8,r2=R+(big?26:18);
+    const p1=[pc[0]+r1*Math.cos(w*DEG),pc[1]+r1*Math.sin(w*DEG)],p2=[pc[0]+r2*Math.cos(w*DEG),pc[1]+r2*Math.sin(w*DEG)];
+    s+=`<line x1="${p1[0].toFixed(1)}" y1="${p1[1].toFixed(1)}" x2="${p2[0].toFixed(1)}" y2="${p2[1].toFixed(1)}" stroke="#2b3440" stroke-width="${a===0?3:1.6}"/>`;
+    if(big){const p3=[pc[0]+(R+40)*Math.cos(w*DEG),pc[1]+(R+40)*Math.sin(w*DEG)];s+=`<text class="tk" x="${p3[0].toFixed(1)}" y="${(p3[1]+4).toFixed(1)}" text-anchor="middle" style="font-weight:700;fill:${a===0?'#c62828':'#2b3440'}">${a===0?'PMS':Math.abs(a)}</text>`;}
+  }
+  s+=`<text class="lbl2" x="${pc[0]-150}" y="${pc[1]-96}">APMS</text><text class="lbl2" x="${pc[0]+56}" y="${pc[1]-140}">DPMS</text>`;
+  s+=`<g id="pulley" transform="rotate(0 ${pc[0]} ${pc[1]})"><circle cx="${pc[0]}" cy="${pc[1]}" r="${R}" fill="#c6ced8" stroke="#56606c" stroke-width="3"/>
+    <circle cx="${pc[0]}" cy="${pc[1]}" r="${R-16}" fill="#d9dfe6" stroke="#8a96a6"/><circle cx="${pc[0]}" cy="${pc[1]}" r="30" fill="#8a96a6"/><circle cx="${pc[0]}" cy="${pc[1]}" r="10" fill="#4d5763"/>
+    <rect x="${pc[0]-3}" y="${pc[1]-R-2}" width="6" height="24" fill="#fff" stroke="#c62828" stroke-width="1.5"/></g>`;
+  s+=`<g id="dark"><circle cx="${pc[0]}" cy="${pc[1]}" r="${R+2}" fill="#1c2533" opacity="0"/></g>`;
+  // lámpara
+  s+=`<polygon id="cone" points="62,420 ${pc[0]-110},${pc[1]-120} ${pc[0]-10},${pc[1]-138}" fill="#fff6b0" opacity="0"/>
+    <g transform="rotate(-52 50 430)"><rect x="20" y="418" width="60" height="24" rx="6" fill="#3b4451"/><rect x="78" y="422" width="10" height="16" fill="#e0a100"/></g>
+    <text class="lbl" x="14" y="466">Lámpara estroboscópica (pinza inductiva en el cable del cil. 1)</text>`;
+  s+=`<text id="stroTxt" class="lbl" x="${pc[0]+20}" y="${pc[1]+140}" text-anchor="middle"></text>`;
+  // curvas
+  const c1=axes(460,52,270,140,[0,6000],[0,25],[0,1000,2000,3000,4000,5000,6000],[0,5,10,15,20,25],'n motor (rpm)','Avance centrífugo (° cigüeñal)',v=>v/1000+'k',v=>v);
+  s+=c1.s;let d='';for(let n=0;n<=6000;n+=100)d+=(n?'L':'M')+c1.X(n).toFixed(1)+' '+c1.Y(cenCurve(n)).toFixed(1);
+  s+=`<path d="${d}" fill="none" stroke="#1f5a94" stroke-width="2.5"/>`;
+  const c2=axes(460,262,270,115,[0,70],[0,15],[0,10,20,30,40,50,60,70],[0,5,10,15],'Depresión en el colector (kPa)','Avance por vacío (° cigüeñal)',v=>v,v=>v);
+  s+=c2.s;d='';for(let p=0;p<=70;p+=1)d+=(p?'L':'M')+c2.X(p).toFixed(1)+' '+c2.Y(vacCurve(p)).toFixed(1);
+  s+=`<path d="${d}" fill="none" stroke="#1f5a94" stroke-width="2.5"/>`;
+  if(sa&&M.running){
+    s+=`<circle cx="${c1.X(Math.min(M.n,6000)).toFixed(1)}" cy="${c1.Y(M.cen).toFixed(1)}" r="6" fill="#e07b00" stroke="#fff" stroke-width="2"/>`;
+    s+=`<circle cx="${c2.X(Math.min(P.vac,70)).toFixed(1)}" cy="${c2.Y(M.vacA).toFixed(1)}" r="6" fill="#e07b00" stroke="#fff" stroke-width="2"/>`;
+    s+=`<text class="lbl2" x="460" y="446">α = ${nf(P.ini,1)} ${M.dT>=0?'+':'−'} ${nf(Math.abs(M.dT),1)} + ${nf(M.cen,1)} + ${nf(M.vacA,1)} = ${nf(M.adv,1)}° APMS</text><text class="lbl2" x="460" y="462">(inicial − ΔDwell + centrífugo + vacío)</text>`;
+  }else if(!sa){
+    s+=`<text class="lbl2" x="460" y="462">Punto de trabajo oculto: léalo con la lámpara.</text>`;
+  }
+  return s;
+}
+function buildCurv(M){
+  const sa=showAll();
+  let s=`<text class="ttl" x="14" y="22">Corriente primaria y tensión disponible</text>`;
+  if(!sa){s+=`<text class="lbl" x="380" y="230" text-anchor="middle">Gráficas ocultas en el modo evaluación.</text><text class="lbl2" x="380" y="252" text-anchor="middle">Pulse «Comprobar» para ver las curvas del caso.</text>`;return s;}
+  const U=UB.marcha,R=isFinite(M.Rtot)?RW+(M.hasRv?(M.f==='ballOpen'?Infinity:RV):0)+M.R1+M.Rc:Infinity;
+  const Iinf=isFinite(R)?U/R:0,tau=isFinite(R)?M.L/R:1;
+  const imax=Math.max(6,Math.ceil(Iinf+0.5));
+  const c1=axes(60,55,290,300,[0,25],[0,imax],[0,5,10,15,20,25],Array.from({length:imax+1},(_,i)=>i),'t (ms)','I primaria (A)',v=>v,v=>v);
+  s+=c1.s;
+  let d='';for(let t=0;t<=25;t+=0.25)d+=(t?'L':'M')+c1.X(t).toFixed(1)+' '+c1.Y(Iinf*(1-Math.exp(-t/1000/tau))).toFixed(1);
+  s+=`<path d="${d}" fill="none" stroke="#1f5a94" stroke-width="2.5"/>`;
+  s+=`<line x1="60" x2="350" y1="${c1.Y(Iinf).toFixed(1)}" y2="${c1.Y(Iinf).toFixed(1)}" stroke="#7b8796" stroke-dasharray="5 4"/><text class="lbl2" x="345" y="${(c1.Y(Iinf)-6).toFixed(1)}" text-anchor="end">U/R = ${nf(Iinf,2)} A</text>`;
+  if(M.est==='marcha'&&M.switching){
+    const tcm=M.tc*1000,Ic=Iinf*(1-Math.exp(-M.tc/tau));
+    if(tcm<=25){s+=`<line x1="${c1.X(tcm).toFixed(1)}" x2="${c1.X(tcm).toFixed(1)}" y1="55" y2="355" stroke="#e07b00" stroke-dasharray="4 4"/><circle cx="${c1.X(tcm).toFixed(1)}" cy="${c1.Y(Ic).toFixed(1)}" r="6" fill="#e07b00" stroke="#fff" stroke-width="2"/>`;}
+    s+=`<text class="lbl2" x="70" y="${c1.Y(imax*0.12).toFixed(1)}">t<tspan baseline-shift="sub" font-size="9">c</tspan> = ${nf(tcm,2)} ms → I = ${nf(Ic,2)} A · W = ${nf(0.5*M.L*Ic*Ic*1000,1)} mJ</text>`;
+  }
+  s+=`<text class="lbl2" x="70" y="${c1.Y(imax*0.04).toFixed(1)}">τ = L/R = ${nf(tau*1000,2)} ms (motor en marcha, ${nf(U,1)} V)</text>`;
+  const c2=axes(440,55,290,300,[500,6000],[0,35],[1000,2000,3000,4000,5000,6000],[0,5,10,15,20,25,30,35],'n motor (rpm)','Tensión en el secundario (kV)',v=>v/1000+'k',v=>v);
+  s+=c2.s;
+  s+=`<rect x="440" y="${c2.Y(15).toFixed(1)}" width="290" height="${(c2.Y(8)-c2.Y(15)).toFixed(1)}" fill="#fdecea" opacity=".85"/>`;
+  s+=`<line x1="440" x2="730" y1="${c2.Y(M.Ureq).toFixed(1)}" y2="${c2.Y(M.Ureq).toFixed(1)}" stroke="#c62828" stroke-width="2" stroke-dasharray="6 4"/>`;
+  s+=`<text class="lbl2" x="448" y="${(c2.Y(8)-6).toFixed(1)}" style="fill:#c62828">zona de tensión requerida 8–15 kV</text>`;
+  d='';for(let n=500;n<=6000;n+=50)d+=(n>500?'L':'M')+c2.X(n).toFixed(1)+' '+c2.Y(clamp(u2At(M,n),0,35)).toFixed(1);
+  s+=`<path d="${d}" fill="none" stroke="#1f5a94" stroke-width="2.5"/>`;
+  s+=`<text class="lbl2" x="450" y="${(c2.Y(clamp(u2At(M,1000),0,35))-8).toFixed(1)}">tensión disponible</text>`;
+  if(M.est==='marcha'&&M.switching){s+=`<circle cx="${c2.X(M.n).toFixed(1)}" cy="${c2.Y(clamp(M.U2,0,35)).toFixed(1)}" r="6" fill="#e07b00" stroke="#fff" stroke-width="2"/>`;
+    s+=`<text class="lbl2" x="450" y="${c2.Y(2.5).toFixed(1)}">A ${nf(M.n,0)} rpm: ${nf(M.U2,1)} kV disponibles / ${nf(M.Ureq,1)} kV requeridos</text>`;}
+  s+=`<text class="lbl2" x="60" y="440">A más rpm, menor tiempo de cierre → menor corriente de corte → menor energía y menor tensión disponible.</text>`;
+  return s;
+}
+
+function buildView(){
+  const M=st.M;
+  const b={dist:buildDist,circ:buildCirc,adv:buildAdv,curv:buildCurv}[st.view];
+  svg.innerHTML=b(M);
+  const q=id=>svg.querySelector('#'+id);
+  st.refs={cam:q('cam'),arm:q('arm'),arc:q('arcfx'),rotor:q('rotor'),wts:q('wts'),w1:q('w1'),w2:q('w2'),trk:q('trkfx'),
+    pulley:q('pulley'),cone:q('cone'),dark:q('dark')?.firstElementChild,stro:q('stroTxt'),brk:q('brk'),pflow:q('pflow'),cflow:q('cflow'),sp:[],csp:[]};
+  for(let i=0;i<M.N;i++){st.refs.sp[i]=q('sp'+i);st.refs.csp[i]=q('csp'+i);}
+  const cap={dist:'La leva gira en el sentido de las agujas del reloj. El talón de fibra sube por el flanco del lóbulo y separa el martillo del yunque: en ese instante se interrumpe la corriente primaria y salta la chispa en la bujía hacia la que apunta el rotor. Los destellos azulados de las bujías indican chispa; en color naranja, chispa débil.',
+    circ:'Los puntos amarillos representan la corriente primaria (sentido convencional). Circula solo mientras los platinos están cerrados (tiempo de cierre); al abrirse, la autoinducción carga el condensador y el secundario genera la alta tensión.',
+    adv:'Con la lámpara encendida la polea parece detenida y la marca se lee sobre la escala del bloque. Desconecte el tubo de vacío para leer el avance inicial y el centrífugo; conéctelo para comprobar la cápsula. Línea azul: curva de especificación; punto naranja: punto de trabajo.',
+    curv:'Izquierda: crecimiento exponencial de la corriente en el primario. Derecha: tensión disponible frente a la tensión requerida según el régimen del motor.'}[st.view];
+  $('vcap').textContent=cap;
+  $('strobeWrap').style.display=st.view==='adv'?'':'none';
+}
+
+/* ---------- animación ---------- */
+let last=performance.now();
+function openAt(M,th){
+  const u=plateVis(M)-(th+cenVis(M));
+  return liftAt(M.N,u)-M.w>LMAX-M.gapSet+1e-9;
+}
+function fireEvent(M,th){
+  const u=((plateVis(M)-(th+cenVis(M)))%360+360)%360;
+  const j=Math.floor(u/M.cam.P);const k=((M.N-j)%M.N+M.N)%M.N;
+  const c=M.cy[k];
+  if(c.fires){const m=(c.U2c-M.Ureq)/M.Ureq;st.flash[c.cyl-1]={t:0.22,strong:m>0.35};}
+  if(c.track)st.trk=0.25;
+  const ak={ok:0.12,gapHi:0.12,gapLo:0.55,pitted:0.45,condOpen:1,heel:M.w>0.1?0.35:0.12,capTrack:0.12,secShort:0.12,centStuck:0.12,vacBroken:0.12}[M.f];
+  if(M.switching&&ak){st.arc=0.2;st.arcK=ak;}
+}
+function tick(t){
+  const dt=Math.min(0.05,(t-last)/1000);last=t;
+  const M=st.M;
+  if(M){
+    if(M.running&&!st.paused){
+      const nd=M.n/2,dth=nd/60*360*st.slow*dt;
+      const steps=Math.max(1,Math.ceil(dth/2));
+      for(let i=0;i<steps;i++){
+        st.theta+=dth/steps;
+        const o=openAt(M,st.theta);
+        if(st.lastOpen===false&&o&&M.switching)fireEvent(M,st.theta);
+        st.lastOpen=o;
+      }
+      st.theta%=36000;
+    }else if(!M.running){
+      st.theta=P.cam==='cerrados'?plateVis(M):plateVis(M)-M.cam.P/2;
+      st.lastOpen=openAt(M,st.theta);
+    }
+    // desgaste progresivo del talón
+    if(M.f==='heel'&&st.wear<0.24&&M.running&&!st.paused){st.wear=Math.min(0.24,st.wear+dt*0.003);st.wearT+=dt;if(st.wearT>1){st.wearT=0;render(true);}}
+    // parpadeo de lectura con platinos picados
+    st.jitT+=dt;if(st.jitT>0.35){st.jitT=0;st.jit=(Math.random()*2-1);if(M.f==='pitted'&&M.running)updateInstruments();}
+    animView(M,dt);
+    if(st.inst==='osc'&&t-st.oscLast>160){st.oscLast=t;drawOsc();}
+  }
+  requestAnimationFrame(tick);
+}
+function animView(M,dt){
+  const r=st.refs,th=st.theta+cenVis(M);
+  for(const k in st.flash){st.flash[k].t-=dt;if(st.flash[k].t<=0)delete st.flash[k];}
+  st.arc=Math.max(0,st.arc-dt);st.trk=Math.max(0,st.trk-dt);
+  if(st.view==='dist'){
+    if(r.cam)r.cam.setAttribute('transform',`rotate(${th.toFixed(2)} ${CX} ${CY})`);
+    const lift=liftAt(M.N,plateVis(M)-th);
+    const disp=(Math.max(lift-M.w,LMAX-M.gapSet)-LMAX)*SC;
+    if(r.arm)r.arm.setAttribute('transform',`rotate(${(disp/LEV/DEG).toFixed(3)} ${PV[0]} ${PV[1]})`);
+    if(r.arc){r.arc.setAttribute('opacity',(st.arc>0?Math.min(1,st.arc/0.2)*st.arcK:0).toFixed(2));r.arc.setAttribute('r',(4+10*st.arcK).toFixed(1));}
+    if(r.rotor)r.rotor.setAttribute('transform',`rotate(${(th+rotorOff(M)).toFixed(2)} ${C2[0]} ${C2[1]})`);
+    if(r.wts){r.wts.setAttribute('transform',`rotate(${(st.theta*1).toFixed(1)} 320 402)`);
+      const sw=M.cen/22*40;r.w1.setAttribute('transform',`rotate(${sw.toFixed(1)} 302 385)`);r.w2.setAttribute('transform',`rotate(${sw.toFixed(1)} 338 419)`);}
+    if(r.trk)r.trk.setAttribute('opacity',(st.trk/0.25).toFixed(2));
+  }
+  if(st.view==='circ'){
+    if(r.rotor){const ra=th+rotorOff(M)+90;const k=((Math.round(ra/M.cam.P)%M.N)+M.N)%M.N;r.rotor.setAttribute('transform',`rotate(${schemAng(M.N,k).toFixed(1)} 600 140)`);}
+    const open=M.running?openAt(M,st.theta):P.cam!=='cerrados';
+    if(r.brk){r.brk.setAttribute('x2',open?'598':'580');r.brk.setAttribute('y2',open?'380':'388');}
+    let flowOn=false;
+    if(M.est!=='off'&&isFinite(M.Rtot)&&M.RvEff!==Infinity){flowOn=M.f==='condShort'||!open;}
+    if(r.pflow){r.pflow.style.opacity=flowOn?1:0;st.fo=(st.fo||0)-dt*(M.running?40:25);r.pflow.style.strokeDashoffset=st.fo;}
+    if(r.cflow){r.cflow.style.opacity=flowOn?1:0;r.cflow.style.strokeDashoffset=st.fo;}
+  }
+  if(st.view==='dist'||st.view==='circ'){
+    for(let i=0;i<M.N;i++){const fl=st.flash[i];
+      const el=st.view==='dist'?r.sp[i]:r.csp[i];if(!el)continue;
+      el.setAttribute('opacity',fl?Math.min(1,fl.t/0.12).toFixed(2):'0');
+      const c=el.querySelector('circle');if(c)c.setAttribute('fill',fl&&!fl.strong?'#ffb347':'#9fd3ff');}
+  }
+  if(st.view==='adv'&&r.pulley){
+    const pc=[200,250];
+    const c1=M.cy[0],flash=M.running&&c1&&(c1.fires)&&st.strobe;
+    let ang;
+    if(flash){const jit=M.f==='pitted'?st.jit*1.8:0;ang=-(st.M.adv+jit);}
+    else ang=(st.theta*2)%360;
+    r.pulley.setAttribute('transform',`rotate(${ang.toFixed(2)} ${pc[0]} ${pc[1]})`);
+    st.strobeFl=(st.strobeFl+dt*6)%1;
+    if(r.cone)r.cone.setAttribute('opacity',flash?(st.strobeFl<0.35?0.55:0.12).toFixed(2):'0');
+    if(r.dark)r.dark.setAttribute('opacity',st.strobe&&M.running&&!flash?'0.35':'0');
+    if(r.stro){
+      let tx;
+      if(!st.strobe)tx='Lámpara apagada: la marca gira y no puede leerse.';
+      else if(!M.running)tx='Motor parado: la lámpara no destella.';
+      else if(!flash)tx='No hay chispa en el cil. 1: la lámpara no destella.';
+      else{const jit=M.f==='pitted'?st.jit*1.8:0;tx=`Marca observada: ${nf(M.adv+jit,1)}° APMS`;}
+      r.stro.textContent=tx;
+    }
+  }
+}
+requestAnimationFrame(tick);
+
+/* ---------- instrumentos ---------- */
+const MMPTS={
+  V:[['bat','Batería: borne + a masa'],['c15','Borne 15 de la bobina a masa'],['c1','Borne 1 de la bobina a masa (ruptor)'],['rv','Caída en la resistencia adicional']],
+  R:[['prim','Primario de la bobina (15–1)'],['sec','Secundario de la bobina (4–1)'],['rv','Resistencia adicional (desconectada)'],['cont','Platinos cerrados (cable del borne 1 desconectado)'],['cond','Condensador: terminal a carcasa'],['cap','Tapa del distribuidor: entre bornes contiguos']],
+  F:[['cond','Condensador (desconectado)']],
+  OFF:[]
+};
+function dwellReading(){
+  const M=st.M;
+  if(!M.running)return {deg:null,pct:null,rpm:0,note:M.est==='off'?'Contacto quitado: sin señal.':'Motor parado: no hay impulsos; el dwellímetro necesita que el motor gire.'};
+  if(M.dwRead==null)return {deg:null,pct:null,rpm:0,note:''};
+  let pct=M.dwRead;
+  if(M.f==='pitted'&&M.dwRead<100)pct=clamp(pct+st.jit*2.2,0,100);
+  const deg=pct/100*360/st.dwN;
+  const rpm=M.pulses?M.n*M.N/st.dwN:0;
+  let note='';
+  if(st.dwN!==M.N)note=`El selector del instrumento (${st.dwN} cil.) no coincide con el motor: la lectura en grados y las rpm salen falseadas.`;
+  else if(!M.pulses)note='No hay impulsos en el borne 1: el primario no se interrumpe (tacómetro en 0 rpm, Dwell en el máximo).';
+  else if(M.est==='arranque')note='Lectura durante el arranque (≈ 200 rpm).';
+  return {deg,pct,rpm,note};
+}
+function mmReading(){
+  const M=st.M,m=st.mmode,pt=st.mpt[m];
+  if(m==='OFF')return {v:'',u:'',note:'Instrumento apagado.'};
+  if(m==='V'){
+    const V=M.V;let v=V[pt];
+    let note=V.avg?'Motor girando: el voltímetro indica el valor medio.':'';
+    if(pt==='rv'&&!M.hasRv){return {v:'0,00',u:'V',raw:0,note:'El circuito no tiene resistencia adicional.'};}
+    if(pt==='c1'&&!V.avg&&M.est!=='off')note=(V.closed?'Platinos cerrados: esta lectura es la caída de tensión en los contactos (debe ser ≤ 0,2 V).':'Platinos abiertos: el borne 1 debe tener la tensión que llega a través del primario.');
+    if(M.est==='off'&&pt!=='bat')note='Contacto quitado: el circuito de la bobina no tiene tensión.';
+    return {v:nf(v,2),u:'V',raw:v,note};
+  }
+  if(m==='R'){
+    if(M.est!=='off')return {v:'Err',u:'Ω',note:'¡Circuito energizado! Quite el contacto antes de medir resistencias.'};
+    let r,note='';
+    switch(pt){
+      case 'prim':r=M.R1;note='Referencia: 1,2–3 Ω (orientativo).';break;
+      case 'sec':r=(M.f==='secShort'?0.45:1)*P.R2*1000;note='Referencia: 6–12 kΩ (orientativo).';break;
+      case 'rv':if(!M.hasRv)return {v:'- - -',u:'',note:'Este circuito no lleva resistencia adicional.'};r=M.f==='ballOpen'?Infinity:RV;note='Referencia ≈ 1,5 Ω.';break;
+      case 'cont':r=M.Rc;note='Platinos en buen estado: prácticamente 0 Ω. Se confirma mejor con la caída de tensión (≤ 0,2 V).';break;
+      case 'cond':if(M.f==='condShort'){r=0.1;note='Continuidad: condensador en cortocircuito.';}else{r=Infinity;note=M.f==='condOpen'?'OL inmediato, sin efecto de carga.':'Al conectar se aprecia la carga del condensador y la lectura sube hasta OL (aislamiento correcto).';}break;
+      case 'cap':r=M.f==='capTrack'?180000:Infinity;note='Entre bornes de la tapa debe indicarse OL (aislante).';break;
+    }
+    const t=fR(r).split(' ');return {v:t[0],u:t[1]||'Ω',raw:r,note};
+  }
+  if(m==='F'){
+    if(M.est!=='off')return {v:'Err',u:'µF',note:'Quite el contacto y desconecte el condensador para medir su capacidad.'};
+    if(M.f==='condShort')return {v:'Err',u:'µF',note:'El instrumento no puede cargar el condensador: está en cortocircuito.'};
+    const c=M.f==='condOpen'?0.002:P.C;
+    return {v:nf(c,3),u:'µF',raw:c,note:'Referencia: 0,20–0,30 µF (orientativo).'};
+  }
+}
+function updateInstruments(){
+  const d=dwellReading();
+  $('dwDeg').textContent=d.deg==null?'---':nf(d.deg,1);
+  $('dwPct').textContent=d.pct==null?'---':nf(d.pct,1);
+  $('dwRpm').textContent=nf(Math.round(d.rpm/10)*10,0);
+  $('dwNote').textContent=d.note;
+  document.querySelectorAll('#dwModes button').forEach(b=>b.classList.toggle('on',+b.dataset.n===st.dwN));
+  const m=mmReading();
+  $('mmVal').textContent=m.v;$('mmUnit').textContent=m.u;$('mmFn').textContent={V:'V⎓',R:'Ω',F:'µF',OFF:''}[st.mmode];
+  $('mmNote').textContent=m.note||'';
+  document.querySelectorAll('#mmModes button').forEach(b=>b.classList.toggle('on',b.dataset.m===st.mmode));
+  st.lastRead={d,m};
+}
+function buildMmPts(){
+  const o=MMPTS[st.mmode];
+  $('mmPt').innerHTML=o.map(p=>`<option value="${p[0]}" ${p[0]===st.mpt[st.mmode]?'selected':''}>${p[1]}</option>`).join('');
+  $('mmPt').style.display=o.length?'':'none';
+  if(o.length&&!o.find(p=>p[0]===st.mpt[st.mmode]))st.mpt[st.mmode]=o[0][0];
+}
+
+/* ---------- osciloscopio ---------- */
+function oscScale(){
+  const M=st.M;
+  let tdiv=st.oscT==='auto'?null:+st.oscT;
+  if(!tdiv){const T=isFinite(M.T)?M.T*1000:20,need=st.oscCh==='s'?T*M.N*1.08:T*1.25;tdiv=[0.5,1,2,5,10,20,50].find(v=>v*10>=need)||50;}
+  let vdiv=st.oscV==='auto'?(st.oscCh==='p'?50:5):+st.oscV;
+  return {tdiv,vdiv};
+}
+function rnd(){return Math.random()*2-1;}
+function wave(M,t,ch){
+  const sec=ch==='s';
+  if(!M.running||!M.switching){
+    if(sec)return rnd()*0.05;
+    let v=M.est==='off'?0:(M.running?(M.f==='condShort'||M.f==='primOpen'||M.RvEff===Infinity?0:M.V.c1):M.V.c1);
+    return v+rnd()*0.4;
+  }
+  const T=M.T*1000,To=M.To*1000,U=M.U;
+  const idx=Math.floor(t/T),k=((idx%M.N)+M.N)%M.N,tau=t-idx*T,c=M.cy[k];
+  const f=M.fosc,sShort=M.f==='secShort';
+  if(tau<To){
+    if(!sec){
+      if(c.mode==='arc'){
+        if(tau<0.03)return U+(c.p1-U)*tau/0.03+rnd()*8;
+        if(tau<c.ts)return U+18+rnd()*14;
+        return U+10*Math.exp(-(tau-c.ts)/0.15)*Math.cos(2*Math.PI*f*(tau-c.ts))+rnd()*1.5;
+      }
+      if(tau<0.015)return U+(c.p1-U)*tau/0.015;
+      if(c.mode==='normal'||c.mode==='track'){
+        if(tau<c.ts){const base=c.sl1-4*(tau/c.ts);return base+(c.p1-base)*Math.exp(-(tau-0.015)/0.012)+rnd()*1.2;}
+        const A=40*(M.Icut/4.5),td=sShort?0.05:0.55;
+        return U+A*Math.exp(-(tau-c.ts)/td)*Math.cos(2*Math.PI*f*(tau-c.ts))+rnd()*0.6;
+      }
+      return U+(c.p1-U)*Math.exp(-(tau-0.015)/(sShort?0.12:0.9))*Math.cos(2*Math.PI*f*(tau-0.015))+rnd()*0.8;
+    }else{
+      if(tau<0.015)return c.p2*tau/0.015;
+      if(c.mode==='arc'){if(tau<c.ts)return c.sl2+(c.p2-c.sl2)*Math.exp(-(tau-0.015)/0.01)+rnd()*0.5;return 0.4*Math.exp(-(tau-c.ts)/0.15)*Math.cos(2*Math.PI*f*(tau-c.ts))+rnd()*0.08;}
+      if(c.mode==='normal'||c.mode==='track'){
+        if(tau<c.ts){const base=c.sl2*(1-0.25*tau/c.ts);return base+(c.p2-base)*Math.exp(-(tau-0.015)/0.01)+rnd()*0.08;}
+        const A=2.2*(M.Icut/4.5),td=sShort?0.05:0.55;
+        return A*Math.exp(-(tau-c.ts)/td)*Math.cos(2*Math.PI*f*(tau-c.ts))+rnd()*0.05;
+      }
+      return c.p2*Math.exp(-(tau-0.015)/(sShort?0.12:0.9))*Math.cos(2*Math.PI*f*(tau-0.015))+rnd()*0.08;
+    }
+  }
+  const tc=tau-To;
+  if(!sec){
+    const I=M.Iinf*(1-Math.exp(-tc/1000/M.tau));
+    return I*M.Rc+9*Math.exp(-tc/0.05)*Math.sin(2*Math.PI*6*tc)+(M.f==='pitted'?rnd()*0.35:0)+rnd()*0.25;
+  }
+  return -1.2*Math.exp(-tc/0.08)*Math.cos(2*Math.PI*5*tc)+rnd()*0.04;
+}
+function drawOsc(){
+  const cv=$('osc'),g=cv.getContext('2d'),W=cv.width,H=cv.height,M=st.M;
+  const {tdiv,vdiv}=oscScale();
+  g.fillStyle='#0b1a12';g.fillRect(0,0,W,H);
+  const dx=W/10,dy=H/8;
+  g.strokeStyle='#1f3a2a';g.lineWidth=1;
+  for(let i=0;i<=10;i++){g.beginPath();g.moveTo(i*dx+0.5,0);g.lineTo(i*dx+0.5,H);g.stroke();}
+  for(let j=0;j<=8;j++){g.beginPath();g.moveTo(0,j*dy+0.5);g.lineTo(W,j*dy+0.5);g.stroke();}
+  g.strokeStyle='#2f5a40';g.beginPath();g.moveTo(0,H-dy+0.5);g.lineTo(W,H-dy+0.5);g.stroke();
+  const t0=-0.5*tdiv,span=10*tdiv,y0=H-dy,sc=dy/vdiv;
+  g.strokeStyle='#62ff9a';g.lineWidth=1.6;g.beginPath();
+  const n=1600,ts=[];
+  for(let i=0;i<=n;i++)ts.push(t0+span*i/n);
+  if(M.running&&M.switching){const T=M.T*1000,To=M.To*1000;
+    for(let idx=Math.floor(t0/T)-1;idx<=Math.ceil((t0+span)/T);idx++){const c=M.cy[((idx%M.N)+M.N)%M.N],b0=idx*T;
+      for(const d of [0,0.005,0.01,0.015,0.02,0.03,0.045,0.07,0.1,c.ts,c.ts+0.03,To,To+0.01,To+0.03,To+0.06])ts.push(b0+d);}}
+  ts.sort((a,b)=>a-b);
+  let first=true;
+  for(const t of ts){if(t<t0||t>t0+span)continue;const v=wave(M,t,st.oscCh),y=clamp(y0-v*sc,1,H-1),x=(t-t0)/span*W;first?g.moveTo(x,y):g.lineTo(x,y);first=false;}
+  g.stroke();
+  g.fillStyle='#ffd166';g.beginPath();const xt=W*0.05;g.moveTo(xt-6,0);g.lineTo(xt+6,0);g.lineTo(xt,9);g.fill();
+  g.fillStyle='#bfe9cf';g.font='14px Consolas, monospace';
+  const ch=st.oscCh==='p'?'CH1 primario (20:1)':'CH1 secundario (capacitiva)';
+  g.fillText(`${ch}  ${nf(vdiv,0)} ${st.oscCh==='p'?'V':'kV'}/div  ${nf(tdiv,tdiv<1?1:0)} ms/div  disparo: cil. 1`,22,20);
+  g.fillText('0',W-14,y0-4);
+  // lecturas
+  let h='';
+  if(!M.running||!M.switching){h=M.running?'Sin conmutación en el borne 1: no hay oscilograma de encendido (trazo plano).':'Motor parado: trazo plano a la tensión del borne 1.';}
+  else{
+    const c=M.cy[0];
+    if(st.oscCh==='p'){
+      h=`Pico de disparo (cil. 1): ${nf(c.p1,0)} V<br>Línea de chispa ≈ ${c.mode==='miss'?'—':nf(c.sl1,0)+' V'} · duración ${c.mode==='miss'?'—':nf(c.ts,2)+' ms'}<br>Tiempo de cierre: ${nf(M.tc*1000,2)} ms · periodo ${nf(M.T*1000,2)} ms<br>Oscilaciones de la bobina: ${nf(M.fosc,2)} kHz`;
+    }else{
+      h='Líneas de disparo: '+M.cy.map(c=>`cil. ${c.cyl} ${nf(c.p2,1)} kV`).join(' · ')+`<br>Línea de chispa ≈ ${nf(c.sl2,1)} kV · duración ${nf(c.ts,2)} ms`;
+    }
+  }
+  $('oscInfo').innerHTML=h;
+}
+function buildOscV(){
+  const o=st.oscCh==='p'?[['auto','Automática'],['20','20 V/div'],['50','50 V/div'],['100','100 V/div']]:[['auto','Automática'],['2','2 kV/div'],['5','5 kV/div'],['10','10 kV/div']];
+  if(!o.find(x=>x[0]===st.oscV))st.oscV='auto';
+  $('oscV').innerHTML=o.map(x=>`<option value="${x[0]}" ${x[0]===st.oscV?'selected':''}>${x[1]}</option>`).join('');
+}
+
+/* ---------- avisos ---------- */
+function updateMsgs(){
+  const M=st.M,w=[],sa=showAll(),f=M.f;
+  if(!sa){
+    w.push(['i','Modo evaluación activo: la interpretación de los síntomas se oculta hasta pulsar «Comprobar». Observe la chispa, mida y registre.']);
+    if(M.note==='nostart')w.push(['e','El motor gira con el arranque pero no arranca.']);
+    if(M.note==='stall')w.push(['e','El motor arranca mientras se mantiene la llave en arranque, pero se detiene al soltarla.']);
+    if(M.est==='marcha'&&M.switching){const m=M.cy.filter(c=>!c.fires).map(c=>c.cyl);if(m.length)w.push(['w',`Se perciben fallos de encendido (${m.length===M.N?'todos los cilindros':'cilindro '+m.join(', ')}).`]);}
+  }else{
+    if(M.note==='nostart')w.push(['e',`El motor no arranca: ${f==='condShort'?'el condensador en corto mantiene el borne 1 a masa y la corriente nunca se interrumpe':'el primario abierto impide que circule corriente por la bobina'}. Las lecturas corresponden al arranque.`]);
+    if(M.note==='stall')w.push(['e','El motor arranca con el puente de arranque (borne 16/15a) pero se detiene al soltar la llave: la resistencia adicional está abierta y deja la bobina sin alimentación.']);
+    if((M.est==='contacto'||M.est==='calado')&&M.V.I>0.5)w.push(['w',`Contacto puesto con platinos cerrados: circula ${nf(M.V.I,2)} A de forma permanente. La bobina y los contactos se calientan; no deje el contacto puesto con el motor parado.`]);
+    if(!M.running&&M.est!=='off'&&M.V.closed&&M.V.c1>0.2)w.push(['e',`Caída de tensión en platinos cerrados de ${nf(M.V.c1,2)} V (orientativo ≤ 0,2 V): contactos picados, quemados o sucios.`]);
+    if(M.running&&M.switching){
+      const N=M.N,lo=N===4?47:36,hi=N===4?53:42;
+      if(M.dwell<lo)w.push(['w',`Dwell de ${nf(M.dwell,1)}° (${nf(M.d*100,1)} %) por debajo de ${lo}°: abertura excesiva. Menor tiempo de cierre y menos energía a alto régimen; el encendido se adelanta ${nf(M.dT,1)}°.`]);
+      if(M.dwell>hi)w.push(['w',`Dwell de ${nf(M.dwell,1)}° (${nf(M.d*100,1)} %) por encima de ${hi}°: abertura insuficiente. Riesgo de arco en los contactos; el encendido se retrasa ${nf(-M.dT,1)}°.`]);
+      const miss=M.cy.filter(c=>!c.fires);
+      if(miss.length)w.push(['e',`Fallo de encendido en ${miss.length===N?'todos los cilindros':'cil. '+miss.map(c=>c.cyl).join(', ')}: la tensión disponible (${nf(Math.min(...miss.map(c=>c.U2c)),1)} kV) no alcanza la requerida (${nf(M.Ureq,1)} kV).`]);
+      else if(M.U2-M.Ureq<3)w.push(['w',`Reserva de tensión escasa: ${nf(M.U2,1)} kV disponibles frente a ${nf(M.Ureq,1)} kV requeridos. Cualquier aumento de la tensión requerida (carga, bujías gastadas) provocará fallos.`]);
+      if(M.Iinf>6)w.push(['e',`Corriente primaria excesiva (${nf(M.Iinf,1)} A): una bobina de baja resistencia necesita la resistencia adicional; se sobrecalientan la bobina y los platinos.`]);
+      if(Math.abs(M.dT)>1.5)w.push(['i',`El Dwell difiere ${nf(Math.abs(M.dT),1)}° del de reglaje: el punto de encendido se ${M.dT>0?'adelanta':'retrasa'} lo mismo en grados de cigüeñal. Después de ajustar los platinos, reajuste siempre el punto.`]);
+    }
+    if(P.C<0.20)w.push(['w','Capacidad del condensador baja (< 0,20 µF): arco y transferencia de material entre los contactos.']);
+    if(P.C>0.30)w.push(['w','Capacidad del condensador alta (> 0,30 µF): el corte es más lento y la tensión inducida disminuye.']);
+    if(P.gap<0.40||P.gap>0.45)w.push(['i',`Abertura ajustada ${nf(P.gap,2)} mm, fuera del rango habitual 0,40–0,45 mm (orientativo; consulte el manual del fabricante).`]);
+    const fx={
+      pitted:'Platinos picados: aumenta la resistencia de contacto, la corriente primaria baja y el Dwell se vuelve inestable. Limpie o sustituya los platinos y el condensador.',
+      condOpen:'Condensador abierto: arco intenso en los platinos (véase el destello en la vista del distribuidor); pico del primario bajo y sin oscilaciones. Sustituya el condensador y revise los contactos.',
+      secShort:'Espiras en corto en el secundario: R₂ baja y el oscilograma no muestra las oscilaciones de la bobina tras la chispa. Sustituya la bobina.',
+      capTrack:`Tapa fisurada/carbonizada: el cilindro ${M.cam.order[1]} pierde la alta tensión por el camino de carbón; su línea de disparo en el secundario es baja. Sustituya la tapa.`,
+      heel:'Talón de fibra desgastado: el Dwell aumenta con el tiempo y el encendido se retrasa. Sustituya el conjunto de platinos y lubrique la leva.',
+      centStuck:'Avance centrífugo trabado: la marca no avanza al subir las rpm. Revise contrapesos, muelles y lubricación del eje.',
+      vacBroken:'Cápsula de vacío rota: el avance no cambia al conectar el tubo. Compruebe la membrana con una bomba de vacío y sustituya la cápsula.',
+      gapHi:'Abertura excesiva: reajuste los platinos a la especificación y luego el punto de encendido.',
+      gapLo:'Abertura insuficiente: reajuste los platinos a la especificación y luego el punto de encendido.'
+    }[f];
+    if(fx)w.push(['e',fx]);
+    if(M.est==='arranque'&&M.hasRv&&f!=='condShort'&&f!=='primOpen')w.push(['i','Durante el arranque la resistencia adicional está puenteada: la bobina recibe más corriente y compensa la caída de tensión de la batería.']);
+  }
+  $('msgs').innerHTML=w.length?w.map(([c,t])=>`<div class="${c}">${t}</div>`).join(''):'<div class="i">Sin avisos: el sistema funciona dentro de los valores de referencia.</div>';
+}
+
+/* ---------- resultados ---------- */
+function updateResults(){
+  const M=st.M;
+  if(!showAll()){$('results').innerHTML='<p class="muted">Resultados del modelo ocultos hasta pulsar «Comprobar».</p>';return;}
+  const rows=[
+    ['Estado efectivo',{off:'Contacto quitado',contacto:'Contacto puesto, motor parado',calado:'Motor calado (contacto puesto)',arranque:'Arranque',marcha:'En marcha'}[M.est]],
+    ['n motor / n distribuidor',M.running?`${nf(M.n,0)} / ${nf(M.n/2,0)} rpm`:'—'],
+    ['Periodo entre chispas T',M.running?nf(M.T*1000,2)+' ms':'—'],
+    ['Dwell (mecánico)',`${nf(M.dwell,1)}° · ${nf(M.d*100,1)} %`],
+    ['Tiempo de cierre t<sub>c</sub>',M.running?nf(M.tc*1000,2)+' ms':'—'],
+    ['R primaria total',isFinite(M.Rtot)?nf(M.Rtot,2)+' Ω':'∞ (circuito abierto)'],
+    ['τ = L/R',isFinite(M.Rtot)&&M.U>0?nf(M.tau*1000,2)+' ms':'—'],
+    ['Corriente de corte I<sub>corte</sub>',nf(M.Icut,2)+' A'],
+    ['Energía W = ½·L·I²',nf(M.W*1000,1)+' mJ'],
+    ['Pico en el primario (sin chispa)',nf(M.U1oc,0)+' V'],
+    ['Tensión disponible U<sub>2</sub>',nf(M.U2,1)+' kV'],
+    ['Tensión requerida',M.running?nf(M.Ureq,1)+' kV':'—'],
+    ['Avance total (cil. 1)',M.running?nf(M.adv,1)+'° APMS':'—']
+  ];
+  $('results').innerHTML='<div class="tw"><table><tr><th>Magnitud</th><th>Valor</th></tr>'+rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('')+'</table></div>';
+}
+
+/* ---------- controles ---------- */
+const CTL=[
+ {k:'estado',t:'sel',l:'Estado del motor',o:[['off','Contacto quitado (OFF)'],['contacto','Contacto puesto, motor parado'],['arranque','Arranque (≈ 200 rpm)'],['marcha','Motor en marcha']]},
+ {k:'rpm',t:'rng',l:'Régimen del motor n (rpm)',min:600,max:6000,step:50},
+ {k:'cil',t:'sel',l:'Motor (lóbulos de la leva)',o:[[4,'4 cilindros · orden 1-3-4-2'],[6,'6 cilindros · orden 1-5-3-6-2-4']]},
+ {k:'cam',t:'sel',l:'Posición de la leva con el motor parado',o:[['cerrados','Platinos cerrados'],['abiertos','Platinos abiertos']]},
+ {k:'vac',t:'rng',l:'Depresión en el colector (kPa)',min:0,max:70,step:1},
+ {k:'hose',t:'chk',l:'Tubo de vacío conectado a la cápsula'},
+ {k:'gap',t:'rng',l:'Abertura de platinos (mm)',min:0.35,max:0.55,step:0.01,h:1},
+ {k:'C',t:'rng',l:'Capacidad del condensador C (µF)',min:0.15,max:0.35,step:0.01,h:1},
+ {k:'R1',t:'rng',l:'Resistencia del primario R₁ (Ω)',min:1.2,max:3,step:0.05,h:1},
+ {k:'L',t:'rng',l:'Inductancia del primario L (mH)',min:6,max:9,step:0.1,h:1},
+ {k:'R2',t:'rng',l:'Resistencia del secundario R₂ (kΩ)',min:6,max:12,step:0.1,h:1},
+ {k:'ratio',t:'rng',l:'Relación de espiras 1 : ü',min:80,max:100,step:1,h:1},
+ {k:'ini',t:'rng',l:'Avance inicial ajustado (° APMS)',min:4,max:12,step:0.5,h:1},
+ {k:'ballast',t:'chk',l:'Resistencia adicional Rv ≈ 1,5 Ω (puenteada en arranque)',h:1},
+ {k:'fault',t:'sel',l:'Avería',o:FAULTS.map(f=>[f.k,f.n])}
+];
+function buildControls(){
+  let h='';
+  for(const c of CTL){
+    const hid=st.evalOn&&c.h?' hid':'';
+    if(c.t==='rng')h+=`<div class="ctl${hid}"><label>${c.l}</label><div class="row"><input type="range" data-k="${c.k}" min="${c.min}" max="${c.max}" step="${c.step}" value="${P[c.k]}"><input type="number" data-k="${c.k}" min="${c.min}" max="${c.max}" step="${c.step}" value="${P[c.k]}"></div></div>`;
+    else if(c.t==='sel'){
+      if(c.k==='fault'&&st.evalOn)h+=`<div class="ctl"><label>${c.l}</label><select disabled><option>— oculta (modo evaluación) —</option></select></div>`;
+      else h+=`<div class="ctl${hid}"><label>${c.l}</label><select data-k="${c.k}">${c.o.map(o=>`<option value="${o[0]}" ${String(o[0])===String(P[c.k])?'selected':''}>${o[1]}</option>`).join('')}</select></div>`;
+    }else h+=`<div class="ctl chk${hid}"><label><input type="checkbox" data-k="${c.k}" ${P[c.k]?'checked':''}> ${c.l}</label></div>`;
+  }
+  $('controls').innerHTML=h;
+  $('evalHint').style.display=st.evalOn?'':'none';
+  $('controls').querySelectorAll('[data-k]').forEach(inp=>inp.addEventListener(inp.type==='checkbox'||inp.tagName==='SELECT'?'change':'input',()=>{
+    const k=inp.dataset.k;let v;
+    if(inp.type==='checkbox')v=inp.checked;
+    else if(inp.tagName==='SELECT')v=k==='cil'?+inp.value:inp.value;
+    else{v=parseNum(inp.value);if(!isFinite(v))return;const c=CTL.find(x=>x.k===k);if(inp.type==='number'&&(v<c.min||v>c.max))return;}
+    P[k]=v;
+    if(inp.type==='range'||inp.type==='number')$('controls').querySelectorAll(`[data-k="${k}"]`).forEach(o=>{if(o!==inp)o.value=v;});
+    if(k==='fault'){st.wear=v==='heel'?0.05:0;st.flash={};}
+    if(k==='cil'){st.flash={};}
+    render();
+  }));
+}
+
+/* ---------- evaluación ---------- */
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const rstep=(a,b,s)=>Math.round((a+Math.random()*(b-a))/s)*s;
+function newCase(){
+  const bal=Math.random()<0.7;
+  P={...DEF,estado:'marcha',rpm:900,cil:4,gap:+rstep(0.40,0.45,0.01).toFixed(2),C:+rstep(0.20,0.30,0.01).toFixed(2),ballast:bal,
+     R1:+(bal?rstep(1.3,1.8,0.05):rstep(2.6,3.0,0.05)).toFixed(2),L:+rstep(6.5,8.5,0.1).toFixed(1),R2:+rstep(7,11,0.1).toFixed(1),ratio:Math.round(rstep(80,100,1)),vac:55,hose:true,ini:rstep(6,10,0.5),cam:'cerrados',fault:'ok'};
+  const fault=pick(FAULTS.map(f=>f.k));
+  st.wear=fault==='heel'?0.08:0;
+  const n=pick([1500,2000,2500,3000,3500,4000,4500,5000]),dw=pick([48,49,50,51,52]),U=14,R=pick([3.0,3.1,3.2,3.4]),Lq=pick([6.5,7,7.5,8]);
+  const tc=dw/360*60/(n/2),I=U/R*(1-Math.exp(-tc*R/(Lq/1000))),W=0.5*Lq/1000*I*I;
+  st.cs={fault,q:{n,dw,U,R,L:Lq,tc:tc*1000,I,W:W*1000}};
+  st.evalChecked=false;st.flash={};
+  $('calcStmt').innerHTML=`Motor de 4 cilindros a n = ${nf(n,0)} rpm con Dwell = ${nf(dw,0)}°. Circuito primario: U = ${nf(U,0)} V, R total = ${nf(R,1)} Ω, L = ${nf(Lq,1)} mH. Calcule el tiempo de cierre, la corriente de corte y la energía almacenada en la bobina.`;
+  ['inTc','inI','inW'].forEach(id=>{$(id).value='';$(id).className='';$(id).title='';});
+  $('selDiag').value='';$('score').textContent='';$('feedback').innerHTML='';
+  buildControls();render();
+}
+function checkEval(){
+  const q=st.cs.q,tol=0.03;let pts=0;const fb=[];
+  const chk=(id,want,unit,d)=>{const got=parseNum($(id).value);const ok=isFinite(got)&&Math.abs(got-want)<=Math.max(tol*Math.abs(want),0.01);
+    $(id).className=ok?'ok':'bad';$(id).title=ok?'Correcto':'Valor esperado ≈ '+nf(want,d)+' '+unit;if(ok)pts+=2;return ok;};
+  const nd=q.n/2,T=60/nd;
+  const okT=chk('inTc',q.tc,'ms',3),okI=chk('inI',q.I,'A',3),okW=chk('inW',q.W,'mJ',2);
+  const sel=$('selDiag').value,real=st.cs.fault,okD=sel===real;
+  if(okD)pts+=4;
+  if(okD)fb.push(['g',`<b>Diagnóstico correcto: ${FN[real].n}.</b> ${FN[real].ex}`]);
+  else{
+    fb.push(['e',`<b>Diagnóstico incorrecto.</b> El caso era: <b>${FN[real].n}</b>. ${FN[real].ex}`]);
+    if(sel)fb.push(['w',`Su elección («${FN[sel].n}») se habría reconocido por: ${FN[sel].sy}. Compare con lo que midió.`]);
+    else fb.push(['w','No seleccionó ningún diagnóstico.']);
+  }
+  fb.push([okT?'g':'e',`<b>t<sub>c</sub></b>: n<sub>d</sub> = ${nf(q.n,0)} / 2 = ${nf(nd,0)} rpm → una vuelta del distribuidor dura 60 / ${nf(nd,0)} = ${nf(T*1000,2)} ms; t<sub>c</sub> = (${nf(q.dw,0)}° / 360°) · ${nf(T*1000,2)} ms = <b>${nf(q.tc,3)} ms</b>.`]);
+  fb.push([okI?'g':'e',`<b>I<sub>corte</sub></b>: U/R = ${nf(q.U/q.R,3)} A; τ = L/R = ${nf(q.L/q.R,3)} ms; I = ${nf(q.U/q.R,3)} · (1 − e<sup>−${nf(q.tc,3)}/${nf(q.L/q.R,3)}</sup>) = <b>${nf(q.I,3)} A</b>. A más rpm, t<sub>c</sub> menor y la corriente no llega a su valor final.`]);
+  fb.push([okW?'g':'e',`<b>W</b> = ½ · ${nf(q.L,1)} mH · (${nf(q.I,3)} A)² = <b>${nf(q.W,2)} mJ</b>.`]);
+  $('score').textContent=`Puntaje: ${pts} / 10`;
+  $('feedback').innerHTML=fb.map(([c,t])=>`<div class="${c}">${t}</div>`).join('');
+  st.log.push({n:st.log.length+1,modo:'Evaluación',ins:'Diagnóstico',cond:'—',pt:sel?FN[sel].n:'(sin respuesta)',lec:`Real: ${FN[real].n} · ${pts}/10`});
+  drawLog();
+  st.evalChecked=true;render();
+}
+function buildDiag(){$('selDiag').innerHTML='<option value="">— seleccione —</option>'+FAULTS.map(f=>`<option value="${f.k}">${f.n}</option>`).join('');}
+
+/* ---------- registro ---------- */
+function condTxt(){const M=st.M;return ({off:'Contacto OFF',contacto:'Contacto ON, motor parado',calado:'Motor calado',arranque:'Arranque',marcha:'En marcha'}[M.est])+(M.running?` · ${nf(M.n,0)} rpm`:'');}
+function addLog(){
+  const M=st.M,r=st.lastRead;let ins,pt,lec;
+  if(st.inst==='dwell'){ins='Dwellímetro/tacómetro';pt=`Borne 1 a masa (selector ${st.dwN} cil.)`;lec=r.d.deg==null?'sin lectura':`${nf(r.d.deg,1)}° · ${nf(r.d.pct,1)} % · ${nf(Math.round(r.d.rpm/10)*10,0)} rpm`;}
+  else if(st.inst==='mm'){if(st.mmode==='OFF')return;ins='Multímetro '+{V:'V⎓',R:'Ω',F:'µF'}[st.mmode];pt=(MMPTS[st.mmode].find(p=>p[0]===st.mpt[st.mmode])||['',''])[1];lec=r.m.v+' '+r.m.u;}
+  else{ins='Osciloscopio '+(st.oscCh==='p'?'primario':'secundario');pt='Cil. 1 (disparo)';lec=$('oscInfo').innerText.replace(/\n/g,' · ');}
+  st.log.push({n:st.log.length+1,modo:st.evalOn?'Evaluación':'Libre',ins,cond:condTxt(),pt,lec});
+  drawLog();
+}
+function addStrobeLog(){
+  const t=st.refs.stro?st.refs.stro.textContent:'';
+  st.log.push({n:st.log.length+1,modo:st.evalOn?'Evaluación':'Libre',ins:'Lámpara estroboscópica',cond:condTxt()+(P.hose?' · vacío conectado':' · vacío desconectado'),pt:'Polea / escala del bloque',lec:t});drawLog();
+}
+function drawLog(){
+  $('logTbl').innerHTML=st.log.length?`<table><tr><th>N.º</th><th>Modo</th><th>Instrumento</th><th>Condición</th><th>Punto</th><th>Lectura</th></tr>${st.log.map(r=>`<tr><td>${r.n}</td><td>${r.modo}</td><td>${r.ins}</td><td>${r.cond}</td><td>${r.pt}</td><td>${r.lec}</td></tr>`).join('')}</table>`:'<p class="muted">Aún no hay lecturas registradas.</p>';
+}
+function csv(){
+  const esc=s=>String(s).replace(/;/g,',');
+  const lines=['N;Modo;Instrumento;Condición;Punto;Lectura',...st.log.map(r=>[r.n,r.modo,r.ins,r.cond,r.pt,r.lec].map(esc).join(';'))];
+  const blob=new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='registro_encendido_ruptor.csv';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+
+/* ---------- eventos ---------- */
+function buildVTabs(){
+  $('vtabs').innerHTML=VIEWS.map(v=>`<button data-v="${v[0]}" class="${v[0]===st.view?'on':''}">${v[1]}</button>`).join('');
+  $('vtabs').querySelectorAll('button').forEach(b=>b.onclick=()=>{st.view=b.dataset.v;buildVTabs();buildView();});
+}
+document.querySelectorAll('#itabs button').forEach(b=>b.onclick=()=>{st.inst=b.dataset.i;
+  document.querySelectorAll('#itabs button').forEach(x=>x.classList.toggle('on',x===b));
+  document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('on',p.id==='pane-'+st.inst));
+  if(st.inst==='osc')drawOsc();});
+document.querySelectorAll('#dwModes button').forEach(b=>b.onclick=()=>{st.dwN=+b.dataset.n;updateInstruments();});
+document.querySelectorAll('#mmModes button').forEach(b=>b.onclick=()=>{st.mmode=b.dataset.m;buildMmPts();updateInstruments();});
+$('mmPt').onchange=e=>{st.mpt[st.mmode]=e.target.value;updateInstruments();};
+$('oscCh').onchange=e=>{st.oscCh=e.target.value;st.oscV='auto';buildOscV();drawOsc();};
+$('oscT').onchange=e=>{st.oscT=e.target.value;drawOsc();};
+$('oscV').onchange=e=>{st.oscV=e.target.value;drawOsc();};
+$('selSlow').onchange=e=>{st.slow=+e.target.value;};
+$('btnPause').onclick=()=>{st.paused=!st.paused;$('btnPause').textContent=st.paused?'Continuar':'Pausa';};
+$('chkStrobe').onchange=e=>{st.strobe=e.target.checked;};
+$('btnLog').onclick=()=>{if(st.view==='adv'&&st.strobe)addStrobeLog();addLog();};
+$('btnCsv').onclick=csv;
+$('btnClr').onclick=()=>{st.log=[];drawLog();};
+$('btnReset').onclick=()=>{if(st.evalOn){P={...P,estado:'marcha',rpm:900,vac:55,hose:true,cam:'cerrados'};}else{P={...DEF};st.wear=0;}st.flash={};buildControls();render();};
+$('evalMode').onchange=e=>{st.evalOn=e.target.checked;$('evalBox').style.display=st.evalOn?'':'none';
+  if(st.evalOn)newCase();else{st.cs=null;st.evalChecked=false;P={...DEF};st.wear=0;buildControls();render();}};
+$('btnNew').onclick=newCase;
+$('btnCheck').onclick=checkEval;
+
+function render(light){
+  st.M=model();
+  buildView();
+  updateInstruments();
+  if(st.inst==='osc')drawOsc();
+  updateMsgs();
+  updateResults();
+}
+buildVTabs();buildControls();buildMmPts();buildOscV();buildDiag();drawLog();render();
+</script>
+</body>
+</html>

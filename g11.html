@@ -1,0 +1,1092 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Simulador Captadores Inductivo y Hall</title>
+<style>
+:root{--bg:#f3f5f8;--card:#fff;--ink:#1c2533;--muted:#5b6778;--line:#d9dfe7;--brand:#12355b;--brand2:#1f5a94;--accent:#e07b00;--ok:#1d8a4e;--okbg:#e6f4ec;--bad:#c62828;--badbg:#fdecea;--warnbg:#fff4e0;--wire:#2b3440;--flow:#ffb300}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.45}
+header{background:linear-gradient(90deg,var(--brand),var(--brand2));color:#fff;padding:14px 22px}
+header h1{margin:0;font-size:1.35rem;font-weight:600}
+header p{margin:3px 0 0;opacity:.85;font-size:.9rem}
+main{max-width:1320px;margin:0 auto;padding:16px;display:grid;grid-template-columns:minmax(0,1.75fr) minmax(320px,1fr);gap:16px}
+@media(max-width:980px){main{grid-template-columns:minmax(0,1fr)}}
+section,aside{min-width:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:16px}
+.card h2{font-size:1.02rem;margin:0 0 10px;color:var(--brand)}
+.card h3{font-size:.95rem;margin:12px 0 6px;color:var(--brand2)}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.tabs button,.btn{border:1px solid var(--line);background:#fff;color:var(--ink);padding:7px 13px;border-radius:7px;cursor:pointer;font-size:.9rem}
+.tabs button.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+.tabs button:disabled{opacity:.45;cursor:not-allowed}
+.btn:hover,.tabs button:hover{border-color:var(--brand2)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.small{padding:4px 9px;font-size:.82rem}
+svg#scene{width:100%;height:auto;display:block;background:#fbfcfe;border:1px solid var(--line);border-radius:8px;user-select:none}
+.lbl{font-size:13px;fill:var(--ink);font-weight:600}
+.lbl2{font-size:11.5px;fill:var(--muted)}
+.lbl3{font-size:10.5px;fill:var(--muted)}
+.ctl{margin-bottom:10px}
+.ctl label{display:block;font-size:.86rem;color:var(--muted);margin-bottom:3px}
+.ctl .row{display:flex;gap:8px;align-items:center}
+.ctl input[type=range]{flex:1;min-width:0}
+.ctl input.num{width:84px;padding:4px 6px;border:1px solid var(--line);border-radius:6px}
+.ctl select{padding:5px 6px;border:1px solid var(--line);border-radius:6px;min-width:130px;max-width:100%}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:4px 18px}
+@media(max-width:620px){.grid2{grid-template-columns:minmax(0,1fr)}}
+.ctl select{width:auto}
+.eq{background:#f7f9fc;border-left:4px solid var(--brand2);padding:10px 14px;border-radius:6px;font-size:.92rem}
+.eq p{margin:5px 0}
+.f{font-family:"Cambria Math","Times New Roman",serif;font-size:1.05rem}
+.theory p{margin:6px 0;font-size:.92rem}
+/* multímetro (diseño del Simulador 1) */
+.meter{background:#39414d;border-radius:14px;padding:14px;color:#fff;box-shadow:inset 0 0 0 3px #e0a100}
+.lcd{background:#b9c9a4;color:#1d2616;border-radius:6px;padding:10px 12px;font-family:"Consolas","Courier New",monospace;display:flex;justify-content:space-between;align-items:flex-end;min-height:66px;box-shadow:inset 0 2px 6px rgba(0,0,0,.35)}
+.lcd .val{font-size:2.2rem;font-weight:700;letter-spacing:1px}
+.lcd .unit{font-size:1.2rem;font-weight:700}
+.lcd .fn{font-size:.8rem;align-self:flex-start}
+.modes{display:flex;gap:6px;margin:12px 0 8px}
+.modes button{flex:1;padding:9px 0;border-radius:8px;border:0;background:#555f6d;color:#fff;font-weight:700;cursor:pointer;font-size:.92rem}
+.modes button.on{background:#e0a100;color:#1c1c1c}
+.probes{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:6px 10px;font-size:.82rem}
+.probes label{display:block;color:#c6cfda;margin-bottom:2px}
+.probes select,.sctl select{width:100%;padding:5px 4px;border-radius:6px;border:0;background:#555f6d;color:#fff;font-size:.82rem}
+.probes .red{box-shadow:inset 4px 0 0 #e53935}
+.probes .blk{box-shadow:inset 4px 0 0 #111}
+.mnote{font-size:.83rem;color:#e7ecf2;margin-top:8px;min-height:2.4em}
+.mstat{font-size:.8rem;color:#c6cfda;margin-top:6px}
+.mchk{display:flex;gap:8px;align-items:center;font-size:.84rem;color:#e7ecf2;margin-top:8px}
+.logic{display:flex;align-items:center;flex-wrap:wrap;gap:4px;font-size:.8rem;color:#c6cfda;margin-top:8px;background:#2e353f;border-radius:6px;padding:6px 8px}
+.led{display:inline-block;width:13px;height:13px;border-radius:50%;background:#222;border:1px solid #111;margin-left:8px;vertical-align:middle}
+.led.r.on{background:#ff3b30;box-shadow:0 0 8px #ff3b30}
+.led.g.on{background:#34c759;box-shadow:0 0 8px #34c759}
+.led.a.on{background:#ffb300;box-shadow:0 0 8px #ffb300}
+.led.dim{opacity:.55}
+/* osciloscopio */
+.scope{background:#39414d;border-radius:14px;padding:12px;color:#fff;box-shadow:inset 0 0 0 3px #e0a100}
+canvas#scr{width:100%;display:block;border-radius:6px;background:#0b1510;touch-action:none;cursor:crosshair}
+.sctl{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:6px 10px;margin-top:10px;font-size:.8rem}
+.sctl label{display:block;color:#c6cfda;margin-bottom:2px}
+.sread{font-family:"Consolas","Courier New",monospace;font-size:.8rem;background:#1f262f;border-radius:6px;padding:7px 9px;margin-top:8px;color:#e7ecf2;line-height:1.55}
+.sread .c1{color:#ffd23f}.sread .c2{color:#4fd8ff}.sread .cc{color:#ff8ad8}
+.sbtn{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.sbtn button{border:0;border-radius:6px;padding:6px 10px;background:#555f6d;color:#fff;cursor:pointer;font-size:.82rem;font-weight:600}
+.sbtn button.on{background:#e0a100;color:#1c1c1c}
+table{border-collapse:collapse;width:100%;font-size:.88rem}
+th,td{border-bottom:1px solid var(--line);padding:5px 6px;text-align:right;vertical-align:top}
+th:first-child,td:first-child{text-align:left}
+th{background:#eef2f7;color:var(--brand);font-weight:600}
+table.left td,table.left th{text-align:left}
+.tblwrap{overflow-x:auto;max-width:100%}
+.msgs div{padding:7px 10px;border-radius:6px;margin-bottom:6px;font-size:.87rem}
+.msgs .w{background:var(--warnbg);border-left:4px solid var(--accent)}
+.msgs .e{background:var(--badbg);border-left:4px solid var(--bad)}
+.msgs .i{background:#e8f1fb;border-left:4px solid var(--brand2)}
+.msgs .o{background:var(--okbg);border-left:4px solid var(--ok)}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center}
+.switch{display:flex;align-items:center;gap:8px;font-size:.9rem;margin:6px 0}
+details summary{cursor:pointer;font-weight:600;color:var(--brand)}
+details ol{padding-left:20px;margin:8px 0}
+.score{font-weight:700;margin-left:6px}
+.muted{color:var(--muted);font-size:.85rem}
+.given{background:var(--warnbg);border-left:4px solid var(--accent);padding:8px 12px;border-radius:6px;font-size:.88rem;margin-bottom:10px}
+.given p{margin:4px 0}
+.eform .ctl input{width:130px;padding:4px 6px;border:1px solid var(--line);border-radius:6px}
+.eform .ctl input.ok,.eform .ctl select.ok{background:var(--okbg);border-color:var(--ok)}
+.eform .ctl input.bad,.eform .ctl select.bad{background:var(--badbg);border-color:var(--bad)}
+.presets{display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 10px}
+#logTbl table{font-size:.8rem}#logTbl td,#logTbl th{text-align:left}
+footer{text-align:center;color:var(--muted);font-size:.8rem;padding:10px 0 24px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Simulador 10 · Captadores de posición y régimen: inductivo y de efecto Hall</h1>
+  <p>Electricidad Automotriz · Unidad 3: Encendido electrónico TSZ-i y TSZ-h · Tecnología Superior en Mecánica Automotriz · ISTS</p>
+</header>
+
+<main>
+<section>
+  <div class="card">
+    <div class="tabs" id="tabs">
+      <button data-t="ind" class="on">Captador inductivo</button>
+      <button data-t="hall">Captador de efecto Hall</button>
+      <button data-t="cmp">Comparación</button>
+    </div>
+    <svg id="scene" viewBox="0 0 760 390" aria-label="Esquema animado del captador y la rueda"></svg>
+    <div class="muted" id="sceneNote" style="margin-top:6px"></div>
+  </div>
+
+  <div class="card">
+    <h2 id="parTitle">Parámetros</h2>
+    <div id="controls"></div>
+  </div>
+
+  <div class="card">
+    <h2 id="thTitle">Principio de funcionamiento</h2>
+    <div class="theory" id="theory"></div>
+  </div>
+
+  <div class="card">
+    <h2>Ecuaciones de trabajo</h2>
+    <div class="eq" id="eqs"></div>
+    <h3>Valores de referencia</h3>
+    <div class="tblwrap"><table class="left" id="refTbl"></table></div>
+    <p class="muted" style="margin:6px 0 0">Valores orientativos; consulte el manual del fabricante del vehículo o del captador.</p>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>¿Cómo usar el simulador?</summary>
+      <ol>
+        <li>Elija la pestaña del captador (inductivo, Hall) o «Comparación» para ver ambas señales a la vez. Seleccione la rueda o el tambor y el régimen del motor (botones «Arranque», «Ralentí», etc.).</li>
+        <li><b>Inductivo · resistencia de la bobina:</b> con el motor parado (0 rpm) marque «Conector desconectado», coloque el multímetro en Ω entre T1 y T2 y compare con la especificación. Compruebe también el aislamiento a masa (OL) y la continuidad del blindaje T3–masa.</li>
+        <li><b>Inductivo · tensión alterna:</b> vuelva a conectar, pulse «Arranque (200 rpm)» y mida V~ entre T1 y T2 (≥ 0,5 V orientativo). Observe cómo la tensión crece con las rpm y disminuye al aumentar el entrehierro.</li>
+        <li><b>Osciloscopio:</b> ajuste V/div y tiempo/div (o use «Autoajuste»). En la rueda 60-2 localice el hueco de referencia. Arrastre los cursores de tiempo sobre un periodo de dientes normales para obtener Δt y f = 1/Δt; con los cursores de tensión mida U pico a pico. Calcule n = 60 · f / z.</li>
+        <li><b>Hall:</b> mida la alimentación (T1–masa y T1–T3), la caída en la masa del sensor (T3–masa) y la señal (T2–masa). Con 0 rpm use «Posición del cigüeñal» para girar la rueda a mano y vea con la punta lógica (LED) el cambio de nivel alto/bajo.</li>
+        <li>Seleccione una <b>avería</b> y relacione los síntomas del osciloscopio y del multímetro con la causa. Los avisos explican lo que ocurre.</li>
+        <li><b>Modo evaluación:</b> el simulador oculta el captador y la avería. Mida la amplitud y la frecuencia, calcule las rpm, identifique el tipo de captador, elija el diagnóstico y pulse «Comprobar».</li>
+        <li>Use «Registrar lectura» (multímetro) y «Registrar osciloscopio» para llenar la tabla y descárguela en CSV (se abre con Excel).</li>
+      </ol>
+    </details>
+  </div>
+</section>
+
+<aside>
+  <div class="card">
+    <h2>Osciloscopio</h2>
+    <div class="scope">
+      <canvas id="scr" aria-label="Pantalla del osciloscopio"></canvas>
+      <div class="sctl" id="sctl"></div>
+      <div class="sbtn">
+        <button id="bRun" class="on">RUN</button>
+        <button id="bAuto">Autoajuste</button>
+        <button id="bScLog">Registrar osciloscopio</button>
+      </div>
+      <div class="sread" id="sread"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Multímetro digital</h2>
+    <div class="meter">
+      <div class="lcd"><span class="fn" id="lcdFn">V~</span><span><span class="val" id="lcdVal">- - -</span> <span class="unit" id="lcdUnit">V</span></span></div>
+      <div class="modes" id="modes">
+        <button data-m="VDC">V⎓</button><button data-m="VAC" class="on">V~</button><button data-m="R">Ω</button><button data-m="HZ">Hz</button><button data-m="OFF">OFF</button>
+      </div>
+      <div class="probes">
+        <div><label>Punta roja (V/Ω/Hz)</label><select id="pRed" class="red"></select></div>
+        <div><label>Punta negra (COM)</label><select id="pBlk" class="blk"></select></div>
+      </div>
+      <div id="msensWrap" class="probes" style="margin-top:6px;display:none"><div style="grid-column:1/3"><label>Captador medido</label><select id="mSens"><option value="ind">Captador inductivo</option><option value="hall">Captador Hall</option></select></div></div>
+      <label class="mchk"><input type="checkbox" id="mDisc"> <span id="mDiscLbl">Conector desconectado</span></label>
+      <div class="logic"><span>Punta lógica (punta roja respecto a masa):</span><span class="led r" id="ledH"></span>Alto<span class="led g" id="ledL"></span>Bajo<span class="led a" id="ledP"></span>Pulsos</div>
+      <div class="mstat" id="mstat"></div>
+      <div class="mnote" id="mnote"></div>
+      <div class="bar"><button class="btn small" id="btnLog">Registrar lectura</button></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Avisos</h2>
+    <div class="msgs" id="msgs"></div>
+  </div>
+
+  <div class="card">
+    <h2 id="resTitle">Resultados del captador</h2>
+    <label class="switch"><input type="checkbox" id="evalMode"> Modo evaluación (captador y avería ocultos)</label>
+    <div id="results"></div>
+    <div id="evalBox" style="display:none"></div>
+  </div>
+
+  <div class="card">
+    <h2>Registro de mediciones</h2>
+    <div id="logTbl" class="tblwrap"></div>
+    <div class="bar">
+      <button class="btn small" id="btnCsv">Descargar CSV</button>
+      <button class="btn small" id="btnClr">Limpiar registro</button>
+    </div>
+  </div>
+</aside>
+</main>
+<footer>Simulador didáctico · Carrera de Mecánica Automotriz · Instituto Superior Tecnológico Sudamericano</footer>
+
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+/* ---------- formato ---------- */
+function nf(x,d){if(!isFinite(x))return '∞';if(Object.is(x,-0)||Math.abs(x)<Math.pow(10,-d)/2)x=0;return x.toLocaleString('es-EC',{minimumFractionDigits:d,maximumFractionDigits:d,useGrouping:false});}
+function dec(x){const a=Math.abs(x);return a<1?3:a<100?2:1;}
+function fmtV(v){return nf(v,dec(v));}
+function fmtHz(f){const a=Math.abs(f);return nf(f,a<10?2:a<100?1:0);}
+function fmtT(s){const a=Math.abs(s);if(a<1e-3)return nf(s*1e6,0)+' µs';if(a<1)return nf(s*1e3,a<0.01?3:a<0.1?2:1)+' ms';return nf(s,3)+' s';}
+function fmtR(r){if(!isFinite(r))return 'OL';if(r>=1000)return nf(r/1000,3)+' kΩ';return nf(r,r<10?2:1)+' Ω';}
+function parseNum(s){if(s==null)return NaN;s=String(s).trim().replace(',','.');return s===''?NaN:Number(s);}
+function gauss(){return (Math.random()+Math.random()+Math.random()-1.5)*1.414;}
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+
+/* ---------- constantes del modelo ---------- */
+const N=7200,DA=360/N;           // resolución de las tablas de forma de onda (0,05°)
+const RIN=22000;                 // impedancia de entrada de la ECU para el captador inductivo (Ω)
+const UPP_REF=1.5,UPP_REF4=3.0,N_REF=200; // U pp de referencia a 200 rpm con s = 0,7 mm (60-2 / rotor de 4 dientes)
+const S_REF=0.7,S_K=0.5;         // dependencia exponencial del entrehierro
+const UTH=0.3;                   // umbral de detección de la ECU (U pp, orientativo)
+const UL=0.2;                    // nivel bajo del Hall (transistor saturado)
+const IW={c60:{name:'Rueda de cigüeñal 60-2',z:60,real:58,ratio:1,shaft:'cigüeñal',pitch:6},
+          d4:{name:'Rotor de distribuidor de 4 dientes',z:4,real:4,ratio:0.5,shaft:'distribuidor',pitch:90}};
+const HW={drum:{name:'Tambor obturador de 4 pantallas (distribuidor)',z:4,ratio:0.5,shaft:'distribuidor',pitch:90},
+          c60:{name:'Rueda 60-2 con Hall diferencial',z:60,ratio:1,shaft:'cigüeñal',pitch:6}};
+const FAULTS={
+  none:{s:'both',name:'Sin avería (funcionamiento correcto)'},
+  gap:{s:'ind',name:'Entrehierro excesivo'},
+  open:{s:'ind',name:'Bobina del captador abierta'},
+  short:{s:'ind',name:'Bobina en corto parcial (espiras en corto)'},
+  tooth:{s:'ind',name:'Diente dañado o suciedad metálica en el imán'},
+  pol:{s:'ind',name:'Captador inductivo con polaridad invertida'},
+  emi:{s:'both',name:'Interferencia: cable sin blindaje / blindaje interrumpido'},
+  nosup:{s:'hall',name:'Hall sin alimentación'},
+  nognd:{s:'hall',name:'Hall sin masa'},
+  pullup:{s:'hall',name:'Resistencia pull-up abierta'},
+  hihi:{s:'hall',name:'Hall averiado: salida fija en nivel alto'},
+  hilo:{s:'hall',name:'Hall averiado: salida fija en nivel bajo'}
+};
+const FB={
+  none:'Amplitud y frecuencia coherentes con las rpm, resistencia/alimentación dentro de lo especificado y forma de onda limpia.',
+  gap:'La resistencia de la bobina es correcta, pero la amplitud es muy inferior a la esperada para esas rpm (≈ 1,5 V pp a 200 rpm en la 60-2 o ≈ 3 V pp en el rotor de 4 dientes, con entrehierro correcto). El flujo que cierra por los dientes disminuye mucho con el entrehierro; a régimen de arranque la señal no supera el umbral de la ECU y el motor no arranca. Se corrige ajustando la distancia con galga (0,5–1,0 mm orientativo).',
+  open:'No hay señal a ninguna velocidad y el óhmetro indica OL entre los terminales del captador (con el conector desconectado): la bobina está interrumpida.',
+  short:'La resistencia medida es claramente menor que la especificada y la amplitud está reducida aunque el entrehierro sea correcto: las espiras en corto reducen el número de espiras efectivas (U = −N · ΔΦ/Δt).',
+  tooth:'Una vez por vuelta aparece un ciclo deformado y de menor amplitud, distinto del hueco de referencia: un diente dañado o una partícula metálica adherida al imán alteran el flujo. La ECU puede perder un pulso y calcular mal la posición.',
+  pol:'La señal aparece invertida (primero la semionda negativa). El detector de la ECU busca el paso por cero descendente, que ahora cae en otro punto: el punto de disparo se desplaza y el motor puede arrancar con dificultad o con el encendido desfasado.',
+  emi:'Se observan ruido y picos superpuestos a la señal, sobre todo en cada chispa. Con el cable sin blindaje (o blindaje sin continuidad a masa) la ECU puede contar pulsos falsos: tirones y fallos de encendido.',
+  nosup:'La señal queda fija en alto (la resistencia pull-up de la ECU/módulo la eleva) y no hay tensión entre T1 y masa: falta la alimentación del circuito integrado.',
+  nognd:'La alimentación T1–masa es correcta, pero T1–T3 casi no tiene tensión y T3–masa marca varios voltios (masa interrumpida). Sin masa el transistor de salida no puede conducir y la señal queda fija en alto.',
+  pullup:'La señal está siempre cerca de 0 V y es inestable (flotante): el transistor de salida del Hall es de colector abierto y necesita la resistencia pull-up para generar el nivel alto. Alimentación y masa son correctas.',
+  hihi:'Alimentación y masa correctas, pero la señal queda fija en nivel alto al girar: el circuito integrado Hall no conmuta (transistor siempre bloqueado). Se reemplaza el captador.',
+  hilo:'Alimentación y masa correctas, pero la señal queda fija cerca de 0 V al girar: el transistor de salida del Hall está siempre en conducción (averiado). Se reemplaza el captador.'
+};
+
+/* ---------- tablas de forma de onda ---------- */
+function teethOf(w){const t=[];if(w==='c60'){for(let i=0;i<58;i++)t.push({a:i*6,h:1});}else{for(let i=0;i<4;i++)t.push({a:i*90,h:1});}return t;}
+function rawInd(w,dmg){
+  const sig=w==='c60'?6*0.35:4.5;const T=teethOf(w);
+  if(dmg){const k=w==='c60'?20:2;T[k].h=0.3;T[k].a+=w==='c60'?1.2:6;}
+  const phi=new Float32Array(N),u=new Float32Array(N);
+  for(let k=0;k<N;k++){const a=k*DA;let s=0;for(const t of T){let x=a-t.a;x=((x+180)%360+360)%360-180;if(Math.abs(x)<6*sig)s+=t.h*Math.exp(-x*x/(2*sig*sig));}phi[k]=s;}
+  for(let k=0;k<N;k++)u[k]=(phi[(k+1)%N]-phi[(k-1+N)%N])/(2*DA);
+  return {phi,u};
+}
+const TB={},POLSHIFT={};
+function initTables(){
+  for(const w of ['c60','d4']){
+    const a=rawInd(w,false),b=rawInd(w,true);
+    let mx=-1e9,mn=1e9;const k0=w==='c60'?Math.round(60/DA):0,k1=w==='c60'?Math.round(300/DA):N;
+    for(let k=k0;k<k1;k++){mx=Math.max(mx,a.u[k]);mn=Math.min(mn,a.u[k]);}
+    const sc=1/(mx-mn);let pm=0;for(let k=0;k<N;k++)pm=Math.max(pm,a.phi[k],b.phi[k]);
+    for(const [key,t] of [[w,a],[w+'_d',b]]){
+      let s2=0,gmx=-1e9,gmn=1e9;
+      for(let k=0;k<N;k++){t.u[k]*=sc;t.phi[k]/=pm;s2+=t.u[k]*t.u[k];gmx=Math.max(gmx,t.u[k]);gmn=Math.min(gmn,t.u[k]);}
+      TB[key]={u:t.u,phi:t.phi,rms:Math.sqrt(s2/N),ppAll:gmx-gmn};
+    }
+    // desfase del paso por cero con polaridad invertida (grados del eje de la rueda)
+    const tc=w==='c60'?60:90,kc=Math.round(tc/DA);const u=TB[w].u;let peak=0,kk=kc+1,sh=0;
+    for(let j=1;j<N/4;j++){const v=-u[(kc+j)%N];if(v>peak)peak=v;if(peak>0.05&&(v<=0||v<0.05*peak)){sh=j*DA;break;}}
+    POLSHIFT[w]=sh;
+  }
+}
+const HTB={};
+function hallTab(t,vane){
+  const key=t+'_'+vane;if(HTB[key])return HTB[key];
+  const h=new Uint8Array(N);let sum=0;
+  for(let k=0;k<N;k++){const a=k*DA;let v;
+    if(t==='drum'){v=(a%90)<90*vane/100?1:0;}
+    else{const i=Math.round(a/6)%60;const d=Math.abs(a-Math.round(a/6)*6);v=(i<58&&d<1.5)?0:1;}
+    h[k]=v;sum+=v;}
+  return HTB[key]={h,duty:sum/N};
+}
+const idx=a=>{a%=360;if(a<0)a+=360;return Math.min(N-1,(a/DA)|0);};
+
+/* ---------- estado ---------- */
+const S={tab:'ind',rpm:800,man:0,
+  ind:{wheel:'c60',gap:0.7,R:800,pol:'ok',fault:'none'},
+  hall:{target:'drum',sup:5,vane:70,fault:'none'},
+  sc:{v1:2,p1:0,v2:5,p2:-3,tdiv:10,trig:'ref',run:true,cur:'t',curCh:1,cA:1,cB:3,uA:1,uB:-1},
+  mt:{mode:'VAC',red:'T1',black:'T2',disc:false,sens:'ind'},
+  ev:{on:false,c:null,checked:false,saved:null},
+  log:[],M:{}};
+function conf(){return S.ev.on&&S.ev.c?S.ev.c:S;}
+const hidden=()=>S.ev.on&&!S.ev.checked;
+function shown(c){return c.tab==='cmp'?['ind','hall']:[c.tab];}
+function mSens(c){return c.tab==='cmp'?S.mt.sens:c.tab;}
+
+/* ---------- modelos ---------- */
+function indM(c,disc){
+  const p=c.ind,W=IW[p.wheel],fl=p.fault;
+  const rps=c.rpm/60*W.ratio,f=rps*W.z,degps=rps*360;
+  const sEff=p.gap+(fl==='gap'?1.0:0);
+  const g=Math.exp(-(sEff-S_REF)/S_K);
+  const Rn=fl==='short'?p.R*0.3:p.R;
+  const Rc=fl==='open'?Infinity:Rn;
+  const kf=fl==='short'?0.35:1;
+  const L=Rn*4e-4,w=2*Math.PI*f;
+  const load=disc?1:RIN/Math.hypot(RIN+Rn,w*L);
+  const App=fl==='open'?0:(W.pitch===6?UPP_REF:UPP_REF4)*(c.rpm/N_REF)*g*kf*load;
+  const inv=p.pol==='inv'||fl==='pol';
+  const tb=TB[p.wheel+(fl==='tooth'?'_d':'')];
+  return {sens:'ind',W,ratio:W.ratio,rps,f,degps,App,sign:inv?-1:1,inv,tb,Rc,Rn,load,sEff,
+    emi:fl==='emi',fault:fl,detect:App>=UTH,rms:App*tb.rms,shift:inv?POLSHIFT[p.wheel]/W.ratio:0};
+}
+function hallM(c){
+  const p=c.hall,W=HW[p.target],fl=p.fault;
+  const rps=c.rpm/60*W.ratio,f=rps*W.z,degps=rps*360;
+  const tb=hallTab(p.target,p.target==='drum'?p.vane:50);
+  const Us=p.sup,Uh=Us*0.98;
+  let mode='ok';if(fl==='nosup'||fl==='nognd'||fl==='hihi')mode='high';else if(fl==='hilo')mode='low';else if(fl==='pullup')mode='float';
+  return {sens:'hall',W,ratio:W.ratio,rps,f,degps,tb,Us,Uh,mode,fault:fl,emi:fl==='emi',
+    T1:fl==='nosup'?0:Us,T3:fl==='nognd'?Math.max(0,Us-0.6):0.02,duty:tb.duty};
+}
+function noiseV(m,phi){
+  if(!m.emi||m.degps<=0)return 0;
+  let v=gauss()*0.12;
+  const P=m.W.pitch===6?180:90,off=m.sens==='hall'&&m.W.pitch===90?(90*S_vane(m)/100+0.4):(m.W.pitch===6?84:1);
+  const d=(((phi-off)%P)+P)%P,dt=d/m.degps;
+  if(dt<1.2e-3)v+=(m.sens==='ind'?3:2.5)*Math.exp(-dt/1.8e-4)*Math.cos(2*Math.PI*dt/1.1e-4);
+  return v;
+}
+function S_vane(m){const c=conf();return c.hall.vane;}
+function indV(m,phi){return m.sign*m.App*m.tb.u[idx(phi)];}
+function hallV(m,phi){
+  switch(m.mode){
+    case 'high':return m.Uh;
+    case 'low':return UL;
+    case 'float':return 0.12+Math.abs(gauss())*0.08;
+    default:return m.tb.h[idx(phi)]?m.Uh:UL;
+  }
+}
+function sigV(m,phi){return (m.sens==='ind'?indV(m,phi):hallV(m,phi))+noiseV(m,phi);}
+function trueUpp(m){
+  if(m.sens==='ind')return m.App;
+  return m.mode==='ok'?m.Uh-UL:0;
+}
+function hasPulses(m){return m.sens==='ind'?m.App>0.02:m.mode==='ok';}
+
+/* ---------- escena SVG ---------- */
+const CX=200,CY=195;
+const P=(cx,cy,r,a)=>{const t=a*Math.PI/180;return [(cx+r*Math.cos(t)).toFixed(1),(cy+r*Math.sin(t)).toFixed(1)];};
+function wheel60(id,cx,cy,dmg,hallStyle){
+  const Rr=136,Rt=152;let s=`<g id="${id}"><circle cx="${cx}" cy="${cy}" r="${Rr}" fill="#c9d1db" stroke="#56606d" stroke-width="2"/>
+  <circle cx="${cx}" cy="${cy}" r="${Rr-24}" fill="#dde3ea" stroke="#9aa4b1"/><circle cx="${cx}" cy="${cy}" r="28" fill="#8a96a5" stroke="#56606d"/>`;
+  for(let k=0;k<6;k++){const [x,y]=P(cx,cy,62,k*60+30);s+=`<circle cx="${x}" cy="${y}" r="8" fill="#fbfcfe" stroke="#9aa4b1"/>`;}
+  for(let i=0;i<58;i++){const a=i*6,top=dmg&&i===20?Rt-10:Rt;
+    const p=[P(cx,cy,Rr-1,a-1.6),P(cx,cy,top,a-1.1),P(cx,cy,top,a+1.1),P(cx,cy,Rr-1,a+1.6)].map(q=>q.join(',')).join(' ');
+    s+=`<polygon points="${p}" fill="${dmg&&i===20?'#a8b0bb':'#6b7686'}" stroke="#48525e" stroke-width=".6"/>`;}
+  const [mx,my]=P(cx,cy,Rr-12,0);s+=`<circle cx="${mx}" cy="${my}" r="4" fill="#c62828"/>`;
+  s+='</g>';return s;
+}
+function rotor4(id,cx,cy,dmg){
+  let s=`<g id="${id}"><circle cx="${cx}" cy="${cy}" r="58" fill="#8a96a5" stroke="#48525e" stroke-width="2"/>`;
+  for(let i=0;i<4;i++){const a=i*90,top=dmg&&i===2?84:96;
+    const p=[P(cx,cy,55,a-10),P(cx,cy,top,a-4.5),P(cx,cy,top,a+4.5),P(cx,cy,55,a+10)].map(q=>q.join(',')).join(' ');
+    s+=`<polygon points="${p}" fill="${dmg&&i===2?'#a8b0bb':'#6b7686'}" stroke="#48525e"/>`;}
+  s+=`<circle cx="${cx}" cy="${cy}" r="15" fill="#dde3ea" stroke="#48525e"/><rect x="${cx-3}" y="${cy-15}" width="6" height="10" fill="#48525e"/>`;
+  const [mx,my]=P(cx,cy,40,0);s+=`<circle cx="${mx}" cy="${my}" r="4" fill="#c62828"/></g>`;return s;
+}
+function drum4(id,cx,cy,vane){
+  let s=`<g id="${id}"><circle cx="${cx}" cy="${cy}" r="112" fill="#e3e8ee" stroke="#9aa4b1"/>`;
+  for(let i=0;i<4;i++){const a0=i*90,a1=i*90+90*vane/100;const [x0,y0]=P(cx,cy,127,a0),[x1,y1]=P(cx,cy,127,a1);
+    s+=`<path d="M${x0} ${y0} A127 127 0 0 1 ${x1} ${y1}" fill="none" stroke="#6b7686" stroke-width="16"/>`;}
+  s+=`<circle cx="${cx}" cy="${cy}" r="24" fill="#8a96a5" stroke="#48525e"/>`;
+  for(let k=0;k<4;k++){const [x,y]=P(cx,cy,100,k*90+45);s+=`<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="#b4bcc7" stroke-width="5"/>`;}
+  const [mx,my]=P(cx,cy,95,2);s+=`<circle cx="${mx}" cy="${my}" r="4" fill="#c62828"/></g>`;return s;
+}
+function indSensor(cx,cy,Rt,gap,full){
+  const x0=cx+Rt+4+gap*12;let s='';
+  s+=`<path id="fluxI" d="M${x0} ${cy-6} C${x0-10} ${cy-22} ${cx+Rt-10} ${cy-26} ${cx+Rt-18} ${cy-12} M${x0} ${cy} L${cx+Rt-20} ${cy} M${x0} ${cy+6} C${x0-10} ${cy+22} ${cx+Rt-10} ${cy+26} ${cx+Rt-18} ${cy+12}" fill="none" stroke="#1f6fd6" stroke-width="2" stroke-dasharray="4 3" opacity=".5"/>`;
+  s+=`<rect x="${x0-2}" y="${cy-23}" width="116" height="46" rx="6" fill="#f2f4f7" stroke="#56606d" stroke-width="2"/>
+  <rect x="${x0}" y="${cy-7}" width="42" height="14" fill="#9aa4b1" stroke="#56606d"/>
+  <rect x="${x0+12}" y="${cy-18}" width="50" height="36" fill="#c87533" stroke="#7a4214"/>`;
+  for(let k=0;k<12;k++)s+=`<line x1="${x0+14+k*4}" y1="${cy-18}" x2="${x0+14+k*4}" y2="${cy+18}" stroke="#8d4e1c" stroke-width="1"/>`;
+  s+=`<rect x="${x0+64}" y="${cy-13}" width="20" height="26" fill="#d84343"/><rect x="${x0+84}" y="${cy-13}" width="20" height="26" fill="#3f6fd8"/>
+  <text x="${x0+74}" y="${cy+4}" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">N</text><text x="${x0+94}" y="${cy+4}" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">S</text>`;
+  if(full){
+    s+=`<text class="lbl" x="${x0+56}" y="${cy-32}" text-anchor="middle">Captador inductivo</text>
+    <text class="lbl3" x="${x0+22}" y="${cy+40}" text-anchor="middle">núcleo</text><text class="lbl3" x="${x0+58}" y="${cy+40}" text-anchor="middle">bobina</text><text class="lbl3" x="${x0+94}" y="${cy+40}" text-anchor="middle">imán</text>
+    <text class="lbl2" x="${x0-4}" y="${cy+60}">entrehierro s = ${nf(gap,2)} mm</text>
+    <line x1="${cx+Rt}" y1="${cy+27}" x2="${x0}" y2="${cy+27}" stroke="#e07b00" stroke-width="2"/><line x1="${cx+Rt}" y1="${cy+22}" x2="${cx+Rt}" y2="${cy+32}" stroke="#e07b00" stroke-width="2"/><line x1="${x0}" y1="${cy+22}" x2="${x0}" y2="${cy+32}" stroke="#e07b00" stroke-width="2"/>`;
+  }
+  return {s,xe:x0+114};
+}
+function hallSensor60(cx,cy,gap,full){
+  const Rt=152,x0=cx+Rt+4+gap*12;let s='';
+  s+=`<path id="fluxH" d="M${x0+16} ${cy-8} L${cx+Rt-14} ${cy-8} M${x0+16} ${cy} L${cx+Rt-14} ${cy} M${x0+16} ${cy+8} L${cx+Rt-14} ${cy+8}" stroke="#1f6fd6" stroke-width="2" stroke-dasharray="4 3" opacity=".5"/>`;
+  s+=`<rect x="${x0-2}" y="${cy-21}" width="108" height="42" rx="6" fill="#f2f4f7" stroke="#56606d" stroke-width="2"/>
+  <rect x="${x0}" y="${cy-10}" width="13" height="20" fill="#1c2533"/><rect x="${x0+16}" y="${cy-13}" width="18" height="26" fill="#d84343"/><rect x="${x0+34}" y="${cy-13}" width="18" height="26" fill="#3f6fd8"/>
+  <text x="${x0+25}" y="${cy+4}" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">N</text><text x="${x0+43}" y="${cy+4}" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">S</text>
+  <rect x="${x0+58}" y="${cy-9}" width="44" height="18" rx="3" fill="#dde3ea" stroke="#9aa4b1"/><text x="${x0+80}" y="${cy+4}" text-anchor="middle" font-size="9.5" fill="#5b6778">electrónica</text>`;
+  if(full)s+=`<text class="lbl" x="${x0+52}" y="${cy-30}" text-anchor="middle">Hall diferencial</text><text class="lbl3" x="${x0+12}" y="${cy+34}" text-anchor="end">CI Hall</text><text class="lbl3" x="${x0+22}" y="${cy+34}">imán</text>
+    <text class="lbl2" x="${x0-4}" y="${cy+56}">entrehierro ≈ ${nf(gap,2)} mm</text>`;
+  return {s,xe:x0+106};
+}
+function hallBarrier(cx,cy,full){
+  let s=`<path d="M${cx+105} ${cy-11} V${cy-34} H${cx+156} V${cy-15}" fill="none" stroke="#8a96a5" stroke-width="7" stroke-linejoin="round"/>
+  <rect x="${cx+97}" y="${cy-11}" width="14" height="22" fill="#1c2533"/>
+  <path id="fluxH" d="M${cx+142} ${cy-7} L${cx+113} ${cy-7} M${cx+142} ${cy} L${cx+113} ${cy} M${cx+142} ${cy+7} L${cx+113} ${cy+7}" stroke="#1f6fd6" stroke-width="2.2" stroke-dasharray="4 3" opacity=".5"/>
+  <rect x="${cx+144}" y="${cy-15}" width="13" height="30" fill="#d84343"/><rect x="${cx+157}" y="${cy-15}" width="13" height="30" fill="#3f6fd8"/>
+  <text x="${cx+150.5}" y="${cy+4}" text-anchor="middle" font-size="10" font-weight="700" fill="#fff">N</text><text x="${cx+163.5}" y="${cy+4}" text-anchor="middle" font-size="10" font-weight="700" fill="#fff">S</text>`;
+  if(full)s+=`<text class="lbl" x="${cx+132}" y="${cy-44}" text-anchor="middle">Barrera Hall</text><text class="lbl3" x="${cx+86}" y="${cy+26}" text-anchor="middle">CI Hall</text><text class="lbl3" x="${cx+157}" y="${cy+30}" text-anchor="middle">imán</text>`;
+  return {s,xe:cx+170};
+}
+function strip(id,x,y,w,h,title){
+  return `<text class="lbl2" x="${x}" y="${y-7}">${title}</text><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="5" fill="#0b1510"/>
+  <line x1="${x}" y1="${y+h/2}" x2="${x+w}" y2="${y+h/2}" stroke="rgba(140,220,170,.25)"/>
+  <path id="${id}" class="strip" fill="none" stroke-width="1.8"/>
+  <line x1="${x+w-2}" y1="${y+2}" x2="${x+w-2}" y2="${y+h-2}" stroke="#e07b00" stroke-width="2"/>`;
+}
+let SC={};   // referencias para la animación
+function buildScene(){
+  const c=conf(),svg=$('scene');let s='';SC={rot:[],strips:[]};
+  const hid=hidden();
+  if(hid){
+    const W=c.tab==='ind'?c.ind.wheel:c.hall.target;const crank=(W==='c60');
+    if(crank){s+=wheel60('rot0',CX,CY,false);SC.rot.push({id:'rot0',cx:CX,cy:CY,ratio:1});
+      s+=`<rect x="${CX+160}" y="${CY-24}" width="112" height="48" rx="6" fill="#56606d"/><text x="${CX+216}" y="${CY+8}" text-anchor="middle" font-size="24" font-weight="700" fill="#fff">?</text>
+      <text class="lbl" x="${CX+216}" y="${CY-34}" text-anchor="middle">Captador oculto</text>`;}
+    else{s+=`<circle cx="${CX}" cy="${CY}" r="120" fill="#e3e8ee" stroke="#56606d" stroke-width="3"/><text class="lbl" x="${CX}" y="${CY-132}" text-anchor="middle">Distribuidor (tapa cerrada)</text>
+      <g id="rot0"><rect x="${CX-10}" y="${CY-8}" width="100" height="16" rx="6" fill="#6b7686"/><circle cx="${CX}" cy="${CY}" r="22" fill="#8a96a5" stroke="#48525e"/></g>
+      <rect x="${CX+140}" y="${CY-24}" width="132" height="48" rx="6" fill="#56606d"/><text x="${CX+206}" y="${CY+8}" text-anchor="middle" font-size="24" font-weight="700" fill="#fff">?</text>
+      <text class="lbl" x="${CX+206}" y="${CY-34}" text-anchor="middle">Captador oculto</text>`;SC.rot.push({id:'rot0',cx:CX,cy:CY,ratio:0.5});}
+    const xe=CX+272;
+    s+=`<rect x="610" y="95" width="135" height="110" rx="8" fill="#eef2f7" stroke="#12355b" stroke-width="2"/><text class="lbl" x="677" y="118" text-anchor="middle">ECU / módulo</text>`;
+    [['T1',130],['T2',155],['T3',180]].forEach(([t,y],i)=>{s+=`<polyline points="${xe},${CY-8+i*8} ${560+i*12},${CY-8+i*8} ${560+i*12},${y} 610,${y}" fill="none" stroke="#2b3440" stroke-width="2.2"/><circle cx="610" cy="${y}" r="4" fill="#fff" stroke="#12355b" stroke-width="2"/><text class="lbl2" x="620" y="${y+4}">${t}</text>`;});
+    s+=`<text class="lbl2" x="20" y="372">Dato: ${c.tab==='ind'&&W==='c60'||c.tab==='hall'&&W==='c60'?'rueda 60-2 en el cigüeñal, z = 60':'distribuidor de motor de 4 cilindros, z = 4 por vuelta del distribuidor (gira a n/2)'}.</text>
+      <text class="lbl2" x="20" y="30">Modo evaluación: identifique el captador por su señal y sus terminales (T1, T2, T3).</text>`;
+    svg.innerHTML=s;$('sceneNote').textContent='Caso de evaluación: la animación está en cámara lenta y no indica las rpm reales. Mida con el osciloscopio y el multímetro.';return;
+  }
+  if(c.tab==='ind'){
+    const w=c.ind.wheel,dmg=c.ind.fault==='tooth';
+    if(w==='c60'){s+=wheel60('rot0',CX,CY,dmg);}else{s+=`<circle cx="${CX}" cy="${CY}" r="125" fill="none" stroke="#b4bcc7" stroke-dasharray="6 5"/><text class="lbl3" x="${CX}" y="${CY-132}" text-anchor="middle">carcasa del distribuidor</text>`+rotor4('rot0',CX,CY,dmg);}
+    SC.rot.push({id:'rot0',cx:CX,cy:CY,ratio:IW[w].ratio});
+    const sen=indSensor(CX,CY,w==='c60'?152:96,c.ind.gap,true);s+=sen.s;
+    s+=indPanel(sen.xe);
+    s+=strip('stA',500,238,245,120,'Señal según la posición de la rueda');SC.strips.push({id:'stA',x:500,y:238,w:245,h:120,sens:'ind',span:w==='c60'?48:200});
+    s+=`<text class="lbl" x="16" y="20">${IW[w].name}</text><text class="lbl2" x="16" y="36">z = ${IW[w].z}${w==='c60'?' (58 dientes + hueco de 2)':' · eje del distribuidor (n/2)'}</text>`;
+    if(w==='c60')s+=`<text class="lbl3" x="20" y="372">● marca roja: diente de referencia posterior al hueco</text>`;
+  }else if(c.tab==='hall'){
+    const t=c.hall.target;let sen;
+    if(t==='drum'){s+=drum4('rot0',CX,CY,c.hall.vane);sen=hallBarrier(CX,CY,true);
+      s+=`<text class="lbl3" x="20" y="372">gris = pantalla (obturador): bloquea el campo · hueco = ventana: el campo llega al CI</text>`;}
+    else{s+=wheel60('rot0',CX,CY,false);sen=hallSensor60(CX,CY,0.8,true);}
+    SC.rot.push({id:'rot0',cx:CX,cy:CY,ratio:HW[t].ratio});s+=sen.s;
+    s+=hallPanel(sen.xe,c);
+    s+=strip('stA',500,238,245,120,'Señal según la posición de la rueda');SC.strips.push({id:'stA',x:500,y:238,w:245,h:120,sens:'hall',span:t==='c60'?48:200});
+    s+=`<text class="lbl" x="16" y="20">${HW[t].name}</text><text class="lbl2" x="16" y="36">z = ${HW[t].z}${t==='c60'?' (58 dientes + hueco de 2)':' · ancho de pantalla '+nf(c.hall.vane,0)+' %'}</text>`;
+  }else{
+    const w=c.ind.wheel,t=c.hall.target;
+    s+=`<text class="lbl" x="15" y="22">Inductivo · ${IW[w].name}</text><text class="lbl" x="395" y="22">Hall · ${HW[t].name.replace(' (distribuidor)','')}</text>`;
+    s+=`<g transform="translate(-22,8) scale(0.78)">`;
+    if(w==='c60')s+=wheel60('rot0',CX,CY,c.ind.fault==='tooth');else s+=rotor4('rot0',CX,CY,c.ind.fault==='tooth');
+    s+=indSensor(CX,CY,w==='c60'?152:96,c.ind.gap,false).s+`</g>`;
+    s+=`<g transform="translate(360,8) scale(0.78)">`;
+    if(t==='drum')s+=drum4('rot1',CX,CY,c.hall.vane)+hallBarrier(CX,CY,false).s;else s+=wheel60('rot1',CX,CY,false)+hallSensor60(CX,CY,0.8,false).s;
+    s+=`</g>`;
+    SC.rot.push({id:'rot0',cx:CX,cy:CY,ratio:IW[w].ratio},{id:'rot1',cx:CX,cy:CY,ratio:HW[t].ratio});
+    s+=`<line x1="380" y1="30" x2="380" y2="370" stroke="#d9dfe7"/>`;
+    s+=strip('stA',15,300,350,75,'Inductivo: señal alterna (amplitud ∝ n)');SC.strips.push({id:'stA',x:15,y:300,w:350,h:75,sens:'ind',span:w==='c60'?60:220});
+    s+=strip('stB',395,300,350,75,'Hall: señal cuadrada (amplitud constante)');SC.strips.push({id:'stB',x:395,y:300,w:350,h:75,sens:'hall',span:t==='c60'?60:220});
+  }
+  svg.innerHTML=s;
+  $('sceneNote').textContent=c.tab==='cmp'?'Ambos captadores giran con el mismo motor. La animación está en cámara lenta; el osciloscopio muestra el tiempo real (CH1 inductivo, CH2 Hall).':
+    'La animación está en cámara lenta; el osciloscopio y el multímetro trabajan con el tiempo real. Con 0 rpm puede girar la rueda a mano con «Posición del cigüeñal».';
+}
+function indPanel(xe){
+  let s=`<rect x="610" y="60" width="135" height="125" rx="8" fill="#eef2f7" stroke="#12355b" stroke-width="2"/>
+  <text class="lbl" x="677" y="80" text-anchor="middle">ECU / módulo</text>
+  <path d="M668 95 L668 135 L700 115 Z" fill="#fff" stroke="#2b3440" stroke-width="1.6"/><text x="672" y="119" font-size="10" fill="#2b3440">0</text>
+  <text class="lbl3" x="680" y="176" text-anchor="middle">detector de paso por cero</text>
+  <text id="uInst" class="lbl2" x="677" y="202" text-anchor="middle"></text>`;
+  s+=`<polyline points="${xe},${CY-4} 530,${CY-4} 530,100 610,100" fill="none" stroke="#c62828" stroke-width="2.2"/>
+  <polyline points="${xe},${CY+4} 545,${CY+4} 545,125 610,125" fill="none" stroke="#2b3440" stroke-width="2.2"/>
+  <polyline points="${xe},${CY+12} 560,${CY+12} 560,150 610,150" fill="none" stroke="#8a96a5" stroke-width="2" stroke-dasharray="5 3"/>
+  <line x1="610" y1="100" x2="668" y2="105" stroke="#c62828" stroke-width="1.4"/><line x1="610" y1="125" x2="668" y2="125" stroke="#2b3440" stroke-width="1.4"/>`;
+  [['T1 +',100],['T2 −',125],['T3 blindaje',150]].forEach(([t,y])=>{s+=`<circle cx="610" cy="${y}" r="4" fill="#fff" stroke="#12355b" stroke-width="2"/><text class="lbl3" x="${y===150?616:616}" y="${y-5}">${t}</text>`;});
+  s+=`<path d="M598 150 v8 m-7 0 h14 m-10 4 h6" stroke="#2b3440" stroke-width="1.6" fill="none"/>`;
+  return s;
+}
+function hallPanel(xe,c){
+  const ecu=c.hall.sup===5;let s='';
+  s+=`<polyline points="${xe},${CY-6} 470,${CY-6} 470,60 500,60" fill="none" stroke="#c62828" stroke-width="2"/>
+  <polyline points="${xe},${CY} 478,${CY} 478,112 500,112" fill="none" stroke="#2f7d32" stroke-width="2"/>
+  <polyline points="${xe},${CY+6} 486,${CY+6} 486,160 500,160" fill="none" stroke="#2b3440" stroke-width="2"/>`;
+  s+=`<rect x="500" y="36" width="92" height="150" rx="6" fill="#f2f4f7" stroke="#56606d" stroke-width="1.6"/><text class="lbl2" x="546" y="52" text-anchor="middle">CI Hall</text>
+  <line x1="500" y1="60" x2="514" y2="60" stroke="#c62828" stroke-width="1.6"/><line x1="500" y1="112" x2="506" y2="112" stroke="#2f7d32"/>
+  <rect x="508" y="64" width="20" height="20" fill="#fff" stroke="#2b3440"/><text x="518" y="78" text-anchor="middle" font-size="10" font-weight="700" fill="#1f6fd6">B</text>
+  <path d="M534 64 L534 84 L552 74 Z" fill="#fff" stroke="#2b3440"/><line x1="528" y1="74" x2="534" y2="74" stroke="#2b3440"/>
+  <polyline points="552,74 560,74 560,125 566,125" fill="none" stroke="#2b3440"/>
+  <g id="hTr"><line x1="566" y1="114" x2="566" y2="136" stroke="#2b3440" stroke-width="3"/><line x1="566" y1="119" x2="580" y2="110" stroke="#2b3440" stroke-width="1.6"/>
+  <line x1="566" y1="131" x2="580" y2="140" stroke="#2b3440" stroke-width="1.6"/><path d="M580 140 l-7 -1 l3 -5 z" fill="#2b3440"/></g>
+  <circle id="hTrS" cx="570" cy="125" r="16" fill="none" stroke="#1d8a4e" stroke-width="2" opacity="0"/>
+  <polyline points="580,110 580,100 592,100" fill="none" stroke="#2b3440" stroke-width="1.6"/><polyline points="580,140 580,160 592,160" fill="none" stroke="#2b3440" stroke-width="1.6"/>
+  <text id="hTrT" class="lbl3" x="546" y="178" text-anchor="middle"></text>`;
+  s+=`<line x1="592" y1="60" x2="650" y2="60" stroke="#c62828" stroke-width="2"/><line x1="592" y1="100" x2="650" y2="100" stroke="#2f7d32" stroke-width="2"/><line x1="592" y1="160" x2="650" y2="160" stroke="#2b3440" stroke-width="2"/>
+  <text class="lbl3" x="598" y="55">T1 +</text><text class="lbl3" x="598" y="95">T2 señal</text><text class="lbl3" x="598" y="155">T3 −</text>`;
+  s+=`<rect x="650" y="30" width="98" height="170" rx="8" fill="#eef2f7" stroke="#12355b" stroke-width="2"/>
+  <text class="lbl2" x="699" y="46" text-anchor="middle" style="font-weight:700;fill:#12355b">${ecu?'ECU':'Módulo'}</text>
+  <text class="lbl3" x="699" y="60" text-anchor="middle">U_ref = ${ecu?'5 V':'12 V'}</text>
+  <line x1="650" y1="60" x2="662" y2="60" stroke="#c62828" stroke-width="1.6"/><polyline points="662,60 662,68 735,68" fill="none" stroke="#c62828" stroke-width="1.6"/>
+  <rect x="715" y="74" width="12" height="20" fill="#fff" stroke="#2b3440"/><text class="lbl3" x="712" y="88" text-anchor="end">R pu</text>
+  <line x1="721" y1="68" x2="721" y2="74" stroke="#2b3440"/><line x1="721" y1="94" x2="721" y2="100" stroke="#2b3440"/>
+  <line x1="650" y1="100" x2="735" y2="100" stroke="#2f7d32" stroke-width="1.6"/><path d="M735 94 v12 l8 -6 z" fill="#2b3440"/>
+  <line x1="650" y1="160" x2="690" y2="160" stroke="#2b3440" stroke-width="1.6"/><path d="M690 160 v8 m-7 0 h14 m-10 4 h6" stroke="#2b3440" stroke-width="1.6" fill="none"/>
+  <text id="uInst" class="lbl2" x="699" y="222" text-anchor="middle"></text>`;
+  return s;
+}
+
+/* ---------- controles ---------- */
+function ctlRange(k,label,val,min,max,step,d){
+  return `<div class="ctl"><label>${label}</label><div class="row"><input type="range" data-k="${k}" min="${min}" max="${max}" step="${step}" value="${val}"><input class="num" type="text" inputmode="decimal" data-k="${k}" data-d="${d}" value="${nf(val,d)}"></div></div>`;}
+function ctlSelect(k,label,opts,val){
+  return `<div class="ctl"><label>${label}</label><select data-k="${k}">${opts.map(o=>`<option value="${o[0]}" ${String(o[0])===String(val)?'selected':''}>${o[1]}</option>`).join('')}</select></div>`;}
+function faultOpts(s){return Object.entries(FAULTS).filter(([k,f])=>f.s==='both'||f.s===s).map(([k,f])=>[k,f.name]);}
+function buildControls(){
+  const c=S;let h='';
+  if(S.ev.on){
+    const e=S.ev.c;
+    h=`<div class="given"><p><b>Caso de evaluación.</b> El tipo de captador, la avería y el régimen están ocultos.</p>
+      <p>${givenText(e)}</p></div><p class="muted">Los parámetros quedan bloqueados mientras dure el caso. Desactive el modo evaluación para volver a la práctica libre.</p>`;
+    $('controls').innerHTML=h;$('parTitle').textContent='Datos del caso';return;
+  }
+  $('parTitle').textContent='Parámetros';
+  h+=`<div class="presets"><button class="btn small" data-rpm="0">Motor parado</button><button class="btn small" data-rpm="200">Arranque (200 rpm)</button><button class="btn small" data-rpm="800">Ralentí (800 rpm)</button><button class="btn small" data-rpm="3000">3000 rpm</button><button class="btn small" data-rpm="6000">6000 rpm</button></div>`;
+  h+='<div class="grid2">';
+  h+=ctlRange('rpm','Régimen del motor n (min⁻¹ = rpm)',c.rpm,0,6500,10,0);
+  h+=ctlRange('man','Posición del cigüeñal a mano (°) · solo con 0 rpm',c.man,0,720,1,0);
+  if(c.tab==='ind'||c.tab==='cmp'){
+    h+=ctlSelect('ind.wheel','Rueda del captador inductivo',[['c60','Rueda de cigüeñal 60-2 dientes'],['d4','Rotor de distribuidor de 4 dientes']],c.ind.wheel);
+    if(c.tab==='ind'){
+      h+=ctlRange('ind.gap','Entrehierro s (mm)',c.ind.gap,0.3,1.5,0.05,2);
+      h+=ctlRange('ind.R','Resistencia nominal de la bobina R<sub>b</sub> (Ω)',c.ind.R,200,1500,10,0);
+      h+=ctlSelect('ind.pol','Polaridad de conexión',[['ok','Correcta (T1 = +)'],['inv','Invertida']],c.ind.pol);
+    }
+    h+=ctlSelect('ind.fault','Avería del captador inductivo',faultOpts('ind'),c.ind.fault);
+  }
+  if(c.tab==='hall'||c.tab==='cmp'){
+    h+=ctlSelect('hall.target','Rueda / obturador del Hall',[['drum','Tambor obturador de 4 pantallas'],['c60','Rueda 60-2 con Hall diferencial']],c.hall.target);
+    if(c.tab==='hall'){
+      h+=ctlSelect('hall.sup','Alimentación y referencia (pull-up)',[['5','5 V desde la ECU'],['12','12 V desde el módulo de encendido']],c.hall.sup);
+      if(c.hall.target==='drum')h+=ctlRange('hall.vane','Ancho de la pantalla (% del paso) = ciclo de trabajo',c.hall.vane,40,85,1,0);
+    }
+    h+=ctlSelect('hall.fault','Avería del captador Hall',faultOpts('hall'),c.hall.fault);
+  }
+  h+='</div>';
+  $('controls').innerHTML=h;
+  $('controls').querySelectorAll('[data-rpm]').forEach(b=>b.onclick=()=>{S.rpm=+b.dataset.rpm;buildControls();changed(true);});
+  $('controls').querySelectorAll('[data-k]').forEach(inp=>{
+    const ev=inp.tagName==='SELECT'?'change':(inp.type==='range'?'input':'change');
+    inp.addEventListener(ev,()=>{
+      const k=inp.dataset.k;let v=inp.tagName==='SELECT'?inp.value:parseNum(inp.value);
+      if(inp.tagName!=='SELECT'){if(!isFinite(v))return;v=clamp(v,+inp.min||+(inp.parentNode.querySelector('input[type=range]').min),+(inp.parentNode.querySelector('input[type=range]').max));}
+      setVal(k,v);
+      $('controls').querySelectorAll(`[data-k="${k}"]`).forEach(o=>{if(o!==inp){o.value=o.type==='range'?v:nf(v,+o.dataset.d);}else if(o.classList.contains('num'))o.value=nf(v,+o.dataset.d);});
+      const struct=['ind.wheel','hall.target','ind.fault','hall.fault','hall.vane','ind.gap','hall.sup'].includes(k);
+      if(k==='hall.target')buildControls();
+      changed(struct);
+    });
+  });
+}
+function setVal(k,v){
+  if(k==='rpm')S.rpm=v;else if(k==='man')S.man=v;
+  else{const [a,b]=k.split('.');S[a][b]=(b==='sup'||b==='gap'||b==='R'||b==='vane')?+v:v;}
+}
+
+/* ---------- osciloscopio ---------- */
+const VDIV=[0.05,0.1,0.2,0.5,1,2,5,10,20],TDIV=[0.1,0.2,0.5,1,2,5,10,20,50,100,200,500],POS=[3,2,1,0,-1,-2,-3];
+function vOpt(v){return v<1?nf(v*1000,0)+' mV':nf(v,0)+' V';}
+function buildScopeCtl(){
+  const c=conf(),two=c.tab==='cmp'&&!S.ev.on,sc=S.sc;
+  const sel=(k,lab,opts,val)=>`<div><label>${lab}</label><select data-s="${k}">${opts.map(o=>`<option value="${o[0]}" ${String(o[0])===String(val)?'selected':''}>${o[1]}</option>`).join('')}</select></div>`;
+  let h=sel('v1',two?'CH1 (inductivo) V/div':'CH1 V/div',VDIV.map(v=>[v,vOpt(v)]),sc.v1)+sel('p1','Posición CH1',POS.map(p=>[p,(p>0?'+':'')+p+' div']),sc.p1);
+  if(two)h+=sel('v2','CH2 (Hall) V/div',VDIV.map(v=>[v,vOpt(v)]),sc.v2)+sel('p2','Posición CH2',POS.map(p=>[p,(p>0?'+':'')+p+' div']),sc.p2);
+  h+=sel('tdiv','Tiempo/div',TDIV.map(t=>[t,t<1?nf(t*1000,0)+' µs':nf(t,0)+' ms']),sc.tdiv);
+  h+=sel('trig','Disparo (CH1)',[['ref','Referencia (1 vez por vuelta)'],['tooth','Diente normal']],sc.trig);
+  h+=sel('cur','Cursores',[['t','Tiempo (A–B)'],['v','Tensión (A–B)']],sc.cur);
+  if(two)h+=sel('curCh','Canal de cursores de tensión',[[1,'CH1'],[2,'CH2']],sc.curCh);
+  $('sctl').innerHTML=h;
+  $('sctl').querySelectorAll('select').forEach(s=>s.onchange=()=>{const k=s.dataset.s;S.sc[k]=(k==='trig'||k==='cur')?s.value:+s.value;scopeDirty=true;});
+}
+let scopeDirty=true,TR=[];
+function crankTrig(c){
+  const ch1=shown(c)[0],m=S.M[ch1];let phi;
+  if(ch1==='ind')phi=m.W.pitch===6?(S.sc.trig==='ref'?345:180):-12;
+  else phi=m.W.pitch===6?(S.sc.trig==='ref'?345:178.5):90*c.hall.vane/100;
+  return phi/m.ratio;
+}
+function computeTraces(w){
+  const c=conf(),sc=S.sc,list=shown(c);
+  const tdiv=sc.tdiv/1000,tot=tdiv*10,dt=tot/w,cdeg=c.rpm*6;
+  const a0=crankTrig(c)-cdeg*tdiv;
+  TR=list.map((sn,i)=>{
+    const m=S.M[sn],mn=new Float32Array(w),mx=new Float32Array(w),f0=new Float32Array(w),f1=new Float32Array(w);
+    const span=cdeg*dt*m.ratio,K=clamp(Math.ceil(span/0.4)+2,3,80);
+    for(let x=0;x<w;x++){let lo=1e9,hi=-1e9,first=0,last=0;
+      for(let k=0;k<K;k++){const t=(x+k/(K-1))*dt;const phi=c.rpm>0?(a0+cdeg*t)*m.ratio:c.man*m.ratio;const v=sigV(m,phi);
+        if(k===0)first=v;last=v;if(v<lo)lo=v;if(v>hi)hi=v;}
+      mn[x]=lo;mx[x]=hi;f0[x]=first;f1[x]=last;}
+    const ch=(list.length===2&&i===1)?2:1;
+    return {sn,m,ch,mn,mx,f0,f1,col:ch===1?'#ffd23f':'#4fd8ff',vdiv:ch===1?sc.v1:sc.v2,pos:ch===1?sc.p1:sc.p2,marks:marks(m,a0,cdeg,tot,w)};
+  });
+}
+function marks(m,a0,cdeg,tot,w){
+  const out=[];if(cdeg<=0||hidden())return out;
+  let pts=[];
+  if(m.sens==='ind'){if(!m.detect)return out;const W=m.W;const teeth=teethOf(W===IW.c60?'c60':'d4');
+    if(m.fault==='tooth'){const k=W.pitch===6?20:2;teeth[k].a+=W.pitch===6?1.2:6;}
+    pts=teeth.map((t,i)=>({a:t.a+m.shift*m.ratio,ref:i===0}));}
+  else{if(m.mode!=='ok')return out;
+    if(m.W.pitch===90){const v=conf().hall.vane;for(let k=0;k<4;k++)pts.push({a:k*90+90*v/100,ref:k===0});}
+    else for(let i=0;i<58;i++)pts.push({a:i*6-1.5,ref:i===0});}
+  const phiA=a0*m.ratio,phiB=(a0+cdeg*tot)*m.ratio;
+  const perScreen=(phiB-phiA)/360*pts.length;if(perScreen>w/5)return out.concat(pts.length>4?refOnly():[]);
+  function refOnly(){const r=[];const p=pts.find(q=>q.ref);for(let k=Math.floor((phiA-p.a)/360);p.a+360*k<=phiB;k++){const ph=p.a+360*k;if(ph>=phiA)r.push({x:(ph-phiA)/(phiB-phiA)*w,ref:true});}return r;}
+  for(const p of pts)for(let k=Math.floor((phiA-p.a)/360);p.a+360*k<=phiB;k++){const ph=p.a+360*k;if(ph>=phiA)out.push({x:(ph-phiA)/(phiB-phiA)*w,ref:p.ref});}
+  return out;
+}
+function paintScope(){
+  const cv=$('scr'),w=Math.max(200,Math.round(cv.clientWidth)),h=Math.round(w*0.7),dpr=window.devicePixelRatio||1;
+  if(cv.width!==Math.round(w*dpr)||cv.height!==Math.round(h*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);cv.style.height=h+'px';scopeDirty=true;}
+  if(S.sc.run&&(scopeDirty||TR.length===0||TR[0].mn.length!==w||needsLive()))computeTraces(w);
+  scopeDirty=false;
+  const g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);
+  g.fillStyle='#0b1510';g.fillRect(0,0,w,h);
+  const dx=w/10,dy=h/8;g.strokeStyle='rgba(120,200,150,.18)';g.lineWidth=1;g.beginPath();
+  for(let i=1;i<10;i++){g.moveTo(i*dx+.5,0);g.lineTo(i*dx+.5,h);}for(let j=1;j<8;j++){g.moveTo(0,j*dy+.5);g.lineTo(w,j*dy+.5);}g.stroke();
+  g.strokeStyle='rgba(120,200,150,.4)';g.beginPath();for(let i=0;i<50;i++){g.moveTo(i*dx/5+.5,h/2-3);g.lineTo(i*dx/5+.5,h/2+3);}for(let j=0;j<40;j++){g.moveTo(w/2-3,j*dy/5+.5);g.lineTo(w/2+3,j*dy/5+.5);}g.stroke();
+  for(const tr of TR){
+    const Y=v=>clamp(h/2-(v/tr.vdiv+tr.pos)*dy,-3,h+3);
+    g.strokeStyle=tr.col;g.lineWidth=1.5;g.beginPath();
+    for(let x=0;x<tr.mn.length;x++){if(x===0)g.moveTo(x,Y(tr.f0[x]));else g.lineTo(x,Y(tr.f0[x]));
+      if(tr.mx[x]-tr.mn[x]>tr.vdiv*0.02){g.lineTo(x,Y(tr.mn[x]));g.lineTo(x,Y(tr.mx[x]));}g.lineTo(x+1,Y(tr.f1[x]));}
+    g.stroke();
+    const y0=clamp(h/2-tr.pos*dy,6,h-6);g.fillStyle=tr.col;g.beginPath();g.moveTo(0,y0-6);g.lineTo(9,y0);g.lineTo(0,y0+6);g.fill();
+    g.fillStyle='#0b1510';g.font='bold 9px sans-serif';g.fillText(tr.ch,1,y0+3);
+    g.fillStyle=tr.ch===1?'#ffb300':'#4fd8ff';
+    for(const mk of tr.marks){const yy=tr.ch===1?2:h-2;g.beginPath();if(tr.ch===1){g.moveTo(mk.x-(mk.ref?5:3),yy);g.lineTo(mk.x+(mk.ref?5:3),yy);g.lineTo(mk.x,yy+(mk.ref?9:6));}else{g.moveTo(mk.x-(mk.ref?5:3),yy);g.lineTo(mk.x+(mk.ref?5:3),yy);g.lineTo(mk.x,yy-(mk.ref?9:6));}g.fill();}
+  }
+  // cursores
+  g.setLineDash([5,4]);g.lineWidth=1.3;const sc=S.sc;
+  if(sc.cur==='t'){[[sc.cA,'A'],[sc.cB,'B']].forEach(([d,l])=>{const x=d*dx;g.strokeStyle='#ff8ad8';g.beginPath();g.moveTo(x,0);g.lineTo(x,h);g.stroke();g.fillStyle='#ff8ad8';g.font='bold 11px sans-serif';g.fillText(l,x+3,h-6);});}
+  else{[[sc.uA,'A'],[sc.uB,'B']].forEach(([d,l])=>{const y=h/2-d*dy;g.strokeStyle='#ff8ad8';g.beginPath();g.moveTo(0,y);g.lineTo(w,y);g.stroke();g.fillStyle='#ff8ad8';g.font='bold 11px sans-serif';g.fillText(l,w-12,y-3);});}
+  g.setLineDash([]);
+  // rótulos
+  g.font='11px Consolas,monospace';g.fillStyle='rgba(11,21,16,.85)';g.fillRect(10,10,112,TR.length>1?34:20);g.fillRect(w-150,10,146,20);g.fillStyle='#ffd23f';
+  const tl=S.sc.tdiv<1?nf(S.sc.tdiv*1000,0)+' µs/div':nf(S.sc.tdiv,0)+' ms/div';
+  g.fillText('CH1 '+vOpt(S.sc.v1)+'/div',14,24);
+  if(TR.length>1){g.fillStyle='#4fd8ff';g.fillText('CH2 '+vOpt(S.sc.v2)+'/div',14,38);}
+  g.fillStyle='#e7ecf2';g.textAlign='right';g.fillText(tl+(S.sc.run?'  RUN':'  STOP'),w-8,24);g.textAlign='left';
+  // disparo
+  g.fillStyle='#ff9f1a';g.beginPath();g.moveTo(dx-5,0);g.lineTo(dx+5,0);g.lineTo(dx,7);g.fill();
+  scopeRead();
+}
+function needsLive(){const c=conf();return c.rpm>0&&shown(c).some(s=>S.M[s].emi||(s==='hall'&&S.M[s].mode==='float'));}
+function scopeRead(){
+  const c=conf(),sc=S.sc,tdiv=sc.tdiv/1000;let h='';
+  if(sc.cur==='t'){const tA=sc.cA*tdiv,tB=sc.cB*tdiv,d=Math.abs(tB-tA);
+    h+=`<span class="cc">Cursores de tiempo</span> · A = ${fmtT(tA)} · B = ${fmtT(tB)}<br>Δt = <b>${fmtT(d)}</b> · 1/Δt = <b>${d>0?fmtHz(1/d)+' Hz':'—'}</b>`;}
+  else{const ch=TR.length>1?sc.curCh:1,vd=ch===1?sc.v1:sc.v2,ps=ch===1?sc.p1:sc.p2;const uA=(sc.uA-ps)*vd,uB=(sc.uB-ps)*vd;
+    h+=`<span class="cc">Cursores de tensión (CH${ch})</span> · A = ${fmtV(uA)} V · B = ${fmtV(uB)} V<br>ΔU = <b>${fmtV(Math.abs(uA-uB))} V</b>`;}
+  h+='<br>';
+  if(hidden())h+='<span class="muted" style="color:#c6cfda">Medidas automáticas desactivadas en modo evaluación: use los cursores.</span>';
+  else for(const tr of TR){let lo=1e9,hi=-1e9;for(let x=0;x<tr.mn.length;x++){lo=Math.min(lo,tr.mn[x]);hi=Math.max(hi,tr.mx[x]);}
+    const m=tr.m,ok=c.rpm>0&&hasPulses(m);
+    h+=`<span class="c${tr.ch}">CH${tr.ch}</span> en pantalla: máx ${fmtV(hi)} V · mín ${fmtV(lo)} V · pp ${fmtV(hi-lo)} V<br>&nbsp;&nbsp;&nbsp;&nbsp;f = ${ok?fmtHz(m.f)+' Hz':'—'}${m.sens==='hall'&&ok?' · D = '+nf(m.duty*100,1)+' %':''}${m.sens==='ind'&&ok?' · U pp dientes normales = '+fmtV(m.App)+' V':''}<br>`;}
+  $('sread').innerHTML=h;
+}
+(function scopePointer(){
+  const cv=$('scr');let drag=null;
+  const pos=e=>{const r=cv.getBoundingClientRect();return {x:(e.clientX-r.left)/r.width*10,y:4-(e.clientY-r.top)/r.height*8};};
+  cv.addEventListener('pointerdown',e=>{const p=pos(e),sc=S.sc;
+    if(sc.cur==='t')drag=Math.abs(p.x-sc.cA)<=Math.abs(p.x-sc.cB)?'cA':'cB';else drag=Math.abs(p.y-sc.uA)<=Math.abs(p.y-sc.uB)?'uA':'uB';
+    cv.setPointerCapture(e.pointerId);move(e);});
+  cv.addEventListener('pointermove',e=>{if(drag)move(e);});
+  const end=()=>{drag=null;};cv.addEventListener('pointerup',end);cv.addEventListener('pointercancel',end);
+  function move(e){const p=pos(e);if(drag[0]==='c')S.sc[drag]=Math.round(clamp(p.x,0,10)*50)/50;else S.sc[drag]=Math.round(clamp(p.y,-4,4)*50)/50;paintScope();}
+})();
+function autoset(){
+  const c=conf(),list=shown(c),sc=S.sc;
+  const m0=S.M[list[0]];
+  if(c.rpm>0){const T=m0.W.pitch===6?1/(m0.rps):3/Math.max(m0.f,0.01);let best=TDIV[TDIV.length-1];for(const t of TDIV)if(t*10/1000>=T*1.15){best=t;break;}sc.tdiv=best;}
+  list.forEach((sn,i)=>{const m=S.M[sn];let pp=sn==='ind'?Math.max(m.App*(m.W.pitch===6?1.8:1),0.05):(m.mode==='ok'||m.mode==='high'?m.Uh:1);
+    if(m.emi)pp+=3;const need=sn==='ind'?pp/ (list.length>1?3.6:6.5):pp/(list.length>1?3.2:5);let v=VDIV[VDIV.length-1];for(const q of VDIV)if(q>=need){v=q;break;}
+    const two=list.length>1;if(i===0){sc.v1=v;sc.p1=sn==='ind'?(two?2:0):(two?1:-3);}else{sc.v2=v;sc.p2=-3;}});
+  if(S.ev.on&&!S.ev.checked)sc.p1=-1;
+  buildScopeCtl();scopeDirty=true;
+}
+
+/* ---------- multímetro ---------- */
+function termLabels(sn,hid){
+  if(hid)return {T1:'T1',T2:'T2',T3:'T3',M:'Masa de chasis'};
+  return sn==='ind'?{T1:'T1 · señal (+)',T2:'T2 · señal (−)',T3:'T3 · blindaje',M:'Masa de chasis'}:{T1:'T1 · + alimentación',T2:'T2 · señal',T3:'T3 · − masa del sensor',M:'Masa de chasis'};
+}
+function buildProbes(){
+  const c=conf(),sn=mSens(c),L=termLabels(sn,hidden());
+  const o=Object.entries(L).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');
+  $('pRed').innerHTML=o;$('pBlk').innerHTML=o;$('pRed').value=S.mt.red;$('pBlk').value=S.mt.black;
+  $('msensWrap').style.display=(c.tab==='cmp'&&!S.ev.on)?'':'none';
+  $('mDiscLbl').textContent=hidden()?'Conector del captador desconectado':(sn==='ind'?'Conector desconectado (medir en el captador)':'Conector desconectado (medir en el mazo, lado ECU/módulo)');
+  $('mDisc').checked=S.mt.disc;
+}
+function nodeV(sn,t,phi,disc){ // tensión respecto a masa de chasis; NaN = punto flotante
+  const m=S.M[sn];
+  if(t==='M')return 0;
+  if(sn==='ind'){
+    if(disc)return t==='T1'?sigVdisc(m,phi):t==='T2'?0:NaN;
+    return t==='T1'?sigV(m,phi):0;
+  }
+  if(disc){if(t==='T1')return m.T1;if(t==='T2')return m.fault==='pullup'?NaN:m.Uh;return m.fault==='nognd'?NaN:0;}
+  if(t==='T1')return m.T1;if(t==='T3')return m.T3;return sigV(m,phi);
+}
+let MD=null;
+function sigVdisc(m,phi){return m.Aoc*m.sign*m.tb.u[idx(phi)]+noiseV(m,phi);}
+function meterRead(){
+  const c=conf(),sn=mSens(c),m=S.M[sn],mt=S.mt,r=mt.red,b=mt.black,disc=mt.disc;
+  if(sn==='ind'){const mo=indM(c,true);m.Aoc=mo.App;}
+  if(mt.mode==='OFF')return {v:'',u:'',note:'Instrumento apagado.'};
+  if(mt.mode==='R')return ohm(c,sn,m,r,b,disc);
+  if(r===b)return {v:mt.mode==='HZ'?'0,000':'0,000',u:mt.mode==='HZ'?'Hz':'V',raw:0,note:'Las dos puntas están en el mismo punto.'};
+  const n=3600,vals=new Float32Array(n);let flo=false;
+  const rot=c.rpm>0;
+  for(let k=0;k<n;k++){const phi=rot?k*0.1:c.man*m.ratio;const a=nodeV(sn,r,phi,disc),bb=nodeV(sn,b,phi,disc);if(isNaN(a)||isNaN(bb)){flo=true;break;}vals[k]=a-bb;}
+  if(flo){const v=(Math.random()-0.5)*0.08;return {v:fmtV(v),u:mt.mode==='HZ'?'Hz':'V',raw:v,note:'Lectura inestable: uno de los puntos está flotante (sin conexión eléctrica a la otra punta).',flo:true};}
+  let s=0,lo=1e9,hi=-1e9;for(let k=0;k<n;k++){s+=vals[k];lo=Math.min(lo,vals[k]);hi=Math.max(hi,vals[k]);}const mean=s/n;
+  let ac=0;for(let k=0;k<n;k++)ac+=(vals[k]-mean)**2;ac=Math.sqrt(ac/n);
+  const pp=hi-lo,f=m.f;let note='';
+  if(mt.mode==='VDC'){
+    if(sn==='ind'&&rot&&(r==='T1'||b==='T1'))note='El captador inductivo genera tensión alterna: en V⎓ el promedio es casi 0 V. Use V~ o el osciloscopio.';
+    if(sn==='hall'&&rot&&(r==='T2'||b==='T2')&&S.M.hall.mode==='ok')note='Con el motor girando el voltímetro muestra el promedio de la señal cuadrada (depende del ciclo de trabajo).';
+    return {v:fmtV(mean),u:'V',raw:mean,note};}
+  if(mt.mode==='VAC'){
+    const bw=1/Math.sqrt(1+(f/1000)**2);const v=rot?ac*bw:0;
+    if(rot&&f>500)note=`La frecuencia de la señal (${fmtHz(f)} Hz) supera el ancho de banda del multímetro en V~: la lectura es menor que la real. Use el osciloscopio.`;
+    else if(sn==='ind'&&rot&&c.rpm<=400&&!hidden())note=v>=0.5?'Tensión alterna al arrancar ≥ 0,5 V~ (orientativo): el captador genera señal suficiente.':'Tensión alterna al arrancar menor que 0,5 V~ (orientativo): revise entrehierro, bobina y conexiones.';
+    else if(!rot)note='Motor parado: no hay tensión alterna.';
+    return {v:fmtV(v),u:'V',raw:v,note};}
+  if(mt.mode==='HZ'){
+    if(!rot||pp<0.15)return {v:'0,000',u:'Hz',raw:0,note:rot?'Señal demasiado pequeña o sin pulsos para el frecuencímetro.':'Motor parado: sin pulsos.'};
+    const mid=(hi+lo)/2,hy=pp*0.12;let st=vals[n-1]>mid,cnt=0;
+    for(let k=0;k<n;k++){if(!st&&vals[k]>mid+hy){st=true;cnt++;}else if(st&&vals[k]<mid-hy)st=false;}
+    const hz=cnt*m.rps;
+    if(sn==='ind'&&m.W.pitch===6)note='El frecuencímetro cuenta los pulsos reales: 58 por vuelta (el hueco no genera pulsos), por eso marca ≈ 3 % menos que n · z / 60.';
+    if(m.emi)note='Lectura inestable: el ruido genera pulsos falsos.';
+    return {v:fmtHz(hz),u:'Hz',raw:hz,note};}
+}
+function ohm(c,sn,m,r,b,disc){
+  const pair=[r,b].sort().join('-');
+  if(r===b)return {v:'0,00',u:'Ω',raw:0,note:''};
+  if(sn==='ind'){
+    if(c.rpm>0&&(r==='T1'||b==='T1'))return {v:'Err',u:'Ω',note:'El captador genera tensión mientras gira: detenga el motor (0 rpm) antes de medir resistencia.'};
+    if(pair==='T1-T2'){if(disc){const R=m.Rc;return R===Infinity?{v:'OL',u:'Ω',raw:Infinity,note:'Circuito abierto: la bobina está interrumpida.'}:{...split(fmtR(R)),raw:R,note:'Resistencia de la bobina del captador. Compare con la especificación (200–1500 Ω según modelo; orientativo).'};}
+      const R=m.Rc===Infinity?RIN:m.Rc*RIN/(m.Rc+RIN);return {...split(fmtR(R)),raw:R,note:'Conector conectado: la entrada de la ECU queda en paralelo con la bobina y falsea la lectura. Desconecte el conector.'};}
+    if(pair==='M-T3'){const R=m.emi?Infinity:0.2;return R===Infinity?{v:'OL',u:'Ω',raw:R,note:'El blindaje no tiene continuidad a masa: el cable queda expuesto a interferencias.'}:{v:'0,20',u:'Ω',raw:R,note:'Continuidad del blindaje a masa correcta (< 1 Ω orientativo).'};}
+    if(disc)return {v:'OL',u:'Ω',raw:Infinity,note:'Aislamiento correcto entre la bobina, el blindaje y la masa.'};
+    return {v:'- - -',u:'Ω',note:'Con el conector conectado esta medición no es significativa: desconecte el conector.'};
+  }
+  if(pair==='M-T3'){if(!disc)return {v:'Err',u:'Ω',note:'Circuito energizado: desconecte el conector (con el contacto apagado) antes de medir continuidad.'};
+    return m.fault==='nognd'?{v:'OL',u:'Ω',raw:Infinity,note:'El cable de masa del sensor está interrumpido.'}:{v:'0,10',u:'Ω',raw:0.1,note:'Continuidad del cable de masa del sensor correcta.'};}
+  return {v:'- - -',u:'Ω',note:'El captador Hall es un circuito integrado activo: no se comprueba con el óhmetro. Mida alimentación, masa y señal con el voltímetro.'};
+}
+function split(s){const t=s.split(' ');return {v:t[0],u:t[1]};}
+function updateMeter(){
+  MD=meterRead();const m=MD;
+  $('lcdVal').textContent=m.v;$('lcdUnit').textContent=m.u;
+  $('lcdFn').textContent={VDC:'V⎓',VAC:'V~',R:'Ω',HZ:'Hz',OFF:''}[S.mt.mode];
+  $('mnote').textContent=m.note||'';
+  document.querySelectorAll('#modes button').forEach(b=>b.classList.toggle('on',b.dataset.m===S.mt.mode));
+  const L=termLabels(mSens(conf()),hidden());
+  $('mstat').textContent=S.mt.mode==='OFF'?'':`Punta roja: ${L[S.mt.red]} · Punta negra: ${L[S.mt.black]}${S.mt.disc?' · conector desconectado':''}`;
+  return m;
+}
+
+/* ---------- resultados / evaluación ---------- */
+function givenText(e){
+  const W=e.tab==='ind'?e.ind.wheel:e.hall.target;
+  return (W==='c60'?'Rueda 60-2 en el cigüeñal: z = 60 (58 dientes más el hueco de 2); n = 60 · f / z.':'Distribuidor de motor de 4 cilindros: z = 4 impulsos por vuelta del distribuidor, que gira a n/2; n = 2 · 60 · f / z.')+
+   '<br>Si el captador es inductivo: resistencia especificada 500–1000 Ω; con entrehierro correcto entrega ≈ 1,5 V pp a 200 rpm en la rueda 60-2 (≈ 3 V pp en el rotor de 4 dientes, señal en impulsos), proporcional a n. Si es Hall: alimentación de 5 V o 12 V según el sistema (valores orientativos).';
+}
+function resultsHTML(){
+  const c=conf();let h='<div class="tblwrap"><table><tr><th>Magnitud</th>'+shown(c).map(s=>`<th>${s==='ind'?'Inductivo':'Hall'}</th>`).join('')+'</tr>';
+  const L=shown(c).map(s=>S.M[s]);const row=(n,f)=>`<tr><td>${n}</td>${L.map(m=>`<td>${f(m)}</td>`).join('')}</tr>`;
+  h+=row('Eje / z',m=>`${m.W.shaft} · ${m.W.z}`);
+  h+=row('Régimen del eje',m=>nf(c.rpm*m.ratio,0)+' rpm');
+  h+=row('f = n<sub>eje</sub> · z / 60',m=>fmtHz(m.f)+' Hz');
+  h+=row('T = 1 / f',m=>m.f>0?fmtT(1/m.f):'—');
+  h+=row('Ángulo entre pulsos',m=>nf(360/m.W.z,0)+'° de '+m.W.shaft);
+  h+=row('U pp (dientes normales)',m=>m.sens==='ind'?fmtV(m.App)+' V':(m.mode==='ok'?fmtV(m.Uh-UL)+' V':'0 V (sin pulsos)'));
+  h+=row('Nivel de señal',m=>m.sens==='ind'?'alterna ±'+fmtV(m.App/2)+' V':({ok:`${fmtV(UL)} / ${fmtV(m.Uh)} V`,high:`fijo ${fmtV(m.Uh)} V`,low:`fijo ${fmtV(UL)} V`,float:'flotante ≈ 0,1–0,3 V'})[m.mode]);
+  h+=row('U eficaz (V~)',m=>m.sens==='ind'?fmtV(c.rpm>0?m.rms:0)+' V':'—');
+  h+=row('Ciclo de trabajo / cierre',m=>m.sens==='hall'?nf(m.duty*100,1)+' %'+(m.W.pitch===90?` · ${nf(m.duty*90,0)}° distr. (${nf(m.duty*180,0)}° cig.)`:''):'—');
+  h+=row('Detección en la ECU',m=>m.sens==='ind'?(c.rpm===0?'sin giro':m.detect?'sí':'<b style="color:#c62828">no (U pp &lt; 0,3 V)</b>'):(m.mode==='ok'?'sí':'<b style="color:#c62828">no</b>'));
+  if(shown(c).includes('ind')&&S.M.ind.inv)h+=`<tr><td>Desfase por polaridad</td><td colspan="${L.length}">≈ ${nf(S.M.ind.shift,1)}° de cigüeñal</td></tr>`;
+  return h+'</table></div>';
+}
+function updateResults(){
+  if(S.ev.on){$('results').innerHTML=S.ev.checked?resultsHTML():'';$('evalBox').style.display='';$('resTitle').textContent='Evaluación';return;}
+  $('resTitle').textContent='Resultados del captador';$('evalBox').style.display='none';$('results').innerHTML=resultsHTML();
+}
+function newCase(){
+  const tab=pick(['ind','hall']);
+  const e={tab,rpm:0,man:0,ind:{wheel:pick(['c60','d4']),gap:pick([0.6,0.65,0.7,0.75,0.8]),R:pick([520,600,680,750,820,900,980]),pol:'ok',fault:'none'},
+    hall:{target:pick(['drum','c60']),sup:5,vane:pick([65,70,72]),fault:'none'}};
+  e.hall.sup=e.hall.target==='drum'?pick([5,12]):5;
+  const fl=Math.random()<0.18?'none':pick(Object.keys(FAULTS).filter(k=>k!=='none'&&(FAULTS[k].s==='both'||FAULTS[k].s===tab)));
+  e[tab].fault=fl;
+  e.rpm=fl==='gap'?pick([200,220,250,280]):pick([200,250,300,700,800,850,900,950,1200,1500,2000,2500]);
+  e.man=Math.floor(Math.random()*720);
+  S.ev.c=e;S.ev.checked=false;
+  S.mt.disc=false;S.mt.red='T1';S.mt.black='M';
+  buildEvalBox();fullRender();autoset();
+}
+function buildEvalBox(){
+  const e=S.ev.c;
+  const diag=Object.entries(FAULTS).map(([k,f])=>`<option value="${k}">${f.name}</option>`).join('');
+  $('evalBox').innerHTML=`<div class="eform">
+   <div class="ctl"><label>1. Tipo de captador</label><select id="eT"><option value="">— elija —</option><option value="ind">Inductivo (magnético)</option><option value="hall">Efecto Hall</option></select></div>
+   <div class="grid2">
+   <div class="ctl"><label>2. U pico a pico de los dientes normales (V)</label><input id="eU" inputmode="decimal"></div>
+   <div class="ctl"><label>3. Frecuencia de la señal f (Hz)</label><input id="eF" inputmode="decimal"></div>
+   <div class="ctl"><label>4. Régimen del motor n (rpm)</label><input id="eN" inputmode="decimal"></div>
+   </div>
+   <div class="ctl"><label>5. Diagnóstico</label><select id="eD" style="width:100%"><option value="">— elija —</option>${diag}</select></div>
+   <p class="muted" style="margin:2px 0 6px">Si no hay pulsos (señal fija o nula), escriba 0 en U pp, f y n.</p>
+   <div class="bar"><button class="btn primary" id="btnCheck">Comprobar</button><button class="btn" id="btnNew">Nuevo caso</button><span class="score" id="score"></span></div>
+   <div class="msgs" id="efb" style="margin-top:10px"></div></div>`;
+  $('btnCheck').onclick=checkEval;$('btnNew').onclick=newCase;
+}
+function checkEval(){
+  const e=S.ev.c,m=e.tab==='ind'?indM(e,false):hallM(e);
+  const puls=hasPulses(m)&&e.rpm>0;
+  const Uexp=puls?trueUpp(m):0,fexp=puls?m.f:0,nexp=puls?e.rpm:0;
+  const zTxt=m.W.pitch===6?'n = 60 · f / z':'n = 2 · 60 · f / z';
+  const fb=[];let pts=0;
+  const mark=(id,ok)=>{$(id).classList.toggle('ok',ok);$(id).classList.toggle('bad',!ok);if(ok)pts++;};
+  const t=$('eT').value;mark('eT',t===e.tab);
+  fb.push([t===e.tab?'o':'e',`<b>Tipo de captador:</b> ${e.tab==='ind'?'inductivo':'Hall'}. ${e.tab==='ind'?'Tiene dos terminales de señal más blindaje, no necesita alimentación y genera una tensión alterna cuya amplitud crece con las rpm.':'Tiene tres terminales (+ alimentación, señal y masa): entre T1 y masa hay '+nf(e.hall.sup,0)+' V y la señal es cuadrada, con amplitud que no depende de las rpm.'}`]);
+  const U=parseNum($('eU').value),F=parseNum($('eF').value),Nn=parseNum($('eN').value);
+  let tolU=m.emi?0.35:0.15;
+  const okU=isFinite(U)&&(puls?Math.abs(U-Uexp)<=Math.max(tolU*Uexp,0.05):U<=0.6);mark('eU',okU);
+  fb.push([okU?'o':'e',`<b>U pp:</b> esperado ≈ ${fmtV(Uexp)} V${puls?(e.tab==='ind'?' (medido en dientes normales, no en el hueco)':' (nivel alto − nivel bajo)'):' (no hay pulsos)'}; tolerancia ±${Math.round(tolU*100)} %.`]);
+  const okF=isFinite(F)&&(puls?Math.abs(F-fexp)<=0.05*fexp:Math.abs(F)<0.5);mark('eF',okF);
+  fb.push([okF?'o':'e',`<b>Frecuencia:</b> esperado ≈ ${fmtHz(fexp)} Hz${puls?` (periodo T = ${fmtT(1/fexp)} entre dos pulsos normales; f = 1/T)`:''}; tolerancia ±5 %.`]);
+  const okN=isFinite(Nn)&&(puls?Math.abs(Nn-nexp)<=0.06*nexp:Math.abs(Nn)<1);mark('eN',okN);
+  fb.push([okN?'o':'e',`<b>Régimen:</b> ${puls?`${zTxt} = ${m.W.pitch===6?'60':'2 · 60'} · ${fmtHz(fexp)} / ${m.W.z} = ${nf(nexp,0)} rpm`:'sin pulsos no se puede calcular (0)'}${isFinite(F)&&F>0&&puls?` · con su f: ${nf((m.W.pitch===6?60:120)*F/m.W.z,0)} rpm`:''}; tolerancia ±6 %.`]);
+  const d=$('eD').value,fl=e[e.tab].fault;mark('eD',d===fl);
+  fb.push([d===fl?'o':'e',`<b>Diagnóstico:</b> ${FAULTS[fl].name}. ${FB[fl]}${d&&d!==fl?` <br>Su elección («${FAULTS[d].name}») ${FAULTS[d].s!=='both'&&FAULTS[d].s!==e.tab?'corresponde al otro tipo de captador.':'no explica todos los síntomas medidos.'}`:''}`]);
+  $('score').textContent=`Puntaje: ${pts} / 5`;
+  S.ev.checked=true;
+  fb.push(['i',`<b>Caso:</b> captador ${e.tab==='ind'?'inductivo · '+IW[e.ind.wheel].name+' · s = '+nf(e.ind.gap,2)+' mm · R<sub>b</sub> = '+nf(e.ind.R,0)+' Ω':'Hall · '+HW[e.hall.target].name+' · '+nf(e.hall.sup,0)+' V'} · n = ${nf(e.rpm,0)} rpm.`]);
+  $('efb').innerHTML=fb.map(([c,t])=>`<div class="${c}">${t}</div>`).join('');
+  S.log.push({n:S.log.length+1,cap:e.tab==='ind'?'Inductivo':'Hall',ins:'Evaluación',mag:'Puntaje / diagnóstico',pts:d?FAULTS[d].name:'—',lec:pts+' / 5',cond:nf(e.rpm,0)+' rpm'});
+  drawLog();fullRender();
+}
+
+/* ---------- avisos ---------- */
+function updateMsgs(){
+  const c=conf(),w=[];
+  if(hidden()){w.push(['i','Modo evaluación: los avisos de diagnóstico están ocultos. Mida con el osciloscopio y el multímetro, responda y pulse «Comprobar».']);}
+  else{
+    for(const sn of shown(c)){const m=S.M[sn];
+      if(sn==='ind'){const p=c.ind;
+        if(c.rpm===0)w.push(['i','Inductivo: con el motor parado no hay variación de flujo y la tensión es 0 V; el captador inductivo solo genera señal en movimiento.']);
+        if(p.gap<0.5)w.push(['w',`Entrehierro de ${nf(p.gap,2)} mm menor que el típico (0,5–1,0 mm orientativo): la señal aumenta, pero existe riesgo de roce con los dientes.`]);
+        if(p.gap>1.0)w.push(['w',`Entrehierro de ${nf(p.gap,2)} mm mayor que el típico (0,5–1,0 mm orientativo): la amplitud disminuye.`]);
+        if(c.rpm>0&&m.fault!=='open'&&!m.detect)w.push(['e',`Amplitud ${fmtV(m.App)} V pp menor que el umbral de la ECU (≈ 0,3 V pp, orientativo): no se reconocen los dientes${c.rpm<=400?' y el motor no arranca':''}.`]);
+        if(c.rpm>0&&c.rpm<=400&&m.detect)w.push(['i',`Arranque: U pp ≈ ${fmtV(m.App)} V · V~ ≈ ${fmtV(m.rms)} V (se espera ≥ 0,5 V~, orientativo).`]);
+        if(c.rpm>=3000&&m.App>10)w.push(['i',`A ${nf(c.rpm,0)} rpm la señal alcanza ${fmtV(m.App)} V pp: la amplitud crece con la velocidad (U ∝ dΦ/dt).`]);
+        if(p.wheel==='c60'&&c.rpm>0&&m.detect)w.push(['i','Rueda 60-2: el hueco de 2 dientes produce una semionda de mayor amplitud y periodo; es la referencia de posición del cigüeñal para la ECU.']);
+        const F={open:['e','Bobina interrumpida: no hay señal a ninguna velocidad. Con el conector desconectado el óhmetro marca OL entre T1 y T2.'],
+          short:['w',`Espiras en corto: R<sub>b</sub> ≈ ${fmtR(m.Rn)} (menor que la nominal ${fmtR(p.R)}) y amplitud reducida al 35 %.`],
+          tooth:['w','Diente dañado / suciedad metálica en el imán: un ciclo por vuelta aparece deformado y más pequeño; la ECU puede perder ese pulso.'],
+          pol:['w',`Polaridad invertida (avería): la señal sale invertida y el paso por cero de disparo se desplaza ≈ ${nf(m.shift,1)}° de cigüeñal.`],
+          gap:['w',`Entrehierro excesivo (captador desplazado): la distancia efectiva es ${nf(m.sEff,2)} mm. La amplitud cae al ${nf(Math.exp(-(m.sEff-S_REF)/S_K)*100,0)} % del valor con 0,7 mm.`],
+          emi:['w','Interferencia: el blindaje no está conectado a masa. Aparecen ruido y picos en cada chispa que pueden generar pulsos falsos en la ECU.']};
+        if(F[m.fault])w.push(F[m.fault]);
+        if(p.pol==='inv'&&m.fault!=='pol')w.push(['w',`Polaridad invertida: la ECU detecta el paso por cero en el flanco equivocado; el punto de disparo se desplaza ≈ ${nf(m.shift,1)}° de cigüeñal${p.wheel==='c60'?' y el reconocimiento del hueco puede fallar':''}.`]);
+      }else{const p=c.hall;
+        if(c.rpm===0&&m.mode==='ok')w.push(['i',`Hall: a diferencia del inductivo, entrega un nivel estático con el motor parado. Ahora la señal está en ${hallV(m,c.man*m.ratio)>2?'nivel alto (pantalla o hueco frente al sensor)':'nivel bajo (ventana o diente frente al sensor)'}.`]);
+        if(m.mode==='ok'&&c.rpm>0)w.push(['i',`Hall: señal cuadrada de ${fmtV(UL)} a ${fmtV(m.Uh)} V con f = ${fmtHz(m.f)} Hz; la amplitud no depende de las rpm. Ciclo de trabajo ${nf(m.duty*100,1)} %.`]);
+        if(p.target==='drum'&&m.mode==='ok')w.push(['i',`TSZ-h: mientras la pantalla está en la barrera (señal alta) circula corriente por la bobina de encendido; el flanco de bajada marca el encendido. Ángulo de cierre ≈ ${nf(m.duty*90,0)}° de distribuidor (${nf(m.duty*180,0)}° de cigüeñal).`]);
+        const F={nosup:['e','Hall sin alimentación: T1–masa = 0 V. El CI no funciona y la resistencia pull-up mantiene la señal en alto: no hay pulsos y el motor no arranca.'],
+          nognd:['e',`Hall sin masa: T1–masa = ${fmtV(m.Us)} V, pero T3–masa ≈ ${fmtV(m.T3)} V. El transistor de salida no puede llevar la señal a 0 V: queda fija en alto.`],
+          pullup:['e','Resistencia pull-up abierta: el transistor de colector abierto no tiene quién eleve la tensión; la señal queda en ≈ 0 V y flotante.'],
+          hihi:['e','CI Hall averiado: alimentación y masa correctas, pero la salida permanece en alto aunque gire la rueda.'],
+          hilo:['e','CI Hall averiado: alimentación y masa correctas, pero la salida permanece en bajo (transistor siempre en conducción).'],
+          emi:['w','Interferencia: aparecen picos sobre la señal cuadrada en cada chispa; pueden producir flancos falsos.']};
+        if(F[m.fault])w.push(F[m.fault]);
+      }
+    }
+  }
+  if(MD&&MD.flo)w.push(['w','Multímetro: punto flotante. Con el conector desconectado, mida entre terminales del mismo lado.']);
+  $('msgs').innerHTML=w.length?w.map(([c,t])=>`<div class="${c}">${t}</div>`).join(''):'<div class="i">Sin avisos.</div>';
+}
+
+/* ---------- teoría / ecuaciones ---------- */
+const REF=`<tr><th>Parámetro</th><th>Captador inductivo</th><th>Captador Hall</th></tr>
+<tr><td>Resistencia de la bobina</td><td>200–1500 Ω según modelo</td><td>no se mide (CI activo)</td></tr>
+<tr><td>Entrehierro</td><td>0,3–1,5 mm (típico 0,5–1,0 mm)</td><td>fijo en la barrera; ≈ 0,5–1,5 mm en rueda dentada</td></tr>
+<tr><td>Alimentación</td><td>no requiere (genera tensión)</td><td>5 V (ECU) o ≈ 12 V (módulo)</td></tr>
+<tr><td>Señal en arranque (~200 rpm)</td><td>≥ 0,5 V~ (multímetro); ≈ 1–3 V pp (modelo: 1,5 V pp en 60-2; 3 V pp en rotor de 4 dientes)</td><td>0,1–0,4 V / ≈ U<sub>ref</sub></td></tr>
+<tr><td>Señal a alto régimen</td><td>decenas de voltios pico a pico</td><td>igual amplitud que en arranque</td></tr>
+<tr><td>Umbral de detección de la ECU (modelo)</td><td>≈ 0,3 V pp</td><td>flancos &gt; 2 V</td></tr>
+<tr><td>Ciclo de trabajo</td><td>—</td><td>tambor TSZ-h: ≈ 60–75 % (pantalla); 60-2: ≈ 50 %</td></tr>
+<tr><td>Caída de tensión en la masa del sensor</td><td>—</td><td>≤ 0,1 V</td></tr>
+<tr><td>Blindaje a masa</td><td>&lt; 1 Ω</td><td>—</td></tr>`;
+const EQ={
+ind:`<p class="f">U<sub>ind</sub> = −N · ΔΦ / Δt &nbsp;⇒&nbsp; U<sub>pp</sub> ∝ n · f(s)</p>
+<p class="f">Modelo: U<sub>pp</sub> ≈ U<sub>0</sub> · (n / 200 min⁻¹) · e<sup>−(s − 0,7 mm) / 0,5 mm</sup> · k<sub>carga</sub></p>
+<p class="f">k<sub>carga</sub> = R<sub>ECU</sub> / |R<sub>ECU</sub> + R<sub>b</sub> + jωL| &nbsp;(R<sub>ECU</sub> ≈ 22 kΩ; L ≈ 0,4 H por cada 1000 Ω)</p>
+<p class="f">U<sub>0</sub> = 1,5 V pp (rueda 60-2) · 3 V pp (rotor de 4 dientes: impulsos estrechos, menor valor eficaz)</p>
+<p class="f">f = n · z / 60 &nbsp;(rueda en el cigüeñal) &nbsp;·&nbsp; f = (n / 2) · z / 60 &nbsp;(distribuidor)</p>
+<p class="f">n = 60 · f / z &nbsp;·&nbsp; n = 2 · 60 · f / z (distribuidor) &nbsp;·&nbsp; T = 1 / f</p>
+<p class="f">Ángulo entre dientes = 360° / z &nbsp;(6° en la rueda 60-2) &nbsp;·&nbsp; U<sub>ef</sub> ≈ U<sub>pp</sub> / (2√2) (senoidal)</p>
+<p class="muted">En la 60-2, z = 60 porque se cuentan también las dos posiciones del hueco. El punto de referencia es el paso por cero descendente: coincide con el centro del diente frente al núcleo, independientemente de las rpm.</p>`,
+hall:`<p class="f">U<sub>H</sub> = R<sub>H</sub> · I · B / d &nbsp;(tensión Hall, del orden de milivoltios)</p>
+<p class="f">f = n · z / 60 &nbsp;(rueda en el cigüeñal) &nbsp;·&nbsp; f = (n / 2) · z / 60 &nbsp;(tambor en el distribuidor)</p>
+<p class="f">D = t<sub>alto</sub> / T · 100 % &nbsp;·&nbsp; α<sub>cierre</sub> = D · 360° / z (grados de distribuidor) = 2 · D · 360° / z (grados de cigüeñal)</p>
+<p class="f">U<sub>alto</sub> ≈ U<sub>ref</sub> · R<sub>ent</sub> / (R<sub>ent</sub> + R<sub>pu</sub>) ≈ 0,98 · U<sub>ref</sub> &nbsp;·&nbsp; U<sub>bajo</sub> ≈ 0,2 V</p>
+<p class="f">U<sub>⎓ promedio</sub> = U<sub>bajo</sub> + D · (U<sub>alto</sub> − U<sub>bajo</sub>)</p>
+<p class="muted">La amplitud de la señal Hall la fija la tensión de referencia de la resistencia pull-up, no la velocidad. Por eso el Hall entrega señal válida desde 0 rpm.</p>`};
+EQ.cmp=EQ.ind.split('<p class="muted">')[0]+EQ.hall.split('<p class="f">f =')[0]+`<p class="f">f = n<sub>eje</sub> · z / 60 &nbsp;(válida para ambos captadores) &nbsp;·&nbsp; n = 60 · f / z</p>`;
+const HALLFIG=`<svg viewBox="0 0 360 150" style="width:100%;max-width:420px;display:block;margin:6px auto" aria-label="Efecto Hall">
+<rect x="80" y="40" width="200" height="70" fill="#e8f1fb" stroke="#1f5a94" stroke-width="2"/>
+<line x1="20" y1="75" x2="78" y2="75" stroke="#c62828" stroke-width="2.5"/><path d="M78 75 l-10 -5 v10z" fill="#c62828"/><text x="22" y="67" font-size="12" fill="#c62828" font-weight="700">I</text>
+<line x1="282" y1="75" x2="340" y2="75" stroke="#c62828" stroke-width="2.5"/>
+${[0,1,2,3].map(i=>[0,1].map(j=>`<circle cx="${112+i*44}" cy="${60+j*30}" r="6" fill="none" stroke="#1d8a4e" stroke-width="1.5"/><circle cx="${112+i*44}" cy="${60+j*30}" r="1.8" fill="#1d8a4e"/>`).join('')).join('')}
+<text x="10" y="22" font-size="12" fill="#1d8a4e" font-weight="700">B (hacia el lector)</text>
+${[0,1,2,3,4].map(i=>`<text x="${96+i*40}" y="37" font-size="13" fill="#12355b" font-weight="700">−</text><text x="${96+i*40}" y="124" font-size="13" fill="#c62828" font-weight="700">+</text>`).join('')}
+<line x1="180" y1="30" x2="180" y2="10" stroke="#2b3440"/><line x1="180" y1="120" x2="180" y2="140" stroke="#2b3440"/>
+<text x="188" y="18" font-size="12" fill="#2b3440">U<tspan font-size="9" dy="3">H</tspan></text><text x="10" y="140" font-size="11" fill="#5b6778">placa semiconductora (espesor d)</text></svg>`;
+const THEORY={
+ind:`<p>El captador inductivo (generador de impulsos del <b>TSZ-i</b> o sensor de cigüeñal) está formado por un <b>imán permanente</b>, un <b>núcleo de hierro dulce</b> y una <b>bobina</b> de muchas espiras. No necesita alimentación: es un pequeño generador.</p>
+<p>Cuando un diente se acerca al núcleo, el entrehierro disminuye, la reluctancia baja y el flujo magnético aumenta: se induce la semionda positiva. Con el diente enfrentado al núcleo el flujo es máximo pero no varía, por eso la tensión <b>pasa por cero</b>: ese es el punto de referencia que la ECU o el módulo de encendido usan como disparo. Al alejarse el diente el flujo disminuye y aparece la semionda negativa.</p>
+<p>Como la tensión depende de la rapidez con que cambia el flujo (ley de Faraday), la <b>amplitud crece con las rpm</b> y es nula con el motor parado; además disminuye al aumentar el entrehierro. La frecuencia es proporcional al régimen. En la rueda 60-2 el hueco de dos dientes produce un ciclo más largo y de mayor amplitud que marca la posición del cigüeñal.</p>`,
+hall:`<p><b>Efecto Hall:</b> cuando una placa semiconductora recorrida por una corriente I se coloca en un campo magnético B perpendicular, la fuerza de Lorentz desvía los portadores de carga hacia un borde. Entre los bordes aparece la tensión Hall U<sub>H</sub>, proporcional a I · B.</p>${HALLFIG}
+<p>U<sub>H</sub> es de milivoltios, por lo que el <b>circuito integrado Hall</b> la amplifica, la convierte en señal digital (disparador de Schmitt) y activa un <b>transistor de salida de colector abierto</b>. La ECU (5 V) o el módulo de encendido (12 V) alimentan el CI (terminales +, −) y elevan la señal con una <b>resistencia pull-up</b>: transistor bloqueado → nivel alto ≈ U<sub>ref</sub>; transistor en conducción → ≈ 0,2 V.</p>
+<p>En el distribuidor del <b>TSZ-h</b> un tambor con 4 pantallas pasa por la barrera magnética. Pantalla en la barrera: el campo no llega al CI y la señal es alta (el módulo carga la bobina); ventana: el campo actúa, la señal cae y ese flanco produce la chispa. El ancho de la pantalla fija el ángulo de cierre (Dwell). La señal es cuadrada, de amplitud constante y existe incluso a 0 rpm.</p>`,
+cmp:`<div class="tblwrap"><table class="left"><tr><th>Característica</th><th>Inductivo</th><th>Hall</th></tr>
+<tr><td>Principio</td><td>Inducción (Faraday): U = −N · ΔΦ/Δt</td><td>Efecto Hall: U<sub>H</sub> ∝ I · B + electrónica</td></tr>
+<tr><td>Alimentación</td><td>No (es un generador)</td><td>Sí: 5 V (ECU) o 12 V (módulo)</td></tr>
+<tr><td>Terminales</td><td>2 de señal + blindaje</td><td>3: +, señal, −</td></tr>
+<tr><td>Forma de onda</td><td>Alterna, casi senoidal</td><td>Cuadrada (digital)</td></tr>
+<tr><td>Amplitud</td><td>Crece con las rpm (≈ 1 V en arranque, decenas de V a alto régimen)</td><td>Constante (0 V / ≈ U<sub>ref</sub>)</td></tr>
+<tr><td>Señal a 0 rpm</td><td>No</td><td>Sí (nivel estático)</td></tr>
+<tr><td>Frecuencia</td><td colspan="2">f = n<sub>eje</sub> · z / 60 en ambos</td></tr>
+<tr><td>Punto de referencia</td><td>Paso por cero descendente</td><td>Flanco de la señal cuadrada</td></tr>
+<tr><td>Entrehierro</td><td>Muy influyente en la amplitud</td><td>Influye poco mientras detecte</td></tr>
+<tr><td>Comprobación con multímetro</td><td>Ω de la bobina, V~ al arrancar, aislamiento y blindaje</td><td>Alimentación, masa, señal (V⎓ o punta lógica)</td></tr>
+<tr><td>Ventajas</td><td>Robusto, sencillo, sin alimentación</td><td>Señal limpia desde 0 rpm, insensible a la velocidad</td></tr>
+<tr><td>Desventajas</td><td>Señal débil a bajas rpm, sensible a interferencias</td><td>Necesita alimentación, masa y pull-up; CI sensible a sobretensión</td></tr></table></div>`};
+
+/* ---------- registro ---------- */
+function addLog(){
+  const m=updateMeter();if(!m.v||m.v==='- - -')return;const c=conf(),L=termLabels(mSens(c),hidden());
+  S.log.push({n:S.log.length+1,cap:hidden()?'Oculto':(mSens(c)==='ind'?'Inductivo':'Hall'),ins:'Multímetro',mag:{VDC:'Tensión ⎓',VAC:'Tensión ~',R:'Resistencia',HZ:'Frecuencia'}[S.mt.mode],
+    pts:`${L[S.mt.red]} → ${L[S.mt.black]}${S.mt.disc?' (desconectado)':''}`,lec:m.v+' '+m.u,cond:hidden()?'caso oculto':nf(c.rpm,0)+' rpm'});
+  drawLog();
+}
+function addScopeLog(){
+  const c=conf(),sc=S.sc,tdiv=sc.tdiv/1000;let mag,lec;
+  if(sc.cur==='t'){const d=Math.abs(sc.cB-sc.cA)*tdiv;mag='Cursores Δt · 1/Δt';lec=`${fmtT(d)} · ${d>0?fmtHz(1/d)+' Hz':'—'}`;}
+  else{const ch=TR.length>1?sc.curCh:1,vd=ch===1?sc.v1:sc.v2;mag=`Cursores ΔU (CH${ch})`;lec=fmtV(Math.abs(sc.uA-sc.uB)*vd)+' V';}
+  S.log.push({n:S.log.length+1,cap:hidden()?'Oculto':shown(c).map(s=>s==='ind'?'Inductivo':'Hall').join(' + '),ins:'Osciloscopio',mag,pts:`${vOpt(sc.v1)}/div · ${sc.tdiv<1?nf(sc.tdiv*1000,0)+' µs':nf(sc.tdiv,0)+' ms'}/div`,lec,cond:hidden()?'caso oculto':nf(c.rpm,0)+' rpm'});
+  drawLog();
+}
+function drawLog(){
+  $('logTbl').innerHTML=S.log.length?`<table><tr><th>N.º</th><th>Captador</th><th>Instrumento</th><th>Magnitud</th><th>Puntos / ajuste</th><th>Lectura</th><th>Condición</th></tr>${S.log.map(r=>`<tr><td>${r.n}</td><td>${r.cap}</td><td>${r.ins}</td><td>${r.mag}</td><td>${r.pts}</td><td>${r.lec}</td><td>${r.cond}</td></tr>`).join('')}</table>`:'<p class="muted">Aún no hay lecturas registradas.</p>';
+}
+function csv(){
+  const lines=['N;Captador;Instrumento;Magnitud;Puntos o ajuste;Lectura;Condición',...S.log.map(r=>[r.n,r.cap,r.ins,r.mag,r.pts,r.lec,r.cond].join(';'))];
+  const blob=new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='registro_captadores_inductivo_hall.csv';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+
+/* ---------- animación ---------- */
+let visA=0,realA=0,last=performance.now(),meterT=0;
+function stripPath(st,c,aNow){
+  const m=S.M[st.sens];const n=120;let d='';
+  const phiNow=aNow*m.ratio;
+  let scale;if(st.sens==='ind'){scale=m.App>0?(st.h*0.36)/Math.max(m.App*0.5,1e-9):0;}else scale=(st.h*0.7)/Math.max(m.Us,1);
+  for(let i=0;i<=n;i++){const phi=phiNow-st.span+st.span*i/n;let v;
+    if(st.sens==='ind'){v=c.rpm>0?indV(m,phi)*scale:0;}else{v=(hallV(m,phi)-(m.mode==='ok'?(m.Uh+UL)/2:m.Us/2))*scale;}
+    const x=st.x+st.w*i/n,y=clamp(st.y+st.h/2-v,st.y+2,st.y+st.h-2);d+=(i?'L':'M')+x.toFixed(1)+' '+y.toFixed(1);}
+  return d;
+}
+function frame(t){
+  const dt=Math.min(0.05,(t-last)/1000);last=t;const c=conf();
+  const real=c.rpm/60;
+  if(c.rpm>0){const vis=real<=0.3?real:0.3*Math.pow(real/0.3,0.25);visA=(visA+vis*360*dt)%1440;realA=(realA+real*360*dt)%1440;}
+  else{visA=c.man;realA=c.man;}
+  const a=visA;
+  for(const r of SC.rot||[]){const el=document.getElementById(r.id);if(el)el.setAttribute('transform',`rotate(${(-a*r.ratio).toFixed(2)} ${r.cx} ${r.cy})`);}
+  if(!hidden()){
+    const fi=document.getElementById('fluxI');if(fi&&S.M.ind){const m=S.M.ind;const v=m.tb.phi[idx(a*m.ratio)];fi.setAttribute('opacity',(0.12+0.85*v).toFixed(2));}
+    const fh=document.getElementById('fluxH');if(fh&&S.M.hall){const m=S.M.hall;const on=m.tb.h[idx(a*m.ratio)]===0;fh.setAttribute('opacity',on?'0.9':'0.08');}
+    for(const st of SC.strips||[]){const el=document.getElementById(st.id);if(el){el.setAttribute('d',stripPath(st,c,a));el.setAttribute('stroke',st.sens==='ind'?'#ffd23f':'#4fd8ff');}}
+    const ui=document.getElementById('uInst');
+    if(ui){if(c.tab==='ind'){const m=S.M.ind;ui.textContent=c.rpm>0?`U pp = ${fmtV(m.App)} V · f = ${fmtHz(m.f)} Hz`:'U = 0 V (motor parado)';}
+      else if(c.tab==='hall'){const m=S.M.hall;const v=hallV(m,a*m.ratio);ui.textContent=`T2 = ${fmtV(v)} V`;
+        const tr=document.getElementById('hTrS'),tt=document.getElementById('hTrT');const cond=m.mode==='low'||(m.mode==='ok'&&v<1)||(m.mode==='float'&&m.tb.h[idx(a*m.ratio)]===0);
+        const alive=m.mode==='ok'||m.mode==='float'||m.mode==='low'||m.fault==='hihi';
+        if(tr){tr.setAttribute('opacity',cond&&alive?'1':'0');}if(tt)tt.textContent=!alive?'sin funcionar':cond?'T conduce':'T bloqueado';}}
+  }
+  // punta lógica (tiempo real)
+  logicProbe(c);
+  if(S.sc.run&&needsLive()){if((t-(frame.sT||0))>80){frame.sT=t;scopeDirty=true;paintScope();}}
+  else if(scopeDirty)paintScope();
+  if(t-meterT>350){meterT=t;if(needsLive()||S.mt.mode==='HZ')updateMeter();}
+  requestAnimationFrame(frame);
+}
+function logicProbe(c){
+  const sn=mSens(c);const m=S.M[sn];let H=false,Lw=false,Pu=false,dim=false;
+  if(S.mt.mode!=='OFF'){
+    const vAt=phi=>nodeV(sn,S.mt.red,phi,S.mt.disc);
+    const fr=m.f;
+    if(c.rpm===0||fr<12){const v=vAt(realA*m.ratio);if(!isNaN(v)){H=v>2.4;Lw=v<0.8;}}
+    else{let hi=false,lo=false;for(let k=0;k<72;k++){const v=vAt(k*5+0.3);if(isNaN(v))continue;if(v>2.4)hi=true;if(v<0.8)lo=true;}
+      if(hi&&lo){Pu=true;H=Lw=true;dim=true;}else{const v=vAt(0);if(!isNaN(v)){H=v>2.4;Lw=v<0.8;}}}
+  }
+  $('ledH').className='led r'+(H?' on':'')+(dim?' dim':'');$('ledL').className='led g'+(Lw?' on':'')+(dim?' dim':'');$('ledP').className='led a'+(Pu?' on':'');
+}
+
+/* ---------- render ---------- */
+function compute(){const c=conf();S.M.ind=indM(c,false);S.M.hall=hallM(c);}
+function changed(struct){if(!S.ev.on)S.ev.checked=false;compute();if(struct)buildScene();scopeDirty=true;paintScope();updateMeter();updateResults();updateMsgs();}
+function fullRender(){
+  const c=conf();
+  document.querySelectorAll('#tabs button').forEach(b=>{b.classList.toggle('on',!S.ev.on&&b.dataset.t===S.tab);b.disabled=S.ev.on;});
+  compute();buildControls();buildScene();buildScopeCtl();buildProbes();
+  const key=hidden()?'ind':c.tab;
+  $('thTitle').textContent=c.tab==='cmp'&&!S.ev.on?'Comparación inductivo vs. Hall':'Principio de funcionamiento';
+  $('theory').innerHTML=hidden()?THEORY.cmp:THEORY[c.tab];
+  $('eqs').innerHTML=hidden()?EQ.cmp:EQ[c.tab];
+  $('refTbl').innerHTML=REF;
+  scopeDirty=true;paintScope();updateMeter();updateResults();updateMsgs();
+}
+document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{if(S.ev.on)return;S.tab=b.dataset.t;
+  if(S.tab==='cmp'){S.mt.sens='ind';}S.mt.red='T1';S.mt.black=S.tab==='hall'?'M':'T2';fullRender();autoset();fullRender();});
+document.querySelectorAll('#modes button').forEach(b=>b.onclick=()=>{S.mt.mode=b.dataset.m;updateMeter();updateMsgs();});
+$('pRed').onchange=e=>{S.mt.red=e.target.value;updateMeter();updateMsgs();};
+$('pBlk').onchange=e=>{S.mt.black=e.target.value;updateMeter();updateMsgs();};
+$('mDisc').onchange=e=>{S.mt.disc=e.target.checked;updateMeter();updateMsgs();};
+$('mSens').onchange=e=>{S.mt.sens=e.target.value;buildProbes();updateMeter();};
+$('btnLog').onclick=addLog;$('bScLog').onclick=addScopeLog;
+$('btnCsv').onclick=csv;$('btnClr').onclick=()=>{S.log=[];drawLog();};
+$('bRun').onclick=()=>{S.sc.run=!S.sc.run;$('bRun').textContent=S.sc.run?'RUN':'STOP';$('bRun').classList.toggle('on',S.sc.run);scopeDirty=true;paintScope();};
+$('bAuto').onclick=()=>{autoset();paintScope();};
+$('evalMode').onchange=e=>{S.ev.on=e.target.checked;
+  if(S.ev.on){S.ev.saved={tab:S.tab};buildEvalBox();newCase();}
+  else{S.ev.c=null;S.ev.checked=false;S.mt.red='T1';S.mt.black=S.tab==='hall'?'M':'T2';S.mt.disc=false;fullRender();autoset();fullRender();}};
+window.addEventListener('resize',()=>{scopeDirty=true;paintScope();});
+initTables();fullRender();autoset();paintScope();drawLog();requestAnimationFrame(frame);
+</script>
+</body>
+</html>

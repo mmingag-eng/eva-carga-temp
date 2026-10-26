@@ -1,0 +1,716 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Metrología de Cilindros</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* Layout: banco de instrumentos — panel de mandos a la izquierda, dos diagramas como lectura principal, cilindro y datos debajo */
+:root{
+  --bg:#eef1f4; --surface:#ffffff; --sunk:#e3e8ee; --fg:#17202b; --muted:#5b6778; --line:#cfd6df; --grid:#e6eaef;
+  --hot:#d9480f; --cold:#1864ab; --adi:#6b7686;
+  --accent:#364fc7;
+  --f-display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e1217; --surface:#151b23; --sunk:#1c242e; --fg:#e3e8ee; --muted:#95a1b0; --line:#29323d; --grid:#1f2731;
+    --hot:#ff7b45; --cold:#4dabf7; --adi:#8d99a8; --accent:#748ffc; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e1217; --surface:#151b23; --sunk:#1c242e; --fg:#e3e8ee; --muted:#95a1b0; --line:#29323d; --grid:#1f2731;
+  --hot:#ff7b45; --cold:#4dabf7; --adi:#8d99a8; --accent:#748ffc; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.5;margin:0}
+.page{max-width:1440px;margin:0 auto;padding-inline:clamp(16px,3vw,32px);padding-block:24px 40px}
+.top{display:grid;gap:10px;padding-bottom:18px;border-bottom:1px solid var(--line);margin-bottom:20px}
+.eyebrow{font-family:var(--f-mono);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(36px,5.2vw,56px);line-height:1;margin:0;letter-spacing:-.005em;text-wrap:balance}
+h1 .acc{color:var(--accent)}
+.lede{max-width:72ch;margin:0;color:var(--muted)}
+.chips{list-style:none;display:flex;flex-wrap:wrap;gap:6px;padding:0;margin:4px 0 0}
+.chips li{font-size:13px;padding:4px 11px;border:1px solid var(--line);border-radius:999px;background:var(--surface);display:flex;gap:7px;align-items:center;cursor:pointer;transition:border-color .15s}
+.chips li b{font-family:var(--f-mono);font-weight:500;font-size:12px}
+.chips li.on{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.dot{width:9px;height:9px;border-radius:50%;flex:none}
+.layout{display:grid;grid-template-columns:310px minmax(0,1fr);gap:22px;align-items:start}
+.panel{position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px);display:grid;gap:16px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;max-height:calc(100vh - 24px);overflow:auto}
+@media (max-width:980px){.layout{grid-template-columns:minmax(0,1fr)}.panel{position:static;max-height:none}}
+.panel h2,.sec-h{font-family:var(--f-display);font-size:14.5px;font-weight:600;text-transform:uppercase;letter-spacing:.09em;margin:0 0 4px;color:var(--muted)}
+.prm{display:grid;gap:3px;padding-block:5px}
+.prm-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.prm label{font-size:14px;font-weight:500}
+.sym{font-family:var(--f-mono);font-size:12px;color:var(--accent);white-space:nowrap}
+.prm-in{display:grid;grid-template-columns:minmax(0,1fr) 84px 58px;gap:8px;align-items:center}
+.prm-in.sel{grid-template-columns:minmax(0,1fr)}
+input[type=range]{width:100%;accent-color:var(--accent);margin:0}
+input[type=number],select{width:100%;font-family:var(--f-mono);font-size:13px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--fg)}
+input:focus-visible,select:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.unit{font-family:var(--f-mono);font-size:11px;color:var(--muted);line-height:1.2}
+.hint{font-size:12.5px;color:var(--muted);min-height:1.1em}
+.hint b{color:var(--fg);font-weight:600;font-family:var(--f-mono);font-size:12px}
+details.adv summary{cursor:pointer;font-family:var(--f-display);font-size:14.5px;font-weight:600;text-transform:uppercase;letter-spacing:.09em;color:var(--muted)}
+.btns{display:flex;flex-wrap:wrap;gap:8px}
+button{font-family:var(--f-body);font-size:14px;font-weight:600;padding:7px 12px;border-radius:7px;border:1px solid var(--line);background:var(--sunk);color:var(--fg);cursor:pointer}
+button:hover{border-color:var(--accent)}
+button.pri{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.msgs{display:grid;gap:8px}
+.msg{font-size:13px;padding:8px 10px;border-radius:7px;border:1px solid var(--line);border-left:4px solid var(--adi);background:var(--bg)}
+.msg.err{border-left-color:var(--hot)}
+.msg.warn{border-left-color:#e8a317}
+.work{display:grid;gap:18px;min-width:0}
+.plots{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media (max-width:760px){.plots{grid-template-columns:minmax(0,1fr)}}
+.plot{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 10px 8px;min-width:0;position:relative}
+.plot figcaption{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:0 4px 6px}
+.plot figcaption span{font-family:var(--f-display);font-weight:700;font-size:20px}
+.plot figcaption small{font-size:12.5px;color:var(--muted)}
+.plot figcaption label{font-size:12.5px;color:var(--muted);display:flex;gap:5px;align-items:center;cursor:pointer}
+.plot canvas{width:100%;aspect-ratio:4/3.3;display:block;touch-action:pan-y;cursor:crosshair}
+body.invalid .plots,body.invalid .anim,body.invalid .kpis,body.invalid .tables{opacity:.35;filter:grayscale(.6)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:var(--muted);padding-inline:4px}
+.legend span{display:flex;align-items:center;gap:7px}
+.legend i{display:inline-block;width:22px;height:3px;border-radius:2px}
+.legend i.area{height:11px;opacity:.35;background:var(--accent)}
+.legend i.ref{height:0;border-top:2px dashed var(--muted)}
+.anim{display:grid;grid-template-columns:260px minmax(0,1fr);gap:18px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px}
+@media (max-width:640px){.anim{grid-template-columns:minmax(0,1fr)}}
+.anim canvas{width:100%;height:400px;display:block;background:var(--bg);border-radius:8px}
+.anim-info{display:grid;gap:12px;align-content:start;min-width:0}
+.ctl{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.ctl select{width:auto}
+.scrub{display:grid;gap:2px}
+.scrub label{font-size:12.5px;color:var(--muted)}
+.pn-head{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.pn-id{font-family:var(--f-mono);font-size:13px;padding:2px 8px;border-radius:5px;background:var(--accent);color:var(--surface)}
+.pn-type{font-size:13px;color:var(--muted)}
+.pn h3{font-family:var(--f-display);font-size:26px;font-weight:600;margin:6px 0 4px;line-height:1.1}
+.pn p{margin:0 0 10px;max-width:66ch}
+.pn-vals{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0}
+.pn-vals div{background:var(--bg);border-radius:7px;padding:6px 10px}
+.pn-vals dt{font-size:12px;color:var(--muted)}
+.pn-vals dd{margin:0;font-family:var(--f-mono);font-size:15px;font-variant-numeric:tabular-nums}
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:10px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:10px 12px;display:grid;gap:2px;align-content:start}
+.kpi.main{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.kpi .l{font-size:12.5px;color:var(--muted);line-height:1.25}
+.kpi .v{font-family:var(--f-mono);font-size:22px;font-weight:500;font-variant-numeric:tabular-nums;line-height:1.2}
+.kpi.main .v{color:var(--accent);font-size:28px}
+.kpi .v small{font-size:12px;color:var(--muted);font-weight:400;margin-left:4px}
+.kpi .s{font-size:12px;color:var(--muted);font-family:var(--f-mono)}
+.kpi-group{grid-column:1/-1;font-family:var(--f-display);font-size:14.5px;font-weight:600;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin-top:4px}
+.tables{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media (max-width:1100px){.tables{grid-template-columns:minmax(0,1fr)}}
+.tbl{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px;min-width:0}
+.tbl-scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{padding:6px 8px;text-align:right;white-space:nowrap}
+th{font-weight:600;color:var(--muted);font-size:12px;border-bottom:1px solid var(--line)}
+th:first-child,td:first-child{text-align:left}
+td{font-family:var(--f-mono);font-variant-numeric:tabular-nums;border-bottom:1px solid var(--grid)}
+td.txt{font-family:var(--f-body)}
+tr.on td{background:var(--sunk)}
+tr.tot td{font-weight:600;border-top:1px solid var(--line);border-bottom:0}
+.pos{color:var(--hot)} .neg{color:var(--cold)}
+.theory{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media (max-width:900px){.theory{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;min-width:0}
+.card h3{font-family:var(--f-display);font-size:22px;font-weight:600;margin:0 0 8px}
+.card p,.card li{max-width:68ch}
+.card ol,.card ul{padding-left:20px;margin:6px 0}
+.card li{margin-bottom:6px}
+.eq{font-family:var(--f-mono);font-size:13.5px;background:var(--bg);border-radius:6px;padding:7px 10px;margin:6px 0;overflow-x:auto;white-space:nowrap}
+.eq-note{font-size:13px;color:var(--muted);margin:0 0 4px}
+.live{font-family:var(--f-mono);font-size:13px;color:var(--accent)}
+footer{margin-top:26px;padding-top:14px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted);max-width:110ch}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+/* --- propio del simulador de metrología --- */
+.seg{display:flex;gap:0;border:1px solid var(--line);border-radius:7px;overflow:hidden;max-width:100%}
+.seg button{flex:1 1 0;min-width:0;border:0;border-radius:0;background:var(--surface);font-weight:500;padding:6px 8px;border-right:1px solid var(--line);line-height:1.2;white-space:normal}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--surface)}
+.fld{display:grid;gap:4px;padding-block:4px}
+.fld>span{font-size:14px;font-weight:500}
+.row2{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center}
+input[type=text]{width:100%;font-family:var(--f-mono);font-size:14px;padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--fg);text-transform:uppercase;letter-spacing:.05em}
+input[type=text]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.ficha{display:grid;grid-template-columns:auto minmax(0,1fr);gap:3px 10px;margin:6px 0 0;font-size:12.5px}
+.ficha dt{color:var(--muted)}
+.ficha dd{margin:0;font-family:var(--f-mono);font-size:12px;text-align:right}
+.code{font-family:var(--f-mono);font-size:13px;color:var(--accent);font-weight:700}
+.plot canvas.dial{aspect-ratio:1/1;max-height:420px;cursor:default}
+.plot canvas.mic{aspect-ratio:1/1;max-height:420px;cursor:default}
+@media (max-width:760px){.plot canvas.mic{aspect-ratio:4/3}}
+@media (max-width:640px){.plot canvas.blk{height:230px}}
+.plot canvas.blk{aspect-ratio:auto;height:330px;cursor:pointer}
+.readout{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:13px;color:var(--muted);padding:6px 4px 0}
+.readout b{font-family:var(--f-mono);color:var(--fg);font-weight:600}
+.sheet td.miss{color:var(--muted)}
+.sheet td.bad{color:var(--hot);font-weight:600}
+.sheet td.ok{color:var(--cold)}
+.sheet th.grp{text-align:center;border-bottom:1px solid var(--line)}
+.sheet tr.sel td{background:var(--sunk)}
+.sheet td.new{animation:flash 1.2s ease-out}
+@keyframes flash{from{background:color-mix(in srgb,var(--accent) 35%,transparent)}to{background:transparent}}
+.hdr{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px}
+.chk{display:flex;gap:7px;align-items:center;font-size:13px;color:var(--muted);cursor:pointer}
+.tag{display:inline-block;font-family:var(--f-body);font-size:12px;font-weight:600;padding:1px 8px;border-radius:999px;border:1px solid var(--line)}
+.tag.ok{border-color:var(--cold);color:var(--cold)}
+.tag.bad{border-color:var(--hot);color:var(--hot)}
+.cu{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:8px 0}
+@media (max-width:520px){.cu{grid-template-columns:minmax(0,1fr)}}
+.cu label{display:grid;gap:3px;font-size:12.5px;color:var(--muted)}
+.sol{font-family:var(--f-mono);font-size:12.5px;background:var(--bg);border-radius:7px;padding:8px 10px;line-height:1.65;overflow-x:auto;margin-top:8px}
+.sol b{color:var(--accent)}
+.diag{display:grid;gap:8px;margin-top:6px}
+.diag div{font-size:13.5px;border:1px solid var(--line);border-radius:7px;padding:7px 10px;background:var(--bg)}
+.card p.small{font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="top">
+    <div class="eyebrow">Simulador · Introducción a Motores · Unidad 3 — Verificación del bloque y del pistón</div>
+    <h1>Metrología de <span class="acc">cilindros</span></h1>
+    <p class="lede">Taller virtual de medición: calibre el alexómetro con el micrómetro, mida cada cilindro en tres alturas y dos direcciones, mida el pistón y llene la hoja de registro. Calcule el ovalamiento, la conicidad y la holgura, compárelos con la ficha del motor y decida si el bloque sirve, si hay que rectificar (y a qué sobremedida) o encamisar.</p>
+  </header>
+  <div class="layout">
+    <aside class="panel" aria-label="Controles del taller">
+      <section><h2>Bloque</h2>
+        <div class="fld"><span>Ficha técnica del motor</span><select id="selEng"></select></div>
+        <div class="fld"><label for="code" style="font-size:14px;font-weight:500">Código del bloque</label>
+          <div class="row2"><input type="text" id="code" maxlength="9" spellcheck="false" autocomplete="off"><button type="button" id="bLoad">Cargar</button></div>
+          <div class="hint">El mismo código genera el mismo bloque en todos los computadores.</div></div>
+        <div class="btns"><button type="button" class="pri" id="bNew">Nuevo bloque</button></div>
+        <dl class="ficha" id="ficha"></dl>
+      </section>
+      <section><h2>Medición</h2>
+        <div class="fld"><span>Cilindro</span><div class="seg" id="sgCyl" role="group" aria-label="Cilindro"></div></div>
+        <div class="fld"><span>Altura</span><div class="seg" id="sgH" role="group" aria-label="Altura de medición"></div></div>
+        <div class="fld"><span>Dirección</span><div class="seg" id="sgDir" role="group" aria-label="Dirección de medición"></div></div>
+        <div class="btns" style="margin-top:6px"><button type="button" class="pri" id="bMeas">Medir</button><button type="button" id="bPis">Medir pistón</button></div>
+        <div class="btns"><button type="button" id="bAll">Medir los 6 puntos</button><button type="button" id="bClear">Borrar hoja</button></div>
+      </section>
+      <div class="msgs" id="msgs" aria-live="polite"></div>
+    </aside>
+    <main class="work">
+      <div class="plots">
+        <figure class="plot"><figcaption><span>Alexómetro (comparador de interiores)</span><small id="dialCap"></small></figcaption>
+          <canvas class="dial" id="cDial" aria-label="Esfera del comparador de interiores con la desviación medida"></canvas>
+          <div class="readout" id="roDial"></div></figure>
+        <figure class="plot"><figcaption><span>Micrómetro de exteriores</span><small id="micCap"></small></figcaption>
+          <canvas class="mic" id="cMic" aria-label="Tambor y cilindro graduado del micrómetro con la medida del pistón"></canvas>
+          <div class="readout" id="roMic"></div></figure>
+      </div>
+      <figure class="plot"><figcaption><span>Vista del bloque</span><small>Pulse un cilindro para seleccionarlo · corte exagerado del desgaste</small></figcaption>
+        <canvas class="blk" id="cBlk" aria-label="Vista superior del bloque con direcciones X e Y y corte lateral del cilindro con alturas A, B y C"></canvas></figure>
+      <section class="kpis" id="kpis" aria-label="Resultados del cilindro seleccionado"></section>
+      <div class="tbl">
+        <div class="hdr"><div class="sec-h" style="margin:0">Hoja de registro (mm)</div><label class="chk"><input type="checkbox" id="hide"> Ocultar resultados (para calcular usted)</label></div>
+        <div class="tbl-scroll"><table class="sheet" id="tSheet"></table></div>
+      </div>
+      <section class="theory">
+        <div class="card"><h3>Calcule usted</h3>
+          <p class="small">Elija un cilindro con las 6 medidas y el pistón medidos, calcule con los valores de la hoja y escriba sus resultados en mm. Se aceptan ±0.005 mm.</p>
+          <div class="fld"><span>Cilindro</span><div class="seg" id="sgCu" role="group" aria-label="Cilindro a calcular"></div></div>
+          <div class="cu">
+            <label>Ovalamiento (mm)<input type="number" id="uOv" step="0.001"></label>
+            <label>Conicidad (mm)<input type="number" id="uCo" step="0.001"></label>
+            <label>Holgura (mm)<input type="number" id="uHo" step="0.001"></label>
+          </div>
+          <div class="btns"><button type="button" class="pri" id="bChk">Revisar</button><button type="button" id="bSol">Ver solución</button></div>
+          <div class="msgs" id="cuMsg" aria-live="polite" style="margin-top:8px"></div>
+          <div class="sol" id="sol" hidden></div>
+        </div>
+        <div class="card"><h3>Diagnóstico del bloque</h3>
+          <div class="diag" id="diag"></div>
+        </div>
+      </section>
+      <section class="theory">
+        <div class="card">
+          <h3>Ecuaciones</h3>
+          <p class="eq-note">Ovalamiento: diferencia entre las dos direcciones a la misma altura; se toma la mayor de A, B y C</p>
+          <div class="eq">Ov = máx( |d<sub>A‑Y</sub> − d<sub>A‑X</sub>|, |d<sub>B‑Y</sub> − d<sub>B‑X</sub>|, |d<sub>C‑Y</sub> − d<sub>C‑X</sub>| )</div>
+          <p class="eq-note">Conicidad: diferencia entre la medida superior (A) y la inferior (C) en la misma dirección; se toma la mayor</p>
+          <div class="eq">Co = máx( d<sub>A‑X</sub> − d<sub>C‑X</sub>, d<sub>A‑Y</sub> − d<sub>C‑Y</sub> )</div>
+          <p class="eq-note">Algunos manuales usan máx(d en A) − mín(d en C), que mezcla direcciones y da un valor igual o mayor (más conservador). Este simulador usa la definición por dirección.</p>
+          <p class="eq-note">Desgaste máximo y holgura pistón‑cilindro (diámetro en la zona que indica la ficha)</p>
+          <div class="eq">Desgaste = d<sub>máx</sub> − D<sub>nominal</sub> &nbsp;·&nbsp; Holgura = d<sub>cilindro (zona de ficha)</sub> − d<sub>pistón</sub></div>
+          <p class="eq-note">Sobremedida mínima que limpia el desgaste (margen de rectificado y bruñido 0.05 mm)</p>
+          <div class="eq">D + sobremedida ≥ d<sub>máx</sub> + 0.05 &nbsp;→&nbsp; siguiente sobremedida disponible</div>
+          <p class="live" id="liveEq"></p>
+        </div>
+        <div class="card">
+          <h3>Experimentos guiados</h3>
+          <ol>
+            <li>Mida el cilindro 1 en A‑X y A‑Y y luego en C‑X y C‑Y. ¿En qué altura y en qué dirección está el mayor desgaste? Explique por qué con el reborde del primer anillo y la fuerza de empuje de la biela.</li>
+            <li>Repita tres veces la misma medida. ¿Cuánto cambia la lectura? Esa dispersión (repetibilidad) es la razón de que se acepte ±0.005 mm al corregir.</li>
+            <li>Complete los 4 cilindros y el pistón de cada uno. ¿Qué cilindro decide la sobremedida del bloque y por qué se rectifican los 4 a la misma medida?</li>
+            <li>Calcule la conicidad con las dos definiciones (misma dirección y máx A − mín C). ¿Cambia el diagnóstico en algún cilindro?</li>
+            <li>El docente dicta un código de bloque; todo el grupo lo carga, mide y compara hojas. ¿Por qué dos compañeros no obtienen exactamente los mismos milésimos?</li>
+          </ol>
+        </div>
+        <div class="card">
+          <h3>Buenas prácticas de medición</h3>
+          <ul>
+            <li><b>Calibre el alexómetro</b> con el micrómetro de exteriores fijado en la medida nominal (p. ej. 74.00 mm) y ponga la esfera en cero; así la aguja indica directamente la desviación.</li>
+            <li>Mida con bloque, pistón e instrumentos a la <b>misma temperatura</b> (ambiente, ≈ 20 °C). Un bloque tibio da diámetros mayores.</li>
+            <li><b>Balancee el comparador</b> dentro del cilindro: la aguja avanza y regresa. Anote la <b>lectura mínima</b> (punto de inversión), que corresponde a la posición perpendicular a la pared.</li>
+            <li>Mida en A (bajo el reborde del primer anillo), B (zona media) y C (parte baja), cada una en X (paralela al cigüeñal) e Y (perpendicular, dirección de empuje).</li>
+            <li>El pistón se mide con micrómetro en el punto de la ficha (a la altura indicada de la falda y perpendicular al bulón).</li>
+            <li>Limpie el cilindro y retire el reborde de carbón antes de medir; no mida sobre el reborde de desgaste.</li>
+          </ul>
+        </div>
+      </section>
+    </main>
+  </div>
+  <footer>Modelo: el bloque se genera a partir del código con un generador pseudoaleatorio reproducible. El desgaste es mayor en la zona alta (A, bajo el reborde del primer anillo, por temperatura y lubricación escasa) y en la dirección de empuje (Y, perpendicular al bulón) que en la longitudinal (X). Cada lectura tiene una dispersión de repetibilidad de ±0.002 mm. Las fichas son didácticas con valores representativos de motores reales; en el taller use siempre el manual del fabricante. Material de apoyo para prácticas de Mecánica Automotriz.</footer>
+</div>
+
+<script>
+(function(){
+'use strict';
+const $=s=>document.querySelector(s);
+const fx=(x,d)=>Number.isFinite(x)?x.toFixed(d):'—';
+const sg=(x,d)=>(x>=0?'+':'−')+Math.abs(x).toFixed(d);
+function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+function pal(){return {bg:css('--surface'),page:css('--bg'),sunk:css('--sunk'),fg:css('--fg'),muted:css('--muted'),grid:css('--grid'),line:css('--line'),hot:css('--hot'),cold:css('--cold'),adi:css('--adi'),acc:css('--accent')};}
+const RM=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- fichas ---------- */
+const ENG=[
+  {k:'A',name:'Ficha A · 1.3 L gasolina (tipo Suzuki G13B)',D:74.00,tol:0.015,ov:0.05,co:0.05,clr:[0.02,0.04],clrLim:0.10,wearLim:0.15,pisH:15,len:130,zone:'B-Y'},
+  {k:'B',name:'Ficha B · 1.6 L gasolina (D 79.00 mm)',D:79.00,tol:0.020,ov:0.05,co:0.05,clr:[0.02,0.04],clrLim:0.10,wearLim:0.15,pisH:12,len:140,zone:'B-Y'},
+  {k:'C',name:'Ficha C · 2.5 L diésel (D 92.00 mm)',D:92.00,tol:0.020,ov:0.05,co:0.05,clr:[0.05,0.07],clrLim:0.15,wearLim:0.20,pisH:20,len:170,zone:'B-Y'}
+];
+const OS=[0.25,0.50,0.75,1.00], MARGIN=0.05;
+const HS=['A','B','C'], DIRS=['X','Y'], KEYS=['A-X','A-Y','B-X','B-Y','C-X','C-Y'];
+const S={eng:ENG[0],num:24715,block:null,cyl:0,h:'A',dir:'Y',meas:[{},{},{},{}],pis:[null,null,null,null],last:null,lastPis:null,hide:false,cu:0,fresh:null,anim:null};
+
+/* ---------- generador reproducible ---------- */
+function hashStr(s){let h=2166136261>>>0; for(let i=0;i<s.length;i++){h^=s.charCodeAt(i); h=Math.imul(h,16777619);} return h>>>0;}
+function mulberry(a){return function(){a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296;};}
+function genBlock(eng,num){
+  const R=mulberry(hashStr(eng.k+'-'+num)), u=(a,b)=>a+(b-a)*R();
+  const c=R(); let lvl;
+  if(c<0.18) lvl=u(0.008,0.035); else if(c<0.55) lvl=u(0.035,0.09); else if(c<0.9) lvl=u(0.09,0.26); else lvl=u(0.35,0.62);
+  const bad=R()<0.35?Math.floor(R()*4):-1;
+  const cyl=[];
+  for(let i=0;i<4;i++){
+    const wA=lvl*u(0.7,1.25)*(i===bad?1.55:1), kx=u(0.35,0.65), wB=wA*u(0.35,0.55), wC=u(0.002,0.008);
+    const d0=eng.D+u(0.002,eng.tol), oX=u(-0.002,0.002);
+    const w={A:wA,B:wB,C:wC};
+    const d={}; HS.forEach(h=>{d[h+'-Y']=d0+w[h]; d[h+'-X']=d0+w[h]*kx+oX;});
+    const clr=u(eng.clr[0]+0.003,eng.clr[1]-0.003), pw=wA*u(0.02,0.08);
+    const dp=d0-clr-pw;
+    cyl.push({d,dp,w,kx});
+  }
+  return cyl;
+}
+const noise=()=>(Math.random()*2-1)*0.002;
+const r3=x=>Math.round(x*1000)/1000;
+
+/* ---------- cálculo ---------- */
+function calcCyl(i,src){
+  const m=src?src.m:S.meas[i], dp=src?src.dp:S.pis[i], E=S.eng, o={};
+  const has=k=>Number.isFinite(m[k]);
+  o.n=KEYS.filter(has).length; o.full=o.n===6; o.hasP=Number.isFinite(dp);
+  o.ovH={}; HS.forEach(h=>{ if(has(h+'-X')&&has(h+'-Y')) o.ovH[h]=Math.abs(m[h+'-Y']-m[h+'-X']); });
+  if(o.full){
+    o.ov=Math.max(...HS.map(h=>o.ovH[h])); o.ovAt=HS.reduce((a,h)=>o.ovH[h]>o.ovH[a]?h:a,'A');
+    o.coX=m['A-X']-m['C-X']; o.coY=m['A-Y']-m['C-Y']; o.co=Math.max(o.coX,o.coY);
+    o.coAlt=Math.max(m['A-X'],m['A-Y'])-Math.min(m['C-X'],m['C-Y']);
+    o.dmax=Math.max(...KEYS.map(k=>m[k])); o.kmax=KEYS.reduce((a,k)=>m[k]>m[a]?k:a,'A-X'); o.wear=o.dmax-E.D;
+  }
+  if(has(E.zone)&&o.hasP) o.clr=m[E.zone]-dp;
+  if(o.full&&o.hasP){
+    o.fail=[]; if(o.ov>E.ov+1e-9) o.fail.push('ovalamiento'); if(o.co>E.co+1e-9) o.fail.push('conicidad');
+    if(o.clr>E.clrLim+1e-9) o.fail.push('holgura'); if(o.wear>E.wearLim+1e-9) o.fail.push('desgaste');
+    o.ok=o.fail.length===0;
+    const need=o.dmax+MARGIN; o.need=need; o.os=OS.find(s=>E.D+s>=need-1e-9); o.liner=!o.ok&&o.os===undefined;
+  }
+  return o;
+}
+
+/* ---------- medición ---------- */
+function measure(i,key,animate){
+  const t=S.block[i].d[key]+noise(), v=r3(t);
+  S.meas[i][key]=v; S.last={i,key,v,dev:v-S.eng.D}; S.fresh={i,key};
+  if(animate&&!RM) startRock(); else S.anim=null;
+}
+function measurePis(i){ const v=r3(S.block[i].dp+noise()); S.pis[i]=v; S.lastPis={i,v}; S.fresh={i,key:'P'}; }
+let rockRAF=0;
+function startRock(){
+  cancelAnimationFrame(rockRAF); const t0=performance.now(); S.anim={t:0};
+  const step=now=>{const t=(now-t0)/1000; S.anim={t}; drawDial(); if(t<1.8) rockRAF=requestAnimationFrame(step); else {S.anim=null; drawDial();}};
+  rockRAF=requestAnimationFrame(step);
+}
+
+/* ---------- canvas util ---------- */
+function setup(cv){
+  const dpr=window.devicePixelRatio||1, W=cv.clientWidth, H=cv.clientHeight;
+  if(cv.width!==Math.round(W*dpr)||cv.height!==Math.round(H*dpr)){cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr);}
+  const ctx=cv.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,W,H); return {ctx,W,H};
+}
+
+/* ---------- esfera del comparador ---------- */
+function drawDial(){
+  const cv=$('#cDial'); const {ctx,W,H}=setup(cv), P=pal(), E=S.eng;
+  const cx=W/2, cy=H/2+6, R=Math.min(W,H)/2-22;
+  const L=S.last, dev0=L?L.dev:0;
+  let dev=dev0;
+  if(S.anim){ const t=S.anim.t, th=0.03*Math.cos(t*7.5)*Math.exp(-t*1.6); dev=dev0+E.D*(1/Math.cos(th)-1); }
+  // bisel
+  ctx.fillStyle=P.sunk; ctx.beginPath(); ctx.arc(cx,cy,R+12,0,7); ctx.fill(); ctx.strokeStyle=P.fg; ctx.lineWidth=2; ctx.stroke();
+  ctx.fillStyle=P.bg; ctx.beginPath(); ctx.arc(cx,cy,R,0,7); ctx.fill(); ctx.strokeStyle=P.line; ctx.lineWidth=1; ctx.stroke();
+  // divisiones: 100 por vuelta (0.01 mm), 1 vuelta = 1 mm
+  for(let k=0;k<100;k++){
+    const a=-Math.PI/2+k/100*2*Math.PI, big=k%10===0, mid=k%5===0, l=big?R*0.14:mid?R*0.1:R*0.06;
+    ctx.strokeStyle=P.fg; ctx.lineWidth=big?1.8:1;
+    ctx.beginPath(); ctx.moveTo(cx+Math.cos(a)*R*0.97,cy+Math.sin(a)*R*0.97); ctx.lineTo(cx+Math.cos(a)*(R*0.97-l),cy+Math.sin(a)*(R*0.97-l)); ctx.stroke();
+    if(big){ const n=k<=50?k:100-k; ctx.fillStyle=P.fg; ctx.font=`600 ${Math.max(10,R*0.085)}px "JetBrains Mono", ui-monospace, monospace`; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(String(n),cx+Math.cos(a)*R*0.7,cy+Math.sin(a)*R*0.7); }
+  }
+  // signos: antihorario = diámetro mayor (+)
+  ctx.font=`700 ${Math.max(12,R*0.1)}px "JetBrains Mono", ui-monospace, monospace`;
+  ctx.fillStyle=P.hot; ctx.fillText('+',cx-R*0.3,cy-R*0.3); ctx.fillStyle=P.cold; ctx.fillText('−',cx+R*0.3,cy-R*0.3);
+  // contador de vueltas
+  const sr=R*0.2, sx=cx, sy=cy+R*0.36;
+  ctx.strokeStyle=P.line; ctx.lineWidth=1; ctx.beginPath(); ctx.arc(sx,sy,sr,0,7); ctx.stroke();
+  for(let k=0;k<10;k++){const a=-Math.PI/2+k/10*2*Math.PI; ctx.strokeStyle=P.muted; ctx.beginPath(); ctx.moveTo(sx+Math.cos(a)*sr,sy+Math.sin(a)*sr); ctx.lineTo(sx+Math.cos(a)*sr*0.78,sy+Math.sin(a)*sr*0.78); ctx.stroke();}
+  const sa=-Math.PI/2-dev/10*2*Math.PI; ctx.strokeStyle=P.fg; ctx.lineWidth=1.6; ctx.beginPath(); ctx.moveTo(sx,sy); ctx.lineTo(sx+Math.cos(sa)*sr*0.85,sy+Math.sin(sa)*sr*0.85); ctx.stroke();
+  ctx.font=`${Math.max(9,R*0.06)}px "JetBrains Mono", ui-monospace, monospace`; ctx.fillStyle=P.muted; ctx.fillText('mm',sx,sy+sr+10);
+  ctx.fillText('0.01 mm',cx,cy-R*0.22);
+  // aguja
+  const a=-Math.PI/2-dev*2*Math.PI;
+  ctx.strokeStyle=P.hot; ctx.lineWidth=2.4; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(cx-Math.cos(a)*R*0.15,cy-Math.sin(a)*R*0.15); ctx.lineTo(cx+Math.cos(a)*R*0.9,cy+Math.sin(a)*R*0.9); ctx.stroke(); ctx.lineCap='butt';
+  ctx.fillStyle=P.fg; ctx.beginPath(); ctx.arc(cx,cy,5,0,7); ctx.fill();
+  // textos
+  ctx.font='600 12px Barlow, system-ui, sans-serif'; ctx.fillStyle=P.muted; ctx.textAlign='left'; ctx.textBaseline='top';
+  ctx.fillText(`Cero ajustado a ${fx(E.D,2)} mm`,8,6);
+  ctx.textAlign='right'; ctx.fillText(S.anim?'Balanceando… busque la mínima':(L?`Cil. ${L.i+1} · ${L.key}`:'Sin medir'),W-8,6);
+  const ro=$('#roDial');
+  if(L){ ro.innerHTML=`<span>Desviación <b>${sg(L.dev,3)} mm</b></span><span>Diámetro = ${fx(E.D,2)} ${L.dev>=0?'+':'−'} ${fx(Math.abs(L.dev),3)} = <b>${fx(L.v,3)} mm</b></span><span>Aguja en sentido antihorario = diámetro mayor que el de calibración</span>`; }
+  else ro.innerHTML='<span>Elija cilindro, altura y dirección y pulse «Medir».</span>';
+  $('#dialCap').textContent='Graduación 0.01 mm';
+}
+
+/* ---------- micrómetro ---------- */
+function drawMic(){
+  const cv=$('#cMic'); const {ctx,W,H}=setup(cv), P=pal(), E=S.eng, L=S.lastPis;
+  const lo=Math.floor(E.D/25)*25, v=L?L.v:lo+ (E.D-lo) - 0.03;
+  $('#micCap').textContent=`Rango ${lo}–${lo+25} mm · 0.01 mm`;
+  const cy=H*0.5, u=Math.min(26,(W*0.5)/6.2); // px por mm
+  const thX=W*0.62;                 // borde del tambor = lectura v
+  const X=x=>thX-(v-x)*u;
+  // cuerpo (cilindro graduado)
+  const sh=Math.min(64,H*0.18);
+  ctx.fillStyle=P.sunk; ctx.strokeStyle=P.fg; ctx.lineWidth=1.4;
+  ctx.fillRect(8,cy-sh/2,thX-8,sh); ctx.strokeRect(8,cy-sh/2,thX-8,sh);
+  // línea de referencia
+  ctx.strokeStyle=P.fg; ctx.lineWidth=1.4; ctx.beginPath(); ctx.moveTo(8,cy); ctx.lineTo(thX,cy); ctx.stroke();
+  ctx.font='600 12px "JetBrains Mono", ui-monospace, monospace'; ctx.textAlign='center'; ctx.textBaseline='bottom';
+  for(let x=Math.ceil((v-(thX-14)/u)*2)/2; x<=v+1e-9; x+=0.5){
+    const px=X(x), whole=Math.abs(x-Math.round(x))<1e-6;
+    if(px<12) continue;
+    ctx.strokeStyle=P.fg; ctx.lineWidth=1.2; ctx.beginPath();
+    if(whole){ ctx.moveTo(px,cy); ctx.lineTo(px,cy-(Math.round(x)%5===0?sh*0.36:sh*0.26)); }
+    else { ctx.moveTo(px,cy); ctx.lineTo(px,cy+sh*0.26); }
+    ctx.stroke();
+    if(whole&&Math.round(x)%5===0){ ctx.fillStyle=P.fg; ctx.fillText(String(Math.round(x)),px,cy-sh*0.38); }
+  }
+  // tambor
+  const tw=Math.min(W-thX-12,W*0.3), th=Math.min(H*0.62,sh*2.6);
+  ctx.fillStyle=P.bg; ctx.strokeStyle=P.fg; ctx.lineWidth=1.6;
+  ctx.beginPath(); ctx.moveTo(thX,cy-th/2); ctx.lineTo(thX+tw,cy-th/2); ctx.lineTo(thX+tw,cy+th/2); ctx.lineTo(thX,cy+th/2); ctx.closePath(); ctx.fill(); ctx.stroke();
+  // bisel del tambor
+  ctx.fillStyle=P.sunk; ctx.fillRect(thX,cy-th/2,8,th); ctx.strokeRect(thX,cy-th/2,8,th);
+  const frac=((v-lo)*100)%50;          // divisiones del tambor (0–50)
+  ctx.save(); ctx.beginPath(); ctx.rect(thX,cy-th/2,tw,th); ctx.clip();
+  ctx.textAlign='left'; ctx.textBaseline='middle'; ctx.font='600 12px "JetBrains Mono", ui-monospace, monospace';
+  for(let k=Math.floor(frac)-9;k<=Math.ceil(frac)+9;k++){
+    const ang=(k-frac)/50*2*Math.PI; if(Math.abs(ang)>Math.PI/2*0.98) continue;
+    const y=cy-Math.sin(ang)*th/2*0.98, n=((k%50)+50)%50, big=n%5===0;
+    ctx.strokeStyle=P.fg; ctx.lineWidth=big?1.5:1; ctx.globalAlpha=Math.max(0.25,Math.cos(ang));
+    ctx.beginPath(); ctx.moveTo(thX,y); ctx.lineTo(thX+(big?tw*0.42:tw*0.26),y); ctx.stroke();
+    if(big){ctx.fillStyle=P.fg; ctx.fillText(String(n),thX+tw*0.48,y);}
+  }
+  ctx.globalAlpha=1; ctx.restore();
+  ctx.strokeStyle=P.hot; ctx.lineWidth=1; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(thX-30,cy); ctx.lineTo(thX+tw,cy); ctx.stroke(); ctx.setLineDash([]);
+  // husillo y pistón esquemático
+  ctx.font='600 12px Barlow, system-ui, sans-serif'; ctx.fillStyle=P.muted; ctx.textAlign='left'; ctx.textBaseline='top';
+  ctx.fillText(L?`Pistón del cilindro ${L.i+1}`:'Pistón sin medir',8,6);
+  ctx.fillText(`Medir a ${E.pisH} mm del borde inferior de la falda, ⟂ al bulón`,8,22,W-16);
+  const ro=$('#roMic');
+  if(L){ const base=Math.floor((L.v)*2)/2, t=(L.v-base)*100;
+    ro.innerHTML=`<span>Cilindro graduado <b>${fx(base,1)} mm</b></span><span>Tambor <b>${fx(t,1)} × 0.01</b></span><span>d<sub>pistón</sub> = <b>${fx(L.v,3)} mm</b></span>`; }
+  else ro.innerHTML='<span>Pulse «Medir pistón» para medir el pistón del cilindro seleccionado.</span>';
+}
+
+/* ---------- vista del bloque ---------- */
+let blkHit=[];
+function drawBlk(){
+  const cv=$('#cBlk'); const {ctx,W,H}=setup(cv), P=pal(), E=S.eng;
+  const narrow=W<640, topW=narrow?W:W*0.62, secX=narrow?0:topW, secW=narrow?0:W-topW;
+  const topH=narrow?H:H;
+  // vista superior
+  const pad=14, n=4, gap=10, r=Math.min((topW-2*pad-3*gap)/8,(topH-90)/2);
+  const cy=Math.max(56,topH*0.47), tot=8*r+3*gap, x0=(topW-tot)/2;
+  ctx.fillStyle=P.sunk; ctx.strokeStyle=P.line; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.roundRect?ctx.roundRect(x0-12,cy-r-14,tot+24,2*r+28,10):ctx.rect(x0-12,cy-r-14,tot+24,2*r+28); ctx.fill(); ctx.stroke();
+  blkHit=[];
+  for(let i=0;i<n;i++){
+    const cx=x0+r+i*(2*r+gap), o=calcCyl(i);
+    blkHit.push({cx,cy,r});
+    ctx.fillStyle=P.bg; ctx.beginPath(); ctx.arc(cx,cy,r,0,7); ctx.fill();
+    let col=P.line; if(o.ok===true) col=P.cold; else if(o.ok===false) col=P.hot;
+    ctx.strokeStyle=i===S.cyl?P.acc:col; ctx.lineWidth=i===S.cyl?3.5:2; ctx.stroke();
+    // direcciones medidas
+    DIRS.forEach(dir=>{
+      const cnt=HS.filter(h=>Number.isFinite(S.meas[i][h+'-'+dir])).length;
+      ctx.strokeStyle=cnt===3?P.fg:cnt>0?P.muted:P.grid; ctx.lineWidth=cnt?2:1; ctx.setLineDash(cnt===3?[]:[4,3]);
+      ctx.beginPath(); if(dir==='X'){ctx.moveTo(cx-r*0.85,cy); ctx.lineTo(cx+r*0.85,cy);} else {ctx.moveTo(cx,cy-r*0.85); ctx.lineTo(cx,cy+r*0.85);} ctx.stroke(); ctx.setLineDash([]);
+    });
+    if(i===S.cyl){ ctx.strokeStyle=P.acc; ctx.lineWidth=3; ctx.beginPath(); if(S.dir==='X'){ctx.moveTo(cx-r*0.85,cy); ctx.lineTo(cx+r*0.85,cy);} else {ctx.moveTo(cx,cy-r*0.85); ctx.lineTo(cx,cy+r*0.85);} ctx.stroke(); }
+    ctx.fillStyle=P.fg; ctx.font='700 13px "JetBrains Mono", ui-monospace, monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillStyle=P.bg; ctx.beginPath(); ctx.arc(cx+r*0.45,cy-r*0.45,9,0,7); ctx.fill(); ctx.fillStyle=P.fg; ctx.fillText(String(i+1),cx+r*0.45,cy-r*0.45);
+    ctx.font='11px "JetBrains Mono", ui-monospace, monospace'; ctx.fillStyle=o.ok===false?P.hot:o.ok===true?P.cold:P.muted;
+    ctx.fillText(o.ok===true?'OK':o.ok===false?(o.liner?'Camisa':'+'+fx(o.os,2)):`${o.n}/6${o.hasP?' +P':''}`,cx,cy+r+24);
+  }
+  // ejes
+  ctx.fillStyle=P.muted; ctx.font='600 12px Barlow, system-ui, sans-serif'; ctx.textAlign='left'; ctx.textBaseline='top';
+  ctx.fillText('Vista superior · X ∥ cigüeñal (longitudinal) · Y ⟂ cigüeñal (empuje)',pad,8,topW-2*pad);
+  ctx.strokeStyle=P.muted; ctx.lineWidth=1; ctx.setLineDash([6,4]); ctx.beginPath(); ctx.moveTo(x0-24,cy); ctx.lineTo(x0+tot+24,cy); ctx.stroke(); ctx.setLineDash([]);
+  if(narrow) return;
+  // corte lateral del cilindro seleccionado
+  const i=S.cyl, b=S.block[i], dir=S.dir, ex=Math.min(260,(secW*0.18)/Math.max(0.05,b.w.A));
+  const sx=secX+secW/2, bw=Math.min(secW*0.36,110), top=34, bot=H-30, len=bot-top;
+  ctx.fillStyle=P.muted; ctx.textAlign='left'; ctx.fillText(`Corte cil. ${i+1} en dirección ${dir} (desgaste ×${Math.round(ex)})`,secX+6,8,secW-10);
+  const hA=top+len*10/E.len, hB=top+len*0.5, hC=bot-len*10/E.len;
+  const prof=y=>{ // desgaste en la dirección elegida a la altura y (interpolado), en mm
+    const t=(y-top)/len, wA=b.w.A, wB=b.w.B, wC=b.w.C, f=dir==='Y'?1:b.kx;
+    let w; if(t<0.035) w=0; else if(t<0.12) w=wA; else if(t<0.5) w=wA+(wB-wA)*(t-0.12)/0.38; else w=wB+(wC-wB)*(t-0.5)/0.5;
+    return w*f; };
+  ctx.fillStyle=P.sunk; ctx.fillRect(sx-bw/2-26,top,26,len); ctx.fillRect(sx+bw/2,top,26,len);
+  ctx.fillStyle=P.bg; ctx.beginPath(); ctx.moveTo(sx-bw/2,top);
+  for(let y=top;y<=bot;y+=2){ctx.lineTo(sx-bw/2-prof(y)/2*ex,y);} ctx.lineTo(sx+bw/2+prof(bot)/2*ex,bot);
+  for(let y=bot;y>=top;y-=2){ctx.lineTo(sx+bw/2+prof(y)/2*ex,y);} ctx.closePath(); ctx.fill();
+  ctx.strokeStyle=P.fg; ctx.lineWidth=1.6; ctx.beginPath(); for(let y=top;y<=bot;y+=2){const x=sx-bw/2-prof(y)/2*ex; y===top?ctx.moveTo(x,y):ctx.lineTo(x,y);} ctx.stroke();
+  ctx.beginPath(); for(let y=top;y<=bot;y+=2){const x=sx+bw/2+prof(y)/2*ex; y===top?ctx.moveTo(x,y):ctx.lineTo(x,y);} ctx.stroke();
+  ctx.setLineDash([3,3]); ctx.strokeStyle=P.muted; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(sx-bw/2,top); ctx.lineTo(sx-bw/2,bot); ctx.moveTo(sx+bw/2,top); ctx.lineTo(sx+bw/2,bot); ctx.stroke(); ctx.setLineDash([]);
+  ctx.font='600 11px "JetBrains Mono", ui-monospace, monospace'; ctx.textBaseline='middle';
+  [['A',hA],['B',hB],['C',hC]].forEach(([h,y])=>{
+    const k=h+'-'+dir, done=Number.isFinite(S.meas[i][k]), cur=h===S.h;
+    ctx.strokeStyle=cur?P.acc:P.muted; ctx.lineWidth=cur?2:1; ctx.setLineDash(cur?[]:[5,4]);
+    ctx.beginPath(); ctx.moveTo(sx-bw/2-30,y); ctx.lineTo(sx+bw/2+30,y); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle=cur?P.acc:P.fg; ctx.textAlign='right'; ctx.fillText(h,sx-bw/2-34,y);
+    ctx.textAlign='left'; ctx.fillStyle=done?P.fg:P.muted; ctx.fillText(done?fx(S.meas[i][k],3):'—',sx+bw/2+34,y);
+    if(done){ctx.fillStyle=P.acc; ctx.beginPath(); ctx.arc(sx,y,3.5,0,7); ctx.fill();}
+  });
+  ctx.fillStyle=P.muted; ctx.textAlign='center'; ctx.font='11px Barlow, system-ui, sans-serif';
+  ctx.fillText('reborde',sx-bw/2-13,top-8);
+}
+
+/* ---------- tablas y resultados ---------- */
+function cell(v,cls,fresh){return `<td class="${cls||''}${fresh?' new':''}">${v}</td>`;}
+function renderSheet(){
+  const E=S.eng, hide=S.hide;
+  let h=`<thead><tr><th rowspan="2">Cil.</th><th class="grp" colspan="2">A (superior)</th><th class="grp" colspan="2">B (media)</th><th class="grp" colspan="2">C (inferior)</th><th rowspan="2">Pistón</th><th rowspan="2">Ovalam.</th><th rowspan="2">Conicidad</th><th rowspan="2">Desgaste</th><th rowspan="2">Holgura</th><th rowspan="2" style="text-align:left">Diagnóstico</th></tr>
+    <tr><th>X</th><th>Y</th><th>X</th><th>Y</th><th>X</th><th>Y</th></tr></thead><tbody>`;
+  for(let i=0;i<4;i++){
+    const m=S.meas[i], o=calcCyl(i), f=S.fresh&&S.fresh.i===i?S.fresh.key:null;
+    h+=`<tr class="${i===S.cyl?'sel':''}"><td>${i+1}</td>`;
+    KEYS.forEach(k=>h+=cell(Number.isFinite(m[k])?fx(m[k],3):'—',Number.isFinite(m[k])?'':'miss',f===k));
+    h+=cell(Number.isFinite(S.pis[i])?fx(S.pis[i],3):'—',Number.isFinite(S.pis[i])?'':'miss',f==='P');
+    if(hide){ h+='<td class="miss">?</td><td class="miss">?</td><td class="miss">?</td><td class="miss">?</td><td class="txt miss">Oculto</td>'; }
+    else{
+      h+=cell(o.full?fx(o.ov,3):'—',o.full?(o.ov>E.ov?'bad':'ok'):'miss');
+      h+=cell(o.full?fx(o.co,3):'—',o.full?(o.co>E.co?'bad':'ok'):'miss');
+      h+=cell(o.full?fx(o.wear,3):'—',o.full?(o.wear>E.wearLim?'bad':''):'miss');
+      h+=cell(Number.isFinite(o.clr)?fx(o.clr,3):'—',Number.isFinite(o.clr)?(o.clr>E.clrLim?'bad':o.clr<E.clr[0]?'bad':'ok'):'miss');
+      h+=`<td class="txt" style="text-align:left">${o.ok===undefined?`<span class="miss" style="color:var(--muted)">Faltan ${6-o.n+(o.hasP?0:1)} medidas</span>`:o.ok?'<span class="tag ok">Dentro de especificación</span>':o.liner?'<span class="tag bad">Encamisar</span>':`<span class="tag bad">Rectificar a +${fx(o.os,2)}</span>`}</td>`;
+    }
+    h+='</tr>';
+  }
+  h+=`</tbody>`;
+  $('#tSheet').innerHTML=h;
+}
+function kpi(l,v,u,s,main,cls){return `<div class="kpi${main?' main':''}"><div class="l">${l}</div><div class="v"${cls?` style="color:var(--${cls})"`:''}>${v}${u?`<small>${u}</small>`:''}</div>${s?`<div class="s">${s}</div>`:''}</div>`;}
+function renderKpis(){
+  const i=S.cyl, o=calcCyl(i), E=S.eng, hd=S.hide;
+  const v=(ok,val)=>hd?'?':(ok?val:'—');
+  let h=`<div class="kpi-group">Cilindro ${i+1} · ${o.n}/6 medidas${o.hasP?' · pistón medido':''}</div>`;
+  h+=kpi('Ovalamiento',v(o.full,fx(o.ov,3)),'mm',`Límite ${fx(E.ov,2)} mm`+(o.full&&!hd?` · mayor en ${o.ovAt}`:''),false,!hd&&o.full&&o.ov>E.ov?'hot':'');
+  h+=kpi('Conicidad',v(o.full,fx(o.co,3)),'mm',`Límite ${fx(E.co,2)} mm`,false,!hd&&o.full&&o.co>E.co?'hot':'');
+  h+=kpi('Desgaste máximo',v(o.full,fx(o.wear,3)),'mm',o.full&&!hd?`d máx = ${fx(o.dmax,3)} (${o.kmax})`:`Límite ${fx(E.wearLim,2)} mm`,false,!hd&&o.full&&o.wear>E.wearLim?'hot':'');
+  h+=kpi('Holgura pistón‑cilindro',v(Number.isFinite(o.clr),fx(o.clr,3)),'mm',`Espec. ${fx(E.clr[0],2)}–${fx(E.clr[1],2)} · límite ${fx(E.clrLim,2)}`,false,!hd&&o.clr>E.clrLim?'hot':'');
+  const dg=o.ok===undefined?'Incompleto':o.ok?'En especificación':o.liner?'Encamisar':`+${fx(o.os,2)} mm`;
+  h+=kpi('Diagnóstico',hd?'?':dg,'',hd?'':o.ok===false?`Falla: ${o.fail.join(', ')}`:o.ok?'Puede reutilizarse':'Complete las 6 medidas y el pistón',true);
+  $('#kpis').innerHTML=h;
+}
+function renderDiag(){
+  const E=S.eng, os=[]; let h='', any=false, liners=[], allDone=true;
+  if(S.hide){ $('#diag').innerHTML='<div>Resultados ocultos. Desmarque «Ocultar resultados» para ver el diagnóstico.</div>'; return; }
+  for(let i=0;i<4;i++){
+    const o=calcCyl(i);
+    if(o.ok===undefined){ allDone=false; h+=`<div><b>Cilindro ${i+1}:</b> faltan medidas.</div>`; continue; }
+    if(o.ok) h+=`<div><b>Cilindro ${i+1}:</b> <span class="tag ok">Dentro de especificación</span> Ov ${fx(o.ov,3)} · Co ${fx(o.co,3)} · holgura ${fx(o.clr,3)} mm${o.clr>E.clr[1]?'. La holgura supera la de fábrica: si hay consumo de aceite, cambie pistón o anillos.':'.'}</div>`;
+    else if(o.liner){ any=true; liners.push(i+1); h+=`<div><b>Cilindro ${i+1}:</b> <span class="tag bad">Encamisar</span> d máx ${fx(o.dmax,3)} + 0.05 = ${fx(o.need,3)} mm supera la última sobremedida (${fx(E.D+1,2)} mm). Falla: ${o.fail.join(', ')}.</div>`; }
+    else { any=true; os.push(o.os); h+=`<div><b>Cilindro ${i+1}:</b> <span class="tag bad">Requiere rectificado</span> Falla: ${o.fail.join(', ')}. d máx ${fx(o.dmax,3)} + 0.05 = ${fx(o.need,3)} mm → sobremedida mínima <b>+${fx(o.os,2)}</b> (D = ${fx(E.D+o.os,2)} mm).</div>`; }
+  }
+  if(allDone){
+    if(!any) h+=`<div><b>Bloque:</b> los cuatro cilindros están dentro de especificación. Basta con un bruñido ligero si se cambian los anillos.</div>`;
+    else{
+      const mx=os.length?Math.max(...os):null;
+      h+=`<div><b>Bloque:</b> ${mx!=null?`rectificar los cuatro cilindros a <b>+${fx(mx,2)} mm</b> (la mayor sobremedida requerida) para montar un juego de pistones iguales; diámetro final = diámetro del pistón de sobremedida + holgura ${fx(E.clr[0],2)}–${fx(E.clr[1],2)} mm.`:''}${liners.length?` Encamisar ${liners.length>1?'los cilindros':'el cilindro'} ${liners.join(', ')} y mecanizar la camisa a medida estándar${mx!=null?' o a la sobremedida del resto':''}.`:''}</div>`;
+    }
+  }
+  $('#diag').innerHTML=h;
+}
+function renderFicha(){
+  const E=S.eng;
+  $('#ficha').innerHTML=`<dt>Código</dt><dd class="code">${E.k}-${String(S.num).padStart(5,'0')}</dd>
+    <dt>Diámetro estándar</dt><dd>${fx(E.D,3)}–${fx(E.D+E.tol,3)}</dd>
+    <dt>Ovalamiento máx.</dt><dd>${fx(E.ov,2)} mm</dd><dt>Conicidad máx.</dt><dd>${fx(E.co,2)} mm</dd>
+    <dt>Desgaste máx.</dt><dd>${fx(E.wearLim,2)} mm</dd>
+    <dt>Holgura pistón</dt><dd>${fx(E.clr[0],2)}–${fx(E.clr[1],2)} (lím. ${fx(E.clrLim,2)})</dd>
+    <dt>Holgura con</dt><dd>d ${E.zone} − d pistón</dd>
+    <dt>Pistón se mide</dt><dd>${E.pisH} mm de la falda, ⟂ bulón</dd>
+    <dt>Alturas</dt><dd>A 10 mm bajo el plano · B media · C 10 mm del fondo</dd>
+    <dt>Sobremedidas</dt><dd>${OS.map(x=>'+'+fx(x,2)).join(' ')}</dd>`;
+}
+function renderLive(){
+  const i=S.cyl, o=calcCyl(i), m=S.meas[i];
+  if(S.hide||!o.full){ $('#liveEq').innerHTML=S.hide?'Resultados ocultos.':`Cilindro ${i+1}: complete las 6 medidas para ver los valores.`; return; }
+  $('#liveEq').innerHTML=`Cilindro ${i+1}: Ov = |${fx(m[o.ovAt+'-Y'],3)} − ${fx(m[o.ovAt+'-X'],3)}| = ${fx(o.ov,3)} (altura ${o.ovAt}) · Co = máx(${fx(o.coX,3)}, ${fx(o.coY,3)}) = ${fx(o.co,3)} mm`+(Number.isFinite(o.clr)?` · Holgura = ${fx(m[S.eng.zone],3)} − ${fx(S.pis[i],3)} = ${fx(o.clr,3)} mm`:'');
+}
+function segSet(id,val){document.querySelectorAll(`#${id} button`).forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===String(val))));}
+function renderAll(){
+  segSet('sgCyl',S.cyl); segSet('sgH',S.h); segSet('sgDir',S.dir); segSet('sgCu',S.cu);
+  renderFicha(); renderSheet(); renderKpis(); renderDiag(); renderLive(); drawAll();
+}
+function drawAll(){ drawDial(); drawMic(); drawBlk(); }
+function msg(html,cls){ $('#msgs').innerHTML=html?`<div class="msg${cls?' '+cls:''}">${html}</div>`:''; }
+
+/* ---------- calcule usted ---------- */
+function near(a,b){return Number.isFinite(a)&&Number.isFinite(b)&&Math.abs(a-b)<=0.005+1e-9;}
+function checkCu(){
+  const i=S.cu, o=calcCyl(i), m=S.meas[i], E=S.eng, out=[];
+  if(!o.full||!o.hasP){ $('#cuMsg').innerHTML=`<div class="msg warn">El cilindro ${i+1} no tiene las 6 medidas y el pistón. Mídalos primero (botón «Medir los 6 puntos» y «Medir pistón»).</div>`; return; }
+  const uO=parseFloat($('#uOv').value), uC=parseFloat($('#uCo').value), uH=parseFloat($('#uHo').value);
+  const all=KEYS.map(k=>m[k]);
+  // ovalamiento
+  if(!Number.isFinite(uO)) out.push(['warn','Ovalamiento: escriba un valor en mm.']);
+  else if(near(uO,o.ov)) out.push(['','Ovalamiento correcto: '+fx(o.ov,3)+' mm.']);
+  else { let w='Ovalamiento incorrecto. ';
+    if(near(uO,-o.ov)) w+='El ovalamiento se toma en valor absoluto.';
+    else if(near(uO/1000,o.ov)) w+='Parece escrito en micrómetros; el resultado va en mm.';
+    else if(near(uO,o.co)) w+='Ese valor es la conicidad (A − C). El ovalamiento compara Y con X a la misma altura.';
+    else if(HS.some(h=>near(uO,o.ovH[h]))) w+=`Ese es el ovalamiento de una sola altura; calcule |Y − X| en A, B y C y tome el mayor (${o.ovAt}).`;
+    else if(near(uO,Math.max(...all)-Math.min(...all))) w+='Restó el máximo y el mínimo de todo el cilindro; compare solo X e Y de la misma altura.';
+    else w+=`Calcule |d<sub>Y</sub> − d<sub>X</sub>| en cada altura y tome el mayor.`;
+    out.push(['err',w]); }
+  // conicidad
+  if(!Number.isFinite(uC)) out.push(['warn','Conicidad: escriba un valor en mm.']);
+  else if(near(uC,o.co)) out.push(['','Conicidad correcta: '+fx(o.co,3)+' mm.']);
+  else { let w='Conicidad incorrecta. ';
+    if(near(uC,-o.co)) w+='Restó al revés: es la medida superior (A) menos la inferior (C).';
+    else if(near(uC/1000,o.co)) w+='Parece escrito en micrómetros; el resultado va en mm.';
+    else if(near(uC,o.coAlt)) w+='Usó máx(A) − mín(C), que mezcla direcciones. Aquí se resta A − C en la misma dirección (X con X, Y con Y) y se toma la mayor.';
+    else if(near(uC,Math.min(o.coX,o.coY))) w+='Tomó la dirección con menor conicidad; hay que tomar la mayor de X e Y.';
+    else if(near(uC,m['A-Y']-m['B-Y'])||near(uC,m['A-X']-m['B-X'])) w+='Usó la altura B; la conicidad compara A (superior) con C (inferior).';
+    else if(near(uC,o.ov)) w+='Ese valor es el ovalamiento. La conicidad compara alturas, no direcciones.';
+    else w+='Calcule d<sub>A‑X</sub> − d<sub>C‑X</sub> y d<sub>A‑Y</sub> − d<sub>C‑Y</sub> y tome la mayor.';
+    out.push(['err',w]); }
+  // holgura
+  if(!Number.isFinite(uH)) out.push(['warn','Holgura: escriba un valor en mm.']);
+  else if(near(uH,o.clr)) out.push(['','Holgura correcta: '+fx(o.clr,3)+' mm.']);
+  else { let w='Holgura incorrecta. ';
+    if(near(uH,-o.clr)) w+='Restó al revés: holgura = diámetro del cilindro − diámetro del pistón.';
+    else if(near(uH/1000,o.clr)) w+='Parece escrito en micrómetros; el resultado va en mm.';
+    else if(near(uH,o.dmax-S.pis[i])) w+=`Usó el diámetro máximo del cilindro; la ficha indica medir en ${E.zone}.`;
+    else if(near(uH,E.D-S.pis[i])) w+='Usó el diámetro nominal; debe usar el diámetro medido del cilindro.';
+    else if(KEYS.some(k=>k!==E.zone&&near(uH,m[k]-S.pis[i]))) w+=`Usó otra posición del cilindro; la ficha indica ${E.zone}.`;
+    else w+=`Holgura = d<sub>${E.zone}</sub> − d<sub>pistón</sub>.`;
+    out.push(['err',w]); }
+  $('#cuMsg').innerHTML=out.map(([c,t])=>`<div class="msg${c?' '+c:''}">${t}</div>`).join('');
+}
+function showSol(){
+  const i=S.cu, o=calcCyl(i), m=S.meas[i], E=S.eng, el=$('#sol');
+  if(!o.full||!o.hasP){ $('#cuMsg').innerHTML=`<div class="msg warn">El cilindro ${i+1} aún no tiene todas las medidas y el pistón.</div>`; el.hidden=true; return; }
+  const L=[];
+  L.push(`<b>Ovalamiento</b> (|Y − X| por altura)`);
+  HS.forEach(h=>L.push(`&nbsp;${h}: |${fx(m[h+'-Y'],3)} − ${fx(m[h+'-X'],3)}| = ${fx(o.ovH[h],3)}`));
+  L.push(`&nbsp;Ov = mayor = <b>${fx(o.ov,3)} mm</b> ${o.ov>E.ov?'&gt;':'≤'} ${fx(E.ov,2)}`);
+  L.push(`<b>Conicidad</b> (A − C, misma dirección)`);
+  L.push(`&nbsp;X: ${fx(m['A-X'],3)} − ${fx(m['C-X'],3)} = ${fx(o.coX,3)} · Y: ${fx(m['A-Y'],3)} − ${fx(m['C-Y'],3)} = ${fx(o.coY,3)}`);
+  L.push(`&nbsp;Co = mayor = <b>${fx(o.co,3)} mm</b> ${o.co>E.co?'&gt;':'≤'} ${fx(E.co,2)} · (máx A − mín C = ${fx(o.coAlt,3)})`);
+  L.push(`<b>Holgura</b> = d ${E.zone} − d pistón = ${fx(m[E.zone],3)} − ${fx(S.pis[i],3)} = <b>${fx(o.clr,3)} mm</b>`);
+  L.push(`<b>Desgaste</b> = ${fx(o.dmax,3)} − ${fx(E.D,2)} = ${fx(o.wear,3)} mm`);
+  L.push(`<b>Sobremedida</b>: ${fx(o.dmax,3)} + 0.05 = ${fx(o.need,3)} → ${o.liner?'ninguna sobremedida alcanza: encamisar':'+'+fx(o.os,2)+' mm (D = '+fx(E.D+o.os,2)+')'}`);
+  L.push(`Diagnóstico: <b>${o.ok?'Dentro de especificación':o.liner?'Encamisar':'Requiere rectificado'}</b>`);
+  el.innerHTML=L.join('<br>'); el.hidden=false;
+}
+
+/* ---------- bloque y código ---------- */
+function loadBlock(eng,num,keepMsg){
+  S.eng=eng; S.num=num; S.block=genBlock(eng,num);
+  S.meas=[{},{},{},{}]; S.pis=[null,null,null,null]; S.last=null; S.lastPis=null; S.fresh=null;
+  $('#code').value=`${eng.k}-${String(num).padStart(5,'0')}`; $('#selEng').value=eng.k;
+  $('#sol').hidden=true; $('#cuMsg').innerHTML='';
+  if(!keepMsg) msg(`Bloque ${$('#code').value} montado en el banco. Alexómetro calibrado a ${fx(eng.D,2)} mm con el micrómetro.`);
+}
+function parseCode(s){
+  s=(s||'').trim().toUpperCase().replace(/\s+/g,'');
+  let m=s.match(/^([ABC])-?(\d{1,5})$/); if(m) return {eng:ENG.find(e=>e.k===m[1]),num:+m[2]};
+  m=s.match(/^(\d{1,5})$/); if(m) return {eng:S.eng,num:+m[1]};
+  return null;
+}
+
+/* ---------- inicio ---------- */
+function mkSeg(id,items,on){ const b=$('#'+id); b.innerHTML=items.map(([v,t])=>`<button type="button" data-v="${v}" aria-pressed="false">${t}</button>`).join(''); b.querySelectorAll('button').forEach(x=>x.addEventListener('click',()=>on(x.dataset.v))); }
+function init(){
+  $('#selEng').innerHTML=ENG.map(e=>`<option value="${e.k}">${e.name}</option>`).join('');
+  mkSeg('sgCyl',[[0,'1'],[1,'2'],[2,'3'],[3,'4']],v=>{S.cyl=+v; S.fresh=null; renderAll();});
+  mkSeg('sgH',[['A','A sup.'],['B','B media'],['C','C inf.']],v=>{S.h=v; renderAll();});
+  mkSeg('sgDir',[['X','X ∥ cigüeñal'],['Y','Y empuje']],v=>{S.dir=v; renderAll();});
+  mkSeg('sgCu',[[0,'1'],[1,'2'],[2,'3'],[3,'4']],v=>{S.cu=+v; $('#sol').hidden=true; $('#cuMsg').innerHTML=''; renderAll();});
+  $('#selEng').addEventListener('change',e=>{loadBlock(ENG.find(x=>x.k===e.target.value),S.num); renderAll();});
+  $('#bLoad').addEventListener('click',()=>{const c=parseCode($('#code').value); if(!c){msg('Código no válido. Escriba una letra de ficha (A, B o C), un guion y hasta 5 cifras, por ejemplo A-24715.','err'); return;} loadBlock(c.eng,c.num); renderAll();});
+  $('#code').addEventListener('keydown',e=>{if(e.key==='Enter') $('#bLoad').click();});
+  $('#bNew').addEventListener('click',()=>{loadBlock(S.eng,Math.floor(Math.random()*99999)+1); renderAll();});
+  $('#bMeas').addEventListener('click',()=>{const k=S.h+'-'+S.dir, had=Number.isFinite(S.meas[S.cyl][k]); measure(S.cyl,k,true); renderAll();
+    msg(`Cilindro ${S.cyl+1}, ${k}: ${fx(S.last.v,3)} mm${had?' (medida repetida: se reemplaza la anterior)':''}.`);});
+  $('#bAll').addEventListener('click',()=>{KEYS.forEach(k=>measure(S.cyl,k,false)); S.last={i:S.cyl,key:S.h+'-'+S.dir,v:S.meas[S.cyl][S.h+'-'+S.dir],dev:S.meas[S.cyl][S.h+'-'+S.dir]-S.eng.D}; S.fresh=null; renderAll(); msg(`Cilindro ${S.cyl+1}: registradas las 6 medidas.`);});
+  $('#bPis').addEventListener('click',()=>{measurePis(S.cyl); renderAll(); msg(`Pistón del cilindro ${S.cyl+1}: ${fx(S.pis[S.cyl],3)} mm.`);});
+  $('#bClear').addEventListener('click',()=>{S.meas=[{},{},{},{}]; S.pis=[null,null,null,null]; S.last=null; S.lastPis=null; S.fresh=null; $('#sol').hidden=true; renderAll(); msg('Hoja borrada. El bloque sigue siendo el mismo.');});
+  $('#hide').addEventListener('change',e=>{S.hide=e.target.checked; renderAll();});
+  $('#bChk').addEventListener('click',checkCu);
+  $('#bSol').addEventListener('click',showSol);
+  $('#cBlk').addEventListener('click',e=>{const r=e.currentTarget.getBoundingClientRect(), x=e.clientX-r.left, y=e.clientY-r.top; const k=blkHit.findIndex(c=>Math.hypot(c.cx-x,c.cy-y)<=c.r); if(k>=0){S.cyl=k; S.fresh=null; renderAll();}});
+  const redraw=()=>drawAll();
+  if(window.ResizeObserver){const ro=new ResizeObserver(redraw); ['#cDial','#cMic','#cBlk'].forEach(id=>ro.observe($(id)));} else window.addEventListener('resize',redraw);
+  try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',redraw);}catch(e){}
+  new MutationObserver(redraw).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme','class','style']});
+  if(document.fonts&&document.fonts.ready) document.fonts.ready.then(redraw);
+  // estado inicial: cilindro 1 medido completo como ejemplo
+  loadBlock(ENG[0],24715,true);
+  KEYS.forEach(k=>measure(0,k,false)); measurePis(0);
+  S.last={i:0,key:'A-Y',v:S.meas[0]['A-Y'],dev:S.meas[0]['A-Y']-S.eng.D}; S.fresh=null;
+  msg('Ejemplo: el cilindro 1 ya está medido. Continúe con los cilindros 2, 3 y 4.');
+  renderAll();
+}
+window.__sim={S,calcCyl,genBlock,ENG};
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
+})();
+</script>
+
+</body>
+</html>

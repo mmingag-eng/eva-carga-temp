@@ -1,0 +1,895 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dos y Cuatro Tiempos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* Layout: banco de instrumentos — panel de mandos a la izquierda, dos diagramas como lectura principal, cilindro y datos debajo */
+:root{
+  --bg:#eef1f4; --surface:#ffffff; --sunk:#e3e8ee; --fg:#17202b; --muted:#5b6778; --line:#cfd6df; --grid:#e6eaef;
+  --hot:#d9480f; --cold:#1864ab; --adi:#6b7686;
+  --accent:#5c940d;
+  --f-display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e1217; --surface:#151b23; --sunk:#1c242e; --fg:#e3e8ee; --muted:#95a1b0; --line:#29323d; --grid:#1f2731;
+    --hot:#ff7b45; --cold:#4dabf7; --adi:#8d99a8; --accent:#94d82d; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e1217; --surface:#151b23; --sunk:#1c242e; --fg:#e3e8ee; --muted:#95a1b0; --line:#29323d; --grid:#1f2731;
+  --hot:#ff7b45; --cold:#4dabf7; --adi:#8d99a8; --accent:#94d82d; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.5;margin:0}
+.page{max-width:1440px;margin:0 auto;padding-inline:clamp(16px,3vw,32px);padding-block:24px 40px}
+.top{display:grid;gap:10px;padding-bottom:18px;border-bottom:1px solid var(--line);margin-bottom:20px}
+.eyebrow{font-family:var(--f-mono);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(36px,5.2vw,56px);line-height:1;margin:0;letter-spacing:-.005em;text-wrap:balance}
+h1 .acc{color:var(--accent)}
+.lede{max-width:72ch;margin:0;color:var(--muted)}
+.chips{list-style:none;display:flex;flex-wrap:wrap;gap:6px;padding:0;margin:4px 0 0}
+.chips li{font-size:13px;padding:4px 11px;border:1px solid var(--line);border-radius:999px;background:var(--surface);display:flex;gap:7px;align-items:center;cursor:pointer;transition:border-color .15s}
+.chips li b{font-family:var(--f-mono);font-weight:500;font-size:12px}
+.chips li.on{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.dot{width:9px;height:9px;border-radius:50%;flex:none}
+.layout{display:grid;grid-template-columns:310px minmax(0,1fr);gap:22px;align-items:start}
+.panel{position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px);display:grid;gap:16px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;max-height:calc(100vh - 24px);overflow:auto}
+@media (max-width:980px){.layout{grid-template-columns:minmax(0,1fr)}.panel{position:static;max-height:none}}
+.panel h2,.sec-h{font-family:var(--f-display);font-size:14.5px;font-weight:600;text-transform:uppercase;letter-spacing:.09em;margin:0 0 4px;color:var(--muted)}
+.prm{display:grid;gap:3px;padding-block:5px}
+.prm-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.prm label{font-size:14px;font-weight:500}
+.sym{font-family:var(--f-mono);font-size:12px;color:var(--accent);white-space:nowrap}
+.prm-in{display:grid;grid-template-columns:minmax(0,1fr) 84px 58px;gap:8px;align-items:center}
+.prm-in.sel{grid-template-columns:minmax(0,1fr)}
+input[type=range]{width:100%;accent-color:var(--accent);margin:0}
+input[type=number],select{width:100%;font-family:var(--f-mono);font-size:13px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--fg)}
+input:focus-visible,select:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.unit{font-family:var(--f-mono);font-size:11px;color:var(--muted);line-height:1.2}
+.hint{font-size:12.5px;color:var(--muted);min-height:1.1em}
+.hint b{color:var(--fg);font-weight:600;font-family:var(--f-mono);font-size:12px}
+details.adv summary{cursor:pointer;font-family:var(--f-display);font-size:14.5px;font-weight:600;text-transform:uppercase;letter-spacing:.09em;color:var(--muted)}
+.btns{display:flex;flex-wrap:wrap;gap:8px}
+button{font-family:var(--f-body);font-size:14px;font-weight:600;padding:7px 12px;border-radius:7px;border:1px solid var(--line);background:var(--sunk);color:var(--fg);cursor:pointer}
+button:hover{border-color:var(--accent)}
+button.pri{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.msgs{display:grid;gap:8px}
+.msg{font-size:13px;padding:8px 10px;border-radius:7px;border:1px solid var(--line);border-left:4px solid var(--adi);background:var(--bg)}
+.msg.err{border-left-color:var(--hot)}
+.msg.warn{border-left-color:#e8a317}
+.work{display:grid;gap:18px;min-width:0}
+.plots{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media (max-width:760px){.plots{grid-template-columns:minmax(0,1fr)}}
+.plot{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 10px 8px;min-width:0;position:relative}
+.plot figcaption{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:0 4px 6px}
+.plot figcaption span{font-family:var(--f-display);font-weight:700;font-size:20px}
+.plot figcaption small{font-size:12.5px;color:var(--muted)}
+.plot figcaption label{font-size:12.5px;color:var(--muted);display:flex;gap:5px;align-items:center;cursor:pointer}
+.plot canvas{width:100%;aspect-ratio:4/3.3;display:block;touch-action:pan-y;cursor:crosshair}
+body.invalid .plots,body.invalid .anim,body.invalid .kpis,body.invalid .tables{opacity:.35;filter:grayscale(.6)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:var(--muted);padding-inline:4px}
+.legend span{display:flex;align-items:center;gap:7px}
+.legend i{display:inline-block;width:22px;height:3px;border-radius:2px}
+.legend i.area{height:11px;opacity:.35;background:var(--accent)}
+.legend i.ref{height:0;border-top:2px dashed var(--muted)}
+.anim{display:grid;grid-template-columns:260px minmax(0,1fr);gap:18px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px}
+@media (max-width:640px){.anim{grid-template-columns:minmax(0,1fr)}}
+.anim canvas{width:100%;height:400px;display:block;background:var(--bg);border-radius:8px}
+.anim-info{display:grid;gap:12px;align-content:start;min-width:0}
+.ctl{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.ctl select{width:auto}
+.scrub{display:grid;gap:2px}
+.scrub label{font-size:12.5px;color:var(--muted)}
+.pn-head{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.pn-id{font-family:var(--f-mono);font-size:13px;padding:2px 8px;border-radius:5px;background:var(--accent);color:var(--surface)}
+.pn-type{font-size:13px;color:var(--muted)}
+.pn h3{font-family:var(--f-display);font-size:26px;font-weight:600;margin:6px 0 4px;line-height:1.1}
+.pn p{margin:0 0 10px;max-width:66ch}
+.pn-vals{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0}
+.pn-vals div{background:var(--bg);border-radius:7px;padding:6px 10px}
+.pn-vals dt{font-size:12px;color:var(--muted)}
+.pn-vals dd{margin:0;font-family:var(--f-mono);font-size:15px;font-variant-numeric:tabular-nums}
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:10px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:10px 12px;display:grid;gap:2px;align-content:start}
+.kpi.main{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.kpi .l{font-size:12.5px;color:var(--muted);line-height:1.25}
+.kpi .v{font-family:var(--f-mono);font-size:22px;font-weight:500;font-variant-numeric:tabular-nums;line-height:1.2}
+.kpi.main .v{color:var(--accent);font-size:28px}
+.kpi .v small{font-size:12px;color:var(--muted);font-weight:400;margin-left:4px}
+.kpi .s{font-size:12px;color:var(--muted);font-family:var(--f-mono)}
+.kpi-group{grid-column:1/-1;font-family:var(--f-display);font-size:14.5px;font-weight:600;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin-top:4px}
+.tables{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media (max-width:1100px){.tables{grid-template-columns:minmax(0,1fr)}}
+.tbl{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px;min-width:0}
+.tbl-scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{padding:6px 8px;text-align:right;white-space:nowrap}
+th{font-weight:600;color:var(--muted);font-size:12px;border-bottom:1px solid var(--line)}
+th:first-child,td:first-child{text-align:left}
+td{font-family:var(--f-mono);font-variant-numeric:tabular-nums;border-bottom:1px solid var(--grid)}
+td.txt{font-family:var(--f-body)}
+tr.on td{background:var(--sunk)}
+tr.tot td{font-weight:600;border-top:1px solid var(--line);border-bottom:0}
+.pos{color:var(--hot)} .neg{color:var(--cold)}
+.theory{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media (max-width:900px){.theory{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;min-width:0}
+.card h3{font-family:var(--f-display);font-size:22px;font-weight:600;margin:0 0 8px}
+.card p,.card li{max-width:68ch}
+.card ol,.card ul{padding-left:20px;margin:6px 0}
+.card li{margin-bottom:6px}
+.eq{font-family:var(--f-mono);font-size:13.5px;background:var(--bg);border-radius:6px;padding:7px 10px;margin:6px 0;overflow-x:auto;white-space:nowrap}
+.eq-note{font-size:13px;color:var(--muted);margin:0 0 4px}
+.live{font-family:var(--f-mono);font-size:13px;color:var(--accent)}
+footer{margin-top:26px;padding-top:14px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted);max-width:110ch}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* ---- propio de este simulador ---- */
+.duo{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media (max-width:760px){.duo{grid-template-columns:minmax(0,1fr)}}
+.eng{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px;display:grid;gap:10px;align-content:start;min-width:0}
+.eng-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.eng-h span{font-family:var(--f-display);font-weight:700;font-size:21px}
+.eng-h small{font-size:12.5px;color:var(--muted)}
+.eng canvas{width:100%;height:500px;display:block;background:var(--bg);border-radius:8px}
+@media (max-width:520px){.eng canvas{height:400px}}
+.st h3{font-family:var(--f-display);font-size:22px;font-weight:600;margin:0 0 2px;line-height:1.15}
+.st p{margin:0 0 8px;font-size:14px}
+.st p.sub{font-family:var(--f-mono);font-size:12.5px;color:var(--muted)}
+.ph-dot{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:8px;vertical-align:1px}
+.lamps{display:flex;flex-wrap:wrap;gap:6px}
+.lamp{font-size:12.5px;padding:3px 9px;border-radius:999px;border:1px solid var(--line);color:var(--muted);background:var(--bg)}
+.lamp.on{border-color:var(--accent);color:var(--fg);box-shadow:inset 0 0 0 1px var(--accent)}
+.tl{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 10px 8px;min-width:0}
+.tl canvas{width:100%;height:200px;display:block;cursor:ew-resize;touch-action:pan-y}
+.ctl-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.ctl-row label{font-size:13px;color:var(--muted)}
+.ctl-row select{width:auto}
+.bars{display:grid;gap:8px;margin-top:4px}
+.bar{display:grid;grid-template-columns:96px minmax(0,1fr) 78px;gap:8px;align-items:center;font-size:13px}
+.bar .tr{height:14px;background:var(--bg);border-radius:4px;overflow:hidden}
+.bar i{display:block;height:100%;border-radius:4px}
+.bar b{font-family:var(--f-mono);font-weight:500;font-size:12.5px;text-align:right;font-variant-numeric:tabular-nums}
+td.txt{white-space:normal;min-width:150px}
+.cmp td:first-child{font-family:var(--f-body);font-weight:600;white-space:normal;min-width:120px}
+.cmp td{text-align:left;vertical-align:top}
+.cmp th{text-align:left}
+details.cot{font-size:13.5px}
+details.cot summary{cursor:pointer;font-weight:600}
+body.invalid .duo,body.invalid .tl{opacity:.35;filter:grayscale(.6)}
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="top">
+    <div class="eyebrow">Simulador · Introducción a Motores · Unidad 3 — Clasificación de los MCIA</div>
+    <h1>Dos y <span class="acc">cuatro tiempos</span></h1>
+    <p class="lede">Un motor de dos tiempos con barrido por cárter y uno de cuatro tiempos con válvulas giran juntos con el mismo ángulo de cigüeñal. Cuente las explosiones en dos vueltas, observe cómo el 2T renueva la carga con lumbreras y cárter, y compare la potencia teórica y la esperada.</p>
+  </header>
+  <div class="layout">
+    <aside class="panel" aria-label="Controles de la simulación">
+      <section><h2>Animación</h2>
+        <div class="ctl-row">
+          <button type="button" class="pri" id="playBtn" aria-pressed="false">▶ Animar</button>
+          <button type="button" id="m10" aria-label="Retroceder 10 grados">−10°</button>
+          <button type="button" id="p10" aria-label="Avanzar 10 grados">+10°</button>
+          <label for="speedSel">Velocidad</label>
+          <select id="speedSel"><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option></select>
+        </div>
+        <div id="rowsAnim"></div>
+        <div class="btns"><button type="button" id="zeroBtn">Reiniciar contadores (α = 0°)</button></div>
+      </section>
+      <section><h2>Motor</h2><div id="rowsMot"></div></section>
+      <section><h2>Cálculo de potencia</h2><div id="rowsPow"></div></section>
+      <div class="btns"><button type="button" id="resetBtn">Restablecer valores</button></div>
+      <div class="msgs" id="msgs" aria-live="polite"></div>
+    </aside>
+    <main class="work">
+      <div class="duo">
+        <section class="eng" aria-label="Motor de dos tiempos">
+          <div class="eng-h"><span>Dos tiempos · barrido por cárter</span><small>1 ciclo por vuelta</small></div>
+          <canvas id="c2T" role="img" aria-label="Corte de un motor de dos tiempos con lumbreras de escape, transferencia y admisión"></canvas>
+          <div class="st" id="st2" aria-live="polite"></div>
+        </section>
+        <section class="eng" aria-label="Motor de cuatro tiempos">
+          <div class="eng-h"><span>Cuatro tiempos · válvulas</span><small>1 ciclo cada 2 vueltas</small></div>
+          <canvas id="c4T" role="img" aria-label="Corte de un motor de cuatro tiempos con válvulas de admisión y escape"></canvas>
+          <div class="st" id="st4" aria-live="polite"></div>
+        </section>
+      </div>
+      <div class="legend">
+        <span><i style="background:var(--cold)"></i>Mezcla fresca</span>
+        <span><i style="background:var(--hot)"></i>Combustión</span>
+        <span><i style="background:var(--adi)"></i>Gases de escape</span>
+        <span><i style="background:var(--accent)"></i>Compresión / precompresión</span>
+        <span><i style="background:#e8a317;height:11px;opacity:.45"></i>Aceite</span>
+      </div>
+      <section class="kpis" id="cnt" aria-label="Contadores"></section>
+      <figure class="tl" style="margin:0">
+        <figcaption class="eng-h" style="padding:0 4px 6px"><span>Fases frente al ángulo del cigüeñal</span><small>Arrastre sobre la gráfica para mover el ángulo · el destello marca cada chispa</small></figcaption>
+        <canvas id="cTl" role="img" aria-label="Barras de fases del motor de dos tiempos, de su cárter y del motor de cuatro tiempos entre 0 y 720 grados"></canvas>
+      </figure>
+      <details class="cot card"><summary>Cotas de las lumbreras del 2T y de la distribución del 4T (compruebe primero con el simulador)</summary>
+        <div class="tbl-scroll"><table>
+          <thead><tr><th>Elemento</th><th>Abre</th><th>Cierra</th><th>Duración</th></tr></thead>
+          <tbody>
+            <tr><td class="txt">2T · lumbrera de escape</td><td>95° (85° a. PMI)</td><td>265° (85° d. PMI)</td><td>170°</td></tr>
+            <tr><td class="txt">2T · lumbrera de transferencia</td><td>118° (62° a. PMI)</td><td>242° (62° d. PMI)</td><td>124°</td></tr>
+            <tr><td class="txt">2T · lumbrera de admisión (cárter)</td><td>295° (65° a. PMS)</td><td>65° (65° d. PMS)</td><td>130°</td></tr>
+            <tr><td class="txt">4T · válvula de admisión</td><td>710° (AAA 10°)</td><td>225° (RCA 45°)</td><td>235°</td></tr>
+            <tr><td class="txt">4T · válvula de escape</td><td>495° (AAE 45°)</td><td>10° (RCE 10°)</td><td>235°</td></tr>
+          </tbody></table></div>
+      </details>
+      <section class="tables">
+        <div class="tbl">
+          <div class="sec-h">Potencia teórica con la misma cilindrada, rpm y PME</div>
+          <div class="kpis" id="pow" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr))"></div>
+          <div class="bars" id="bars"></div>
+        </div>
+        <div class="tbl">
+          <div class="sec-h">Comparación 2T frente a 4T</div>
+          <div class="tbl-scroll"><table class="cmp">
+            <thead><tr><th>Característica</th><th>Dos tiempos</th><th>Cuatro tiempos</th></tr></thead>
+            <tbody>
+              <tr><td>Explosiones por vuelta</td><td class="txt">1</td><td class="txt">1/2 (una cada 2 vueltas)</td></tr>
+              <tr><td>Carreras por ciclo</td><td class="txt">2 (1 vuelta)</td><td class="txt">4 (2 vueltas)</td></tr>
+              <tr><td>Distribución</td><td class="txt">Lumbreras abiertas y cerradas por el pistón; cárter estanco (a veces válvula de láminas)</td><td class="txt">Válvulas, árbol de levas, taqués, muelles y correa o cadena</td></tr>
+              <tr><td>Lubricación</td><td class="txt">Aceite mezclado con la gasolina (2 a 4 %) o inyectado; se quema</td><td class="txt">Aceite en el cárter con bomba y filtro; se recircula</td></tr>
+              <tr><td>Rendimiento</td><td class="txt">Menor: pérdida de mezcla por el escape y barrido incompleto</td><td class="txt">Mayor: renovación de la carga más completa</td></tr>
+              <tr><td>Emisiones</td><td class="txt">Altas en HC y humo por aceite quemado y mezcla que se escapa</td><td class="txt">Menores; se controlan con catalizador</td></tr>
+              <tr><td>Relación peso/potencia</td><td class="txt">Muy favorable: pocas piezas, liviano</td><td class="txt">Más pesado por la distribución</td></tr>
+              <tr><td>Aplicaciones típicas</td><td class="txt">Motos pequeñas, motosierras, desbrozadoras, fueraborda</td><td class="txt">Automóviles, camionetas, motos medianas y grandes</td></tr>
+            </tbody></table></div>
+        </div>
+      </section>
+      <section class="theory">
+        <div class="card">
+          <h3>Ecuaciones</h3>
+          <p class="eq-note">Potencia teórica a partir de la presión media efectiva</p>
+          <div class="eq">P = PME·V<sub>T</sub>·n / (60·i) &nbsp;·&nbsp; i = 1 (2T), i = 2 (4T)</div>
+          <p class="eq-note">P en W con PME en Pa, V<sub>T</sub> en m³ y n en rpm. Corrección práctica del 2T:</p>
+          <div class="eq">P<sub>2T esperada</sub> = η<sub>b</sub>·P<sub>2T teórica</sub> &nbsp;·&nbsp; P<sub>2T</sub>/P<sub>4T</sub> = 2·η<sub>b</sub></div>
+          <p class="live" id="lvP"></p>
+          <p class="eq-note">Explosiones en N vueltas y par</p>
+          <div class="eq">2T: N explosiones &nbsp;·&nbsp; 4T: N/2 explosiones &nbsp;·&nbsp; M = P/(2π·n/60)</div>
+          <p class="eq-note">Cilindro cuadrado usado en el dibujo</p>
+          <div class="eq">V<sub>T</sub> = π·D²/4·S, con D = S</div>
+          <p class="live" id="lvG"></p>
+        </div>
+        <div class="card">
+          <h3>Experimentos guiados</h3>
+          <ol>
+            <li>Pulse «Reiniciar contadores» y anime hasta 720°. ¿Cuántas explosiones tuvo cada motor? ¿Cuántos ciclos de trabajo completa cada uno en 2 vueltas?</li>
+            <li>Con los botones ±10°, busque en qué ángulos se abren y se cierran las lumbreras de escape, transferencia y admisión del 2T (vea los indicadores bajo el dibujo). ¿Por qué la de escape abre antes que la de transferencia? Compruebe luego con la tabla de cotas.</li>
+            <li>Sitúese entre 118° y 242°. Describa el barrido: ¿de dónde viene la mezcla fresca, qué empuja y por dónde sale? ¿Qué ocurre entre 242° y 265°?</li>
+            <li>Con 125 cm³, 7000 rpm y PME = 8 bar, anote la potencia del 4T y del 2T. Cambie η<sub>b</sub> a 0.5 y a 0.8. ¿Por qué el 2T no entrega el doble de potencia en la práctica?</li>
+            <li>Use la tabla comparativa y lo observado en la animación para explicar por qué el 2T contamina más (piense en la mezcla que se escapa y en el aceite que se quema).</li>
+          </ol>
+        </div>
+      </section>
+    </main>
+  </div>
+  <footer>Modelo didáctico con los dos motores monocilíndricos girando al mismo régimen: cinemática exacta biela‑manivela (L = 1.8·S) y cilindro cuadrado (D = S) calculado a partir de la cilindrada. 2T con barrido en lazo por cárter y admisión controlada por la falda del pistón; cotas de lumbreras fijas típicas de un motor pequeño. 4T con distribución AAA 10°, RCA 45°, AAE 45°, RCE 10° y avance de encendido de 20° en ambos motores. Colores de gases cualitativos. La potencia es teórica (PME supuesta igual en ambos) y η<sub>b</sub> resume las pérdidas propias del barrido del 2T. Material de apoyo para prácticas de Mecánica Automotriz.</footer>
+</div>
+<script>
+(function(){
+'use strict';
+/* ---------- utilidades comunes ---------- */
+const $ = s => document.querySelector(s);
+const DEG = Math.PI/180;
+const AMBER = '#e8a317', SPARK = '#f5c518';
+function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+function pal(){
+  const o={}; [['bg','--surface'],['page','--bg'],['sunk','--sunk'],['fg','--fg'],['muted','--muted'],['line','--line'],['grid','--grid'],['hot','--hot'],['cold','--cold'],['adi','--adi'],['acc','--accent']].forEach(([k,v])=>o[k]=css(v)||'#888888');
+  return o;
+}
+function rgbOf(c){
+  c=String(c).trim();
+  if(c[0]==='#'){ if(c.length===4) c='#'+c[1]+c[1]+c[2]+c[2]+c[3]+c[3]; const n=parseInt(c.slice(1,7),16); return [(n>>16)&255,(n>>8)&255,n&255]; }
+  const m=c.match(/[\d.]+/g); return m?m.slice(0,3).map(Number):[128,128,128];
+}
+function rgba(c,a){const r=Array.isArray(c)?c:rgbOf(c); return `rgba(${Math.round(r[0])},${Math.round(r[1])},${Math.round(r[2])},${a})`;}
+function mixRgb(list){
+  let s=0,r=0,g=0,b=0;
+  list.forEach(([c,w])=>{ if(!(w>0)) return; const q=Array.isArray(c)?c:rgbOf(c); r+=q[0]*w; g+=q[1]*w; b+=q[2]*w; s+=w; });
+  s=s||1; return [r/s,g/s,b/s];
+}
+const fx=(x,d)=>Number.isFinite(x)?x.toFixed(d):'—';
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+const smooth=t=>{t=clamp(t,0,1); return t*t*(3-2*t);};
+function wrapA(t,p){p=p||720; return ((t%p)+p)%p;}
+function setupCanvas(cv){
+  const dpr=window.devicePixelRatio||1, W=cv.clientWidth, H=cv.clientHeight;
+  if(cv.width!==Math.round(W*dpr)||cv.height!==Math.round(H*dpr)){cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr);}
+  const ctx=cv.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,W,H);
+  return {ctx,W,H};
+}
+const FONT_UI='Barlow, system-ui, sans-serif', FONT_MONO='"JetBrains Mono", ui-monospace, monospace';
+
+/* ---------- cinemática y distribución ---------- */
+// Desplazamiento del pistón medido desde el PMS (mm) para un ángulo de cigüeñal en grados.
+function pistonX(th,r,L){ const t=th*DEG, s=Math.sin(t); return r*(1-Math.cos(t))+L-Math.sqrt(Math.max(0,L*L-r*r*s*s)); }
+// Fracción de alzada (0..1) de una válvula que abre en a y dura d grados (ley sen²).
+function liftFrac(th,a,d){ if(!(d>0)) return 0; const u=wrapA(th-a); if(u>=d) return 0; const s=Math.sin(Math.PI*u/d); return s*s; }
+// Fracción de masa quemada (Wiebe, a = 5, m = 2) normalizada a 1 al final de la combustión.
+const WIEBE_N=1-Math.exp(-5);
+function wiebe(u,dur){ if(u<=0) return 0; if(u>=dur) return 1; return (1-Math.exp(-5*Math.pow(u/dur,3)))/WIEBE_N; }
+// Cotas → ángulos de apertura y cierre (0° = PMS al inicio de la admisión, ciclo de 720°)
+function timing(c){
+  return {IVO:-c.AAA, IVC:180+c.RCA, EVO:540-c.AAE, EVC:720+c.RCE, IGN:360-c.AE,
+    durI:180+c.AAA+c.RCA, durE:180+c.AAE+c.RCE, cruce:c.AAA+c.RCE};
+}
+const BURN=55; // duración de la combustión (°)
+// Composición del gas del cilindro 4T: f = mezcla fresca, b = combustión, e = gases quemados
+function gas4T(th,tm){
+  th=wrapA(th);
+  let f=0,b=0,e=0;
+  if(th<Math.max(tm.IVC,1)){
+    f=0.15+0.85*smooth(th/180); e=1-f;
+  } else if(th<tm.IGN){ f=1; }
+  else if(th<tm.EVO){
+    const xb=wiebe(th-tm.IGN,BURN);
+    const cool=smooth((th-(tm.IGN+BURN))/Math.max(20,tm.EVO-tm.IGN-BURN))*0.65;
+    f=1-xb; b=xb*(1-cool); e=xb*cool;
+  } else {
+    b=0.35*(1-smooth((th-tm.EVO)/60)); e=1-b;
+    const iv=720+tm.IVO; if(tm.IVO<0 && th>iv){ const q=(th-iv)/(-tm.IVO); f=0.25*q; e-=f; }
+  }
+  return {f,b,e};
+}
+function gasColor(g,P){
+  const c=mixRgb([[P.cold,g.f],[P.hot,g.b],[P.adi,g.e]]);
+  return rgba(c,0.42+0.3*g.b);
+}
+
+/* ---------- ayudas de dibujo ---------- */
+function rrect(ctx,x,y,w,h,r){ r=Math.min(r,w/2,h/2); ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+function polyLen(pts){ let L=0; const acc=[0]; for(let i=1;i<pts.length;i++){ L+=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]); acc.push(L);} return {L,acc}; }
+function polyAt(pts,acc,s){
+  let i=1; while(i<acc.length-1 && acc[i]<s) i++;
+  const a=pts[i-1], b=pts[i], seg=(acc[i]-acc[i-1])||1, u=(s-acc[i-1])/seg;
+  return {x:a[0]+(b[0]-a[0])*u, y:a[1]+(b[1]-a[1])*u, dx:(b[0]-a[0])/seg, dy:(b[1]-a[1])/seg};
+}
+// Flechas de flujo animadas a lo largo de una polilínea
+function flowArrows(ctx,pts,phase,color,size,alpha){
+  const {L,acc}=polyLen(pts); if(L<8) return;
+  ctx.save(); ctx.globalAlpha=(alpha==null?1:alpha)*0.35; ctx.strokeStyle=color; ctx.lineWidth=Math.max(1.5,size*0.35); ctx.setLineDash([3,4]);
+  ctx.beginPath(); pts.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1])); ctx.stroke(); ctx.setLineDash([]);
+  ctx.globalAlpha=(alpha==null?1:alpha); ctx.fillStyle=color;
+  const sp=Math.max(22,size*3.2), n=Math.max(1,Math.floor(L/sp));
+  for(let k=0;k<n;k++){
+    const s=((phase%sp)+sp)%sp+k*sp; if(s>L-2) continue;
+    const q=polyAt(pts,acc,s), ux=q.dx, uy=q.dy, z=size;
+    ctx.beginPath(); ctx.moveTo(q.x+ux*z,q.y+uy*z); ctx.lineTo(q.x-ux*z*0.6-uy*z*0.7,q.y-uy*z*0.6+ux*z*0.7); ctx.lineTo(q.x-ux*z*0.2,q.y-uy*z*0.2); ctx.lineTo(q.x-ux*z*0.6+uy*z*0.7,q.y-uy*z*0.6-ux*z*0.7); ctx.closePath(); ctx.fill();
+  }
+  ctx.restore();
+}
+function sparkBurst(ctx,x,y,s){
+  ctx.save(); ctx.strokeStyle=SPARK; ctx.lineWidth=2; ctx.lineCap='round';
+  for(let k=0;k<10;k++){ const a=k*Math.PI/5+0.2, r0=s*0.25, r1=s*(k%2?0.75:1.1); ctx.beginPath(); ctx.moveTo(x+Math.cos(a)*r0,y+Math.sin(a)*r0); ctx.lineTo(x+Math.cos(a)*r1,y+Math.sin(a)*r1); ctx.stroke(); }
+  ctx.fillStyle=SPARK; ctx.beginPath(); ctx.arc(x,y,s*0.22,0,Math.PI*2); ctx.fill(); ctx.restore();
+}
+function spring(ctx,x,y0,y1,w,turns){
+  ctx.beginPath(); ctx.moveTo(x-w/2,y0);
+  const n=turns*2; for(let i=1;i<=n;i++){ const y=y0+(y1-y0)*i/n; ctx.lineTo(x+(i%2?w/2:-w/2),y); }
+  ctx.stroke();
+}
+// Rótulos con líneas guía; evita solapes en vertical
+function drawLabels(ctx,items,P,opt){
+  const fs=opt.fs||11.5;
+  ctx.font=`600 ${fs}px ${FONT_UI}`; ctx.textBaseline='middle';
+  ['L','R'].forEach(side=>{
+    const it=items.filter(o=>o.side===side).map(o=>Object.assign({ly:o.y,hh:String(o.text).split('\n').length*(fs+1)/2+2},o)).sort((a,b)=>a.y-b.y);
+    for(let i=1;i<it.length;i++){ const mn=it[i-1].ly+it[i-1].hh+it[i].hh; if(it[i].ly<mn) it[i].ly=mn; }
+    for(let i=it.length-1;i>=0;i--){ const lim=i===it.length-1?opt.ymax-it[i].hh:it[i+1].ly-it[i+1].hh-it[i].hh; if(it[i].ly>lim) it[i].ly=lim; }
+    it.forEach(o=>{ if(o.ly<opt.ymin+o.hh) o.ly=opt.ymin+o.hh; });
+    it.forEach(o=>{
+      const tx=side==='L'?opt.xl:opt.xr;
+      ctx.strokeStyle=P.muted; ctx.lineWidth=1; ctx.globalAlpha=0.8;
+      ctx.beginPath(); ctx.moveTo(o.x,o.y); ctx.lineTo(side==='L'?tx+6:tx-6,o.ly); ctx.lineTo(side==='L'?tx+2:tx-2,o.ly); ctx.stroke(); ctx.globalAlpha=1;
+      ctx.fillStyle=P.fg; ctx.beginPath(); ctx.arc(o.x,o.y,2,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle=o.color||P.fg; ctx.textAlign=side==='L'?'right':'left';
+      const lines=String(o.text).split('\n');
+      lines.forEach((t,j)=>ctx.fillText(t,tx,o.ly+(j-(lines.length-1)/2)*(fs+1)));
+    });
+  });
+}
+function crankAndRod(ctx,X,Y,k,P,g){
+  // g: {th, r, L, yc, D, pinY, cw}
+  const a=-Math.PI/2+g.th*DEG, cx=X(0), cy=Y(g.yc);
+  const px=X(g.r*Math.sin(g.th*DEG)), py=Y(g.yc-g.r*Math.cos(g.th*DEG));
+  // contrapeso (opuesto a la muñequilla)
+  ctx.fillStyle=P.adi; ctx.strokeStyle=P.fg; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,g.cw*k,a+Math.PI-1.0,a+Math.PI+1.0); ctx.closePath(); ctx.fill(); ctx.stroke();
+  // brazo (muñequilla-apoyo)
+  ctx.lineCap='round'; ctx.strokeStyle=P.fg; ctx.lineWidth=0.34*g.D*k+3; ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(px,py); ctx.stroke();
+  ctx.strokeStyle=P.adi; ctx.lineWidth=0.34*g.D*k; ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(px,py); ctx.stroke(); ctx.lineCap='butt';
+  // biela
+  const sx=X(0), sy=Y(g.pinY), dx=px-sx, dy=py-sy, Ln=Math.hypot(dx,dy)||1, nx=-dy/Ln, ny=dx/Ln;
+  const w0=0.07*g.D*k, w1=0.11*g.D*k;
+  ctx.fillStyle=P.muted; ctx.strokeStyle=P.fg; ctx.lineWidth=1.3;
+  ctx.beginPath(); ctx.moveTo(sx+nx*w0,sy+ny*w0); ctx.lineTo(px+nx*w1,py+ny*w1); ctx.lineTo(px-nx*w1,py-ny*w1); ctx.lineTo(sx-nx*w0,sy-ny*w0); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.arc(px,py,0.2*g.D*k,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.arc(sx,sy,0.11*g.D*k,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  // muñequilla y apoyo de bancada
+  ctx.fillStyle=P.sunk; ctx.beginPath(); ctx.arc(px,py,0.12*g.D*k,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  ctx.fillStyle=P.sunk; ctx.beginPath(); ctx.arc(cx,cy,0.15*g.D*k,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  ctx.fillStyle=P.fg; ctx.beginPath(); ctx.arc(cx,cy,2.2,0,Math.PI*2); ctx.fill();
+  return {cx,cy,px,py,sx,sy,cwx:cx+Math.cos(a+Math.PI)*g.cw*k*0.75,cwy:cy+Math.sin(a+Math.PI)*g.cw*k*0.75,
+          rodx:(sx+px)/2,rody:(sy+py)/2};
+}
+function pistonBody(ctx,X,Y,k,P,D,yp,hp,pinO,dome){
+  const x0=X(-D/2)+1.5, x1=X(D/2)-1.5, t=Y(yp), b=Y(yp+hp), crownH=0.2*D*k, sw=0.06*D*k;
+  ctx.fillStyle=P.adi; ctx.strokeStyle=P.fg; ctx.lineWidth=1.4;
+  // corona
+  ctx.beginPath(); ctx.moveTo(x0,t+crownH);
+  if(dome){ ctx.lineTo(x0,t+2); ctx.quadraticCurveTo((x0+x1)/2,t-dome*k,x1,t+2); } else { ctx.lineTo(x0,t); ctx.lineTo(x1,t); }
+  ctx.lineTo(x1,t+crownH); ctx.closePath(); ctx.fill(); ctx.stroke();
+  // falda (en corte)
+  ctx.fillRect(x0,t+crownH,sw,b-t-crownH); ctx.strokeRect(x0,t+crownH,sw,b-t-crownH);
+  ctx.fillRect(x1-sw,t+crownH,sw,b-t-crownH); ctx.strokeRect(x1-sw,t+crownH,sw,b-t-crownH);
+  // segmentos
+  ctx.strokeStyle=P.bg; ctx.lineWidth=1.6;
+  [0.06,0.11,0.16].forEach(o=>{ const y=t+o*D*k; if(y<t+crownH-1){ ctx.beginPath(); ctx.moveTo(x0+1,y); ctx.lineTo(x0+sw+3,y); ctx.moveTo(x1-1,y); ctx.lineTo(x1-sw-3,y); ctx.stroke(); } });
+  // alojamiento del bulón
+  ctx.fillStyle=P.adi; ctx.strokeStyle=P.fg; ctx.lineWidth=1.2;
+  const py=Y(yp+pinO); ctx.fillRect(x0+sw,py-0.1*D*k,(x1-x0-2*sw)*0.22,0.2*D*k); ctx.fillRect(x1-sw-(x1-x0-2*sw)*0.22,py-0.1*D*k,(x1-x0-2*sw)*0.22,0.2*D*k);
+  return {cx:(x0+x1)/2,top:t,bot:b,x0,x1,pinY:py};
+}
+
+/* ---------- motor de 4 tiempos en corte ---------- */
+function drawEngine4T(ctx,W,H,st,P,opt){
+  opt=opt||{};
+  const D=st.D, S=st.S, r=S/2, L=st.L, hcc=S/(st.Rc-1), tm=st.tm, th=wrapA(st.th);
+  const hp=0.72*D, pinO=0.38*D, yc=hcc+pinO+L+r;
+  const headT=0.46*D, wall=0.15*D, headHalf=D/2+0.32*D, blockHalf=D/2+wall;
+  const rb=0.13*D, LI=st.LI, LE=st.LE, hcMax=Math.max(LI,LE);
+  const yBucketTop=-0.74*D, yCam=yBucketTop-rb, yStemTop=-0.64*D;
+  const top=Math.min(yCam-rb-hcMax-0.07*D,-1.05*D);
+  const cw=r+0.2*D, ylb=hcc+S+hp*0.75;
+  const caseHalf=Math.max(blockHalf+0.04*D,cw+0.14*D);
+  const bottom=yc+Math.max(r+0.24*D,cw)+0.16*D;
+  const halfW=Math.max(headHalf,caseHalf);
+  const lfs=W<420?10.5:11.5; let lw=6;
+  if(opt.labels){ ctx.font=`600 ${lfs}px ${FONT_UI}`; lw=14+Math.max(...['Árbol de levas','combustión','Contrapeso','admisión','Cigüeñal'].map(t=>ctx.measureText(t).width)); }
+  const k=Math.min((W-2*lw-10)/(2*halfW),(H-14)/(bottom-top));
+  const ox=W/2, oy=7+(H-14-(bottom-top)*k)/2-top*k;
+  const X=x=>ox+x*k, Y=y=>oy+y*k;
+  const li=liftFrac(th,tm.IVO,tm.durI)*LI, le=liftFrac(th,tm.EVO,tm.durE)*LE;
+  const x=pistonX(th,r,L), yp=hcc+x;
+  const gz=gas4T(th,tm);
+  const xi=-0.25*D, xe=0.25*D, dvi=0.36*D, dve=0.31*D;
+  const labels=[];
+
+  // cárter con aceite
+  ctx.fillStyle=P.page; ctx.strokeStyle=P.muted; ctx.lineWidth=2;
+  rrect(ctx,X(-caseHalf),Y(ylb),2*caseHalf*k,(bottom-0.06*D-ylb)*k,0.22*D*k); ctx.fill(); ctx.stroke();
+  const oilTop=bottom-0.06*D-0.13*D;
+  ctx.save(); rrect(ctx,X(-caseHalf),Y(ylb),2*caseHalf*k,(bottom-0.06*D-ylb)*k,0.22*D*k); ctx.clip();
+  ctx.fillStyle=rgba(AMBER,0.32); ctx.fillRect(X(-caseHalf),Y(oilTop),2*caseHalf*k,(bottom-oilTop)*k); ctx.restore();
+  labels.push({side:'R',x:X(caseHalf*0.7),y:Y(oilTop+0.05*D),text:'Aceite\n(cárter)'});
+  // bloque
+  ctx.fillStyle=P.sunk; ctx.strokeStyle=P.muted; ctx.lineWidth=1.5;
+  [[-blockHalf,-D/2],[D/2,blockHalf]].forEach(([a,b])=>{ ctx.fillRect(X(a),Y(0),(b-a)*k,ylb*k); ctx.strokeRect(X(a),Y(0),(b-a)*k,ylb*k); });
+  // camisas de agua (sugeridas)
+  ctx.fillStyle=rgba(P.cold,0.12);
+  [[-blockHalf+0.035*D,-D/2-0.04*D],[D/2+0.04*D,blockHalf-0.035*D]].forEach(([a,b])=>ctx.fillRect(X(a),Y(0.08*D),(b-a)*k,(hcc+S*0.7)*k));
+  // gas en el cilindro
+  ctx.fillStyle=P.page; ctx.fillRect(X(-D/2),Y(0),D*k,(yp)*k);
+  ctx.fillStyle=gasColor(gz,P); ctx.fillRect(X(-D/2),Y(0),D*k,(yp)*k);
+  if(gz.b>0.25){ const gr=ctx.createRadialGradient(X(0),Y(0.05*D),2,X(0),Y(0.05*D),Math.max(8,D*0.55*k)); gr.addColorStop(0,rgba(SPARK,0.55*gz.b)); gr.addColorStop(1,rgba(SPARK,0)); ctx.fillStyle=gr; ctx.fillRect(X(-D/2),Y(0),D*k,yp*k); }
+  // culata
+  ctx.fillStyle=P.sunk; ctx.strokeStyle=P.muted; ctx.lineWidth=1.5;
+  ctx.fillRect(X(-headHalf),Y(-headT),2*headHalf*k,headT*k); ctx.strokeRect(X(-headHalf),Y(-headT),2*headHalf*k,headT*k);
+  // tapa de balancines / árbol de levas (contorno)
+  const covTop=yCam-rb-hcMax-0.05*D;
+  ctx.setLineDash([5,4]); ctx.strokeStyle=P.line; ctx.lineWidth=1.3; rrect(ctx,X(-headHalf),Y(covTop),2*headHalf*k,(-headT-covTop)*k,0.1*D*k); ctx.stroke(); ctx.setLineDash([]);
+  // conductos
+  const port=(xv,dir,fill)=>{
+    const e=dir*headHalf;
+    ctx.beginPath(); ctx.moveTo(X(xv-dir*0.17*D),Y(0));
+    ctx.quadraticCurveTo(X(xv-dir*0.2*D),Y(-0.1*D),X(e),Y(-0.1*D));
+    ctx.lineTo(X(e),Y(-0.33*D));
+    ctx.quadraticCurveTo(X(xv+dir*0.1*D),Y(-0.35*D),X(xv+dir*0.17*D),Y(0));
+    ctx.closePath(); ctx.fillStyle=P.page; ctx.fill(); ctx.fillStyle=fill; ctx.fill(); ctx.strokeStyle=P.muted; ctx.lineWidth=1.3; ctx.stroke();
+  };
+  port(xi,-1,rgba(P.cold,0.42)); port(xe,1,rgba(P.adi,0.45));
+  labels.push({side:'L',x:X(-headHalf+0.08*D),y:Y(-0.22*D),text:'Conducto de\nadmisión'});
+  labels.push({side:'R',x:X(headHalf-0.08*D),y:Y(-0.22*D),text:'Conducto de\nescape'});
+  // bujía
+  const pw=0.09*D;
+  ctx.fillStyle=P.adi; ctx.strokeStyle=P.fg; ctx.lineWidth=1.2;
+  ctx.fillRect(X(-pw/2),Y(-headT),pw*k,headT*k); ctx.strokeRect(X(-pw/2),Y(-headT),pw*k,headT*k);
+  ctx.fillRect(X(-0.075*D),Y(-headT-0.1*D),0.15*D*k,0.1*D*k); ctx.strokeRect(X(-0.075*D),Y(-headT-0.1*D),0.15*D*k,0.1*D*k);
+  ctx.fillStyle=P.bg; ctx.fillRect(X(-0.035*D),Y(-1.0*D),0.07*D*k,(1.0*D-headT-0.1*D)*k); ctx.strokeRect(X(-0.035*D),Y(-1.0*D),0.07*D*k,(1.0*D-headT-0.1*D)*k);
+  ctx.fillStyle=P.fg; ctx.fillRect(X(-0.02*D),Y(-1.04*D),0.04*D*k,0.05*D*k);
+  ctx.strokeStyle=P.fg; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(X(0),Y(0)); ctx.lineTo(X(0),Y(0.035*D)); ctx.moveTo(X(-0.03*D),Y(0)); ctx.lineTo(X(-0.03*D),Y(0.055*D)); ctx.lineTo(X(0.01*D),Y(0.055*D)); ctx.stroke();
+  const spark=st.spark!=null?st.spark:(wrapA(th-tm.IGN)<12);
+  if(spark) sparkBurst(ctx,X(0),Y(0.05*D),Math.max(9,0.13*D*k));
+  labels.push({side:'R',x:X(0.035*D),y:Y(-0.85*D),text:'Bujía'});
+  // válvulas, muelles, taqués y levas
+  const valve=(xv,dv,l,Lmax,a,d,lab,side)=>{
+    ctx.strokeStyle=P.muted; ctx.lineWidth=1.3; spring(ctx,X(xv),Y(-headT),Y(yStemTop+l),0.15*D*k,5);
+    ctx.fillStyle=P.muted; ctx.strokeStyle=P.fg; ctx.lineWidth=1.2;
+    ctx.fillRect(X(xv-0.018*D),Y(yStemTop+l),0.036*D*k,(-yStemTop-0.08*D)*k);
+    ctx.beginPath(); ctx.moveTo(X(xv-dv/2),Y(l)); ctx.lineTo(X(xv+dv/2),Y(l)); ctx.lineTo(X(xv+dv/2-0.03*D),Y(l-0.05*D)); ctx.lineTo(X(xv+0.02*D),Y(l-0.1*D)); ctx.lineTo(X(xv-0.02*D),Y(l-0.1*D)); ctx.lineTo(X(xv-dv/2+0.03*D),Y(l-0.05*D)); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle=P.adi; ctx.fillRect(X(xv-0.1*D),Y(yBucketTop+l),0.2*D*k,0.1*D*k); ctx.strokeRect(X(xv-0.1*D),Y(yBucketTop+l),0.2*D*k,0.1*D*k);
+    // leva: ψ (grados de leva) respecto al punto de alzada máxima
+    const mid=a+d/2, rot=-Math.PI/2+Math.PI+(wrapA(th-mid+360)-360)/2*DEG; // nariz hacia abajo en la alzada máxima
+    ctx.beginPath();
+    for(let i=0;i<=72;i++){ const psi=-180+i*5, pr=Math.abs(psi)<d/4?rb+Lmax*Math.pow(Math.cos(Math.PI*psi/(d/2)),2):rb, an=rot+psi*DEG*-1;
+      const px=X(xv)+Math.cos(an)*pr*k, py=Y(yCam)+Math.sin(an)*pr*k; i?ctx.lineTo(px,py):ctx.moveTo(px,py); }
+    ctx.closePath(); ctx.fillStyle=P.adi; ctx.fill(); ctx.strokeStyle=P.fg; ctx.stroke();
+    ctx.fillStyle=P.sunk; ctx.beginPath(); ctx.arc(X(xv),Y(yCam),0.05*D*k,0,Math.PI*2); ctx.fill(); ctx.stroke();
+    labels.push({side,x:X(xv-(side==='L'?1:-1)*dv/2*0.8),y:Y(l-0.02*D),text:lab});
+    labels.push({side,x:X(xv+(side==='L'?-1:1)*rb*0.9),y:Y(yCam),text:side==='L'?'Árbol de levas\n(admisión)':'Árbol de levas\n(escape)'});
+  };
+  valve(xi,dvi,li,LI,tm.IVO,tm.durI,'Válvula de\nadmisión','L');
+  valve(xe,dve,le,LE,tm.EVO,tm.durE,'Válvula de\nescape','R');
+  // flujo
+  const ph=th*1.6;
+  if(li>0.12) flowArrows(ctx,[[X(-headHalf+0.02*D),Y(-0.22*D)],[X(xi-0.08*D),Y(-0.2*D)],[X(xi-dvi/2-0.02*D),Y(li+0.05*D)],[X(xi-dvi/2+0.02*D),Y(li+0.2*D)]],ph,P.cold,Math.max(5,0.05*D*k),clamp(li/2.5,0.3,1));
+  if(li>0.12) flowArrows(ctx,[[X(-headHalf+0.02*D),Y(-0.22*D)],[X(xi+0.02*D),Y(-0.18*D)],[X(xi+dvi/2+0.02*D),Y(li+0.05*D)],[X(xi+dvi/2),Y(li+0.22*D)]],ph+9,P.cold,Math.max(5,0.05*D*k),clamp(li/2.5,0.3,1));
+  if(le>0.12) flowArrows(ctx,[[X(xe-dve/2),Y(le+0.2*D)],[X(xe-dve/2-0.01*D),Y(le+0.03*D)],[X(xe-0.02*D),Y(-0.18*D)],[X(headHalf-0.02*D),Y(-0.22*D)]],ph,P.adi,Math.max(5,0.05*D*k),clamp(le/2.5,0.3,1));
+  if(le>0.12) flowArrows(ctx,[[X(xe+dve/2),Y(le+0.2*D)],[X(xe+dve/2+0.02*D),Y(le+0.04*D)],[X(xe+0.1*D),Y(-0.2*D)],[X(headHalf-0.02*D),Y(-0.22*D)]],ph+9,P.adi,Math.max(5,0.05*D*k),clamp(le/2.5,0.3,1));
+  // PMS / PMI
+  ctx.setLineDash([4,3]); ctx.strokeStyle=P.fg; ctx.globalAlpha=0.55; ctx.lineWidth=1;
+  [hcc,hcc+S].forEach(y=>{ctx.beginPath(); ctx.moveTo(X(-D/2),Y(y)); ctx.lineTo(X(D/2),Y(y)); ctx.stroke();});
+  ctx.setLineDash([]); ctx.globalAlpha=1;
+  // cigüeñal, biela y pistón
+  const cr=crankAndRod(ctx,X,Y,k,P,{th,r,L,yc,D,pinY:yp+pinO,cw});
+  const pb=pistonBody(ctx,X,Y,k,P,D,yp,hp,pinO,0);
+  ctx.fillStyle=P.sunk; ctx.strokeStyle=P.fg; ctx.lineWidth=1.2; ctx.beginPath(); ctx.arc(X(0),pb.pinY,0.07*D*k,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  // cota de carrera
+  const dx=X(blockHalf)+6;
+  ctx.strokeStyle=P.acc; ctx.fillStyle=P.acc; ctx.lineWidth=1.3;
+  ctx.beginPath(); ctx.moveTo(dx,Y(hcc)); ctx.lineTo(dx,Y(hcc+S)); ctx.stroke();
+  [[Y(hcc),1],[Y(hcc+S),-1]].forEach(([y,s])=>{ctx.beginPath(); ctx.moveTo(dx,y); ctx.lineTo(dx-4,y+s*7); ctx.lineTo(dx+4,y+s*7); ctx.closePath(); ctx.fill();});
+  ctx.beginPath(); ctx.moveTo(X(D/2),Y(hcc)); ctx.lineTo(dx+4,Y(hcc)); ctx.moveTo(X(D/2),Y(hcc+S)); ctx.lineTo(dx+4,Y(hcc+S)); ctx.stroke();
+  ctx.font=`600 12px ${FONT_MONO}`; ctx.textAlign='left'; ctx.textBaseline='middle';
+  ctx.fillText('S',dx+5,Y(hcc+S/2));
+  if(opt.labels){
+    labels.push({side:'R',x:dx,y:Y(hcc),text:'PMS',color:P.acc});
+    labels.push({side:'R',x:dx,y:Y(hcc+S),text:'PMI',color:P.acc});
+    labels.push({side:'L',x:pb.x0+6,y:pb.top+0.1*D*k,text:'Pistón'});
+    labels.push({side:'L',x:cr.rodx,y:cr.rody,text:'Biela'});
+    labels.push({side:'L',x:cr.cx-0.1*D*k,y:cr.cy,text:'Cigüeñal'});
+    labels.push({side:'R',x:cr.cwx,y:cr.cwy,text:'Contrapeso'});
+    labels.push({side:'L',x:X(-D/2+0.08*D),y:Y(Math.max(0.02*D,yp*0.5)),text:'Cámara de\ncombustión'});
+    drawLabels(ctx,labels,P,{xl:lw-6,xr:W-lw+6,ymin:4,ymax:H-4,fs:lfs});
+  }
+  return {k,X,Y,yp,li,le,gz};
+}
+
+
+/* ---------- datos ---------- */
+const P2={EO:95, TO:118, IO:65, IGN:340}; // 2T: escape abre 95° d. PMS, transferencia 118° d. PMS, admisión al cárter ±65° del PMS
+P2.TC=360-P2.TO; P2.EC=360-P2.EO;
+const COT4={AAA:10,RCA:45,AAE:45,RCE:10,AE:20}, TM4=timing(COT4);
+const DEF={th:150, V:125, rpm:7000, pme:8, eb:0.65};
+const PRM={
+  th:{label:'Ángulo del cigüeñal',sym:'α',unit:'°',min:0,max:720,step:1,vmin:0,vmax:720},
+  V:{label:'Cilindrada (un cilindro)',sym:'V_T',unit:'cm³',min:25,max:600,step:1,vmin:10,vmax:2000,
+     hint:v=>{const d=Math.cbrt(4*v*1000/Math.PI); return `Cilindro cuadrado: D = S = <b>${fx(d,1)} mm</b>`;}},
+  rpm:{label:'Régimen de giro',sym:'n',unit:'rpm',min:1000,max:12000,step:100,vmin:100,vmax:20000,
+     hint:v=>`${fx(v/60,1)} vueltas por segundo`},
+  pme:{label:'Presión media efectiva supuesta',sym:'PME',unit:'bar',min:3,max:14,step:0.1,vmin:0.5,vmax:30,
+     hint:()=>'Motor de gasolina atmosférico: 8–11 bar'},
+  eb:{label:'Rendimiento de barrido (2T)',sym:'η_b',unit:'—',min:0.3,max:1,step:0.01,vmin:0.05,vmax:1,
+     hint:()=>'Fracción del ciclo 2T que aprovecha la carga. Típico 0.55–0.75'}
+};
+const S={p:Object.assign({},DEF), tot:150, playing:false, speed:1, err:[], warn:[], ok:Object.assign({},DEF)};
+
+/* ---------- fases ---------- */
+function ph2(th){
+  const t=wrapA(th,360);
+  if(t<P2.EO) return {k:'exp',name:'Explosión‑expansión',col:'hot',txt:'Los gases de la combustión empujan el pistón hacia abajo. Las lumbreras siguen tapadas por el pistón.'};
+  if(t<P2.TO) return {k:'esc',name:'Escape espontáneo',col:'adi',txt:`El pistón descubre la lumbrera de escape (${P2.EO}° después del PMS) y los gases salen por su propia presión.`};
+  if(t<P2.TC) return {k:'bar',name:'Barrido (transferencia)',col:'cold',txt:`Se abre la lumbrera de transferencia (${P2.TO}°): la mezcla precomprimida en el cárter sube por el conducto, entra al cilindro y empuja a los gases quemados hacia el escape. Parte de la mezcla fresca se escapa con ellos.`};
+  if(t<P2.EC) return {k:'per',name:'Pérdida de mezcla',col:'adi',txt:`La transferencia ya cerró (${P2.TC}°), pero el escape sigue abierto hasta ${P2.EC}°: el pistón sube y expulsa parte de la mezcla fresca por el escape.`};
+  if(t<P2.IGN) return {k:'com',name:'Compresión',col:'acc',txt:'Con todas las lumbreras tapadas, el pistón sube y comprime la mezcla. Debajo, el cárter aumenta de volumen y aspira mezcla nueva.'};
+  return {k:'enc',name:'Compresión y encendido',col:'hot',txt:`Salta la chispa ${360-P2.IGN}° antes del PMS: comienza la combustión. Una explosión en cada vuelta.`};
+}
+function ph2c(th){
+  const t=wrapA(th,360);
+  if(t>=360-P2.IO||t<P2.IO) return {name:'Admisión al cárter',col:'cold',txt:'La falda del pistón descubre la lumbrera de admisión: la depresión del cárter aspira mezcla gasolina‑aire‑aceite.'};
+  if(t<P2.TO) return {name:'Precompresión',col:'acc',txt:'El pistón baja y comprime la mezcla que está en el cárter.'};
+  if(t<P2.TC) return {name:'Transferencia',col:'cold',txt:'La mezcla precomprimida pasa del cárter al cilindro por el conducto de transferencia.'};
+  return {name:'Depresión',col:'adi',txt:'El pistón sube y el volumen del cárter aumenta: la presión baja por debajo de la atmosférica.'};
+}
+const PH4=[
+  {name:'Admisión',col:'cold',a:0,b:180,txt:'El pistón baja con la válvula de admisión abierta y aspira la mezcla.'},
+  {name:'Compresión',col:'acc',a:180,b:360,txt:'Válvulas cerradas: el pistón sube y comprime la mezcla. La chispa salta antes del PMS.'},
+  {name:'Explosión‑expansión',col:'hot',a:360,b:540,txt:'La combustión empuja el pistón hacia el PMI: única carrera de trabajo en dos vueltas.'},
+  {name:'Escape',col:'adi',a:540,b:720,txt:'El pistón sube con la válvula de escape abierta y expulsa los gases quemados.'}
+];
+const ph4=th=>PH4[Math.min(3,Math.floor(wrapA(th)/180))];
+function gas2T(th){
+  const t=wrapA(th,360), u=wrapA(t-P2.IGN,360);
+  if(t>=P2.IGN||t<P2.EO){ const xb=wiebe(u,50), cool=smooth((u-50)/(360-P2.IGN+P2.EO-50))*0.6; return {f:1-xb,b:xb*(1-cool),e:xb*cool,s:0}; }
+  if(t<P2.TO) return {f:0,b:0.25*(1-(t-P2.EO)/(P2.TO-P2.EO)),e:0.75+0.25*(t-P2.EO)/(P2.TO-P2.EO),s:0};
+  if(t<P2.TC) return {f:0,b:0,e:1,s:smooth((t-P2.TO)/(P2.TC-P2.TO))};
+  return {f:0.85,b:0,e:0.15,s:1};
+}
+const portOpen=(t,a,b)=>{t=wrapA(t,360); return a<b?(t>=a&&t<b):(t>=a||t<b);};
+
+/* ---------- motor 2T en corte ---------- */
+function drawEngine2T(ctx,W,H,st,P,opt){
+  const D=st.D, S_=st.S, r=S_/2, L=st.L, hcc=S_/(st.Rc-1), th=wrapA(st.th,360);
+  const hp=S_+0.06*D, pinO=0.45*D, yc=hcc+pinO+L+r;
+  const wall=0.1*D, ch=0.15*D, blk=D/2+2*wall+ch;
+  const yEO=hcc+pistonX(P2.EO,r,L), yTO=hcc+pistonX(P2.TO,r,L), yPB=hcc+S_+0.03*D;
+  const yIPT=hcc+pistonX(P2.IO,r,L)+hp, yIPB=yIPT+0.15*D, ylb=yIPB+0.07*D;
+  const cw=r+0.16*D, caseHalf=blk+0.02*D, bottom=yc+cw+0.14*D, top=-0.62*D, duct=0.14*D;
+  const halfW=blk+duct;
+  const lfs=W<420?10.5:11.5; ctx.font=`600 ${lfs}px ${FONT_UI}`;
+  const lw=14+Math.max(...['refrigeración','transferencia','Contrapeso','(sin aceite)'].map(t=>ctx.measureText(t).width));
+  const k=Math.min((W-2*lw-10)/(2*halfW),(H-14)/(bottom-top));
+  const ox=W/2, oy=7+(H-14-(bottom-top)*k)/2-top*k, X=x=>ox+x*k, Y=y=>oy+y*k;
+  const x=pistonX(th,r,L), yp=hcc+x, gz=gas2T(th), labels=[];
+  const openE=portOpen(th,P2.EO,P2.EC), openT=portOpen(th,P2.TO,P2.TC), openI=portOpen(th,360-P2.IO,P2.IO);
+  // cárter
+  const ccol=rgba(P.cold,0.22+(portOpen(th,P2.IO,P2.TO)?0.28*smooth((th-P2.IO)/(P2.TO-P2.IO)):0));
+  rrect(ctx,X(-caseHalf),Y(ylb-0.01*D),2*caseHalf*k,(bottom-ylb)*k,0.25*D*k);
+  ctx.fillStyle=P.page; ctx.fill(); ctx.fillStyle=ccol; ctx.fill(); ctx.strokeStyle=P.muted; ctx.lineWidth=2; ctx.stroke();
+  // bloque (cilindro) y culata con aletas
+  ctx.fillStyle=P.sunk; ctx.strokeStyle=P.muted; ctx.lineWidth=1.5;
+  [[-blk,-D/2],[D/2,blk]].forEach(([a,b])=>{ ctx.fillRect(X(a),Y(0),(b-a)*k,ylb*k); ctx.strokeRect(X(a),Y(0),(b-a)*k,ylb*k); });
+  ctx.fillRect(X(-blk),Y(-0.3*D),2*blk*k,0.3*D*k); ctx.strokeRect(X(-blk),Y(-0.3*D),2*blk*k,0.3*D*k);
+  ctx.strokeStyle=P.muted; ctx.lineWidth=Math.max(1.5,0.03*D*k);
+  for(let y=-0.26*D;y<yTO-0.04*D;y+=0.085*D){ ctx.beginPath(); ctx.moveTo(X(-blk),Y(y)); ctx.lineTo(X(-blk-0.12*D),Y(y)); ctx.stroke(); }
+  for(let y=-0.26*D;y<yEO-0.06*D;y+=0.085*D){ ctx.beginPath(); ctx.moveTo(X(blk),Y(y)); ctx.lineTo(X(blk+0.12*D),Y(y)); ctx.stroke(); }
+  labels.push({side:'L',x:X(-blk-0.08*D),y:Y(-0.09*D),text:'Aletas de\nrefrigeración'});
+  // conducto y lumbrera de transferencia
+  const fresh=rgba(P.cold,0.45), exh=rgba(P.adi,0.5);
+  ctx.fillStyle=P.page; ctx.fillRect(X(-D/2-wall-ch),Y(yTO),ch*k,(ylb-yTO+0.02*D)*k); ctx.fillRect(X(-D/2-wall),Y(yTO),wall*k+1,(yPB-yTO)*k);
+  ctx.fillStyle=fresh; ctx.fillRect(X(-D/2-wall-ch),Y(yTO),ch*k,(ylb-yTO+0.02*D)*k); ctx.fillRect(X(-D/2-wall),Y(yTO),wall*k+1,(yPB-yTO)*k);
+  labels.push({side:'L',x:X(-D/2-wall-ch/2),y:Y((yPB+ylb)/2),text:'Conducto de\ntransferencia'});
+  labels.push({side:'L',x:X(-D/2-wall/2),y:Y(yTO+0.03*D),text:'Lumbrera de\ntransferencia',color:openT?P.acc:null});
+  // escape
+  ctx.fillStyle=P.page; ctx.fillRect(X(D/2)-1,Y(yEO),(blk-D/2+duct)*k+1,(yPB-yEO)*k); ctx.fillStyle=exh; ctx.fillRect(X(D/2)-1,Y(yEO),(blk-D/2+duct)*k+1,(yPB-yEO)*k);
+  ctx.strokeStyle=P.muted; ctx.lineWidth=1.3; ctx.beginPath(); ctx.moveTo(X(blk),Y(yEO)); ctx.lineTo(X(blk+duct),Y(yEO)); ctx.moveTo(X(blk),Y(yPB)); ctx.lineTo(X(blk+duct),Y(yPB)); ctx.stroke();
+  labels.push({side:'R',x:X(blk+duct*0.6),y:Y(yEO+0.02*D),text:'Lumbrera de\nescape',color:openE?P.acc:null});
+  // admisión (controlada por la falda)
+  ctx.fillStyle=P.page; ctx.fillRect(X(D/2)-1,Y(yIPT),(blk-D/2+duct)*k+1,(yIPB-yIPT)*k); ctx.fillStyle=fresh; ctx.fillRect(X(D/2)-1,Y(yIPT),(blk-D/2+duct)*k+1,(yIPB-yIPT)*k);
+  ctx.beginPath(); ctx.moveTo(X(blk),Y(yIPT)); ctx.lineTo(X(blk+duct),Y(yIPT)); ctx.moveTo(X(blk),Y(yIPB)); ctx.lineTo(X(blk+duct),Y(yIPB)); ctx.stroke();
+  labels.push({side:'R',x:X(blk+duct*0.6),y:Y(yIPB-0.02*D),text:'Lumbrera de\nadmisión',color:openI?P.acc:null});
+  // gas en el cilindro
+  const gx0=X(-D/2), gw=D*k, gh=yp*k;
+  ctx.fillStyle=P.page; ctx.fillRect(gx0,Y(0),gw,gh);
+  if(gz.s>0 && gz.s<1){
+    const gr=ctx.createLinearGradient(gx0,0,gx0+gw,0), s=gz.s;
+    gr.addColorStop(0,fresh); gr.addColorStop(clamp(s-0.12,0,1),fresh); gr.addColorStop(clamp(s+0.12,0.001,1),exh); gr.addColorStop(1,exh);
+    ctx.fillStyle=gr;
+  } else ctx.fillStyle=gasColor(gz,P);
+  ctx.fillRect(gx0,Y(0),gw,gh);
+  if(gz.b>0.25){ const gr=ctx.createRadialGradient(X(0),Y(0.05*D),2,X(0),Y(0.05*D),Math.max(8,D*0.55*k)); gr.addColorStop(0,rgba(SPARK,0.55*gz.b)); gr.addColorStop(1,rgba(SPARK,0)); ctx.fillStyle=gr; ctx.fillRect(gx0,Y(0),gw,gh); }
+  // bujía
+  ctx.fillStyle=P.adi; ctx.strokeStyle=P.fg; ctx.lineWidth=1.2;
+  ctx.fillRect(X(-0.05*D),Y(-0.3*D),0.1*D*k,0.3*D*k); ctx.strokeRect(X(-0.05*D),Y(-0.3*D),0.1*D*k,0.3*D*k);
+  ctx.fillRect(X(-0.08*D),Y(-0.4*D),0.16*D*k,0.1*D*k); ctx.strokeRect(X(-0.08*D),Y(-0.4*D),0.16*D*k,0.1*D*k);
+  ctx.fillStyle=P.bg; ctx.fillRect(X(-0.04*D),Y(-0.58*D),0.08*D*k,0.18*D*k); ctx.strokeRect(X(-0.04*D),Y(-0.58*D),0.08*D*k,0.18*D*k);
+  ctx.fillStyle=P.fg; ctx.fillRect(X(-0.02*D),Y(-0.62*D),0.04*D*k,0.04*D*k);
+  ctx.strokeStyle=P.fg; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(X(0),Y(0)); ctx.lineTo(X(0),Y(0.035*D)); ctx.stroke();
+  if(wrapA(th-P2.IGN,360)<12) sparkBurst(ctx,X(0),Y(0.05*D),Math.max(9,0.13*D*k));
+  labels.push({side:'R',x:X(0.04*D),y:Y(-0.5*D),text:'Bujía'});
+  // PMS / PMI
+  ctx.setLineDash([4,3]); ctx.strokeStyle=P.fg; ctx.globalAlpha=0.55; ctx.lineWidth=1;
+  [hcc,hcc+S_].forEach(y=>{ctx.beginPath(); ctx.moveTo(X(-D/2),Y(y)); ctx.lineTo(X(D/2),Y(y)); ctx.stroke();});
+  ctx.setLineDash([]); ctx.globalAlpha=1;
+  // mecanismo
+  const cr=crankAndRod(ctx,X,Y,k,P,{th,r,L,yc,D,pinY:yp+pinO,cw});
+  const pb=pistonBody(ctx,X,Y,k,P,D,yp,hp,pinO,0.05*D);
+  ctx.fillStyle=P.sunk; ctx.strokeStyle=P.fg; ctx.lineWidth=1.2; ctx.beginPath(); ctx.arc(X(0),pb.pinY,0.07*D*k,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  // flujo
+  const ph=st.th*1.6, z=Math.max(5,0.05*D*k), ymE=(yEO+Math.min(yp,yPB))/2;
+  if(openI) flowArrows(ctx,[[X(blk+duct),Y((yIPT+yIPB)/2)],[X(D/2),Y((yIPT+yIPB)/2)],[X(0.22*D),Y(ylb+0.3*D)]],ph,P.cold,z,1);
+  if(openT){
+    const yw=(yTO+Math.min(yp,yPB))/2;
+    flowArrows(ctx,[[X(-0.5*D),Y(ylb+0.35*D)],[X(-D/2-wall-ch/2),Y(ylb)],[X(-D/2-wall-ch/2),Y(yw)],[X(-D/2+0.1*D),Y(yw-0.03*D)],[X(-0.3*D),Y(0.12*D)],[X(0.1*D),Y(0.08*D)],[X(0.36*D),Y(Math.min(yEO+0.05*D,ymE))],[X(D/2+0.08*D),Y(ymE)]],ph,P.cold,z,1);
+  }
+  if(openE){
+    flowArrows(ctx,[[X(0.12*D),Y(Math.max(0.12*D,yp*0.6))],[X(D/2),Y(ymE)],[X(blk+duct),Y(ymE)]],ph,P.adi,z,1);
+    if(portOpen(th,P2.TO+40,P2.EC)) flowArrows(ctx,[[X(D/2),Y(ymE-0.03*D)],[X(blk+duct),Y(ymE-0.03*D)]],ph+11,P.cold,z*0.85,0.9);
+  }
+  // rótulos
+  if(opt.labels){
+    const dx=X(D/2)+5;
+    labels.push({side:'R',x:X(D/2),y:Y(hcc),text:'PMS',color:P.acc});
+    labels.push({side:'R',x:X(D/2),y:Y(hcc+S_),text:'PMI',color:P.acc});
+    labels.push({side:'L',x:pb.x0+6,y:pb.top+0.1*D*k,text:'Pistón'});
+    labels.push({side:'L',x:cr.rodx,y:cr.rody,text:'Biela'});
+    labels.push({side:'L',x:cr.cx-0.1*D*k,y:cr.cy,text:'Cigüeñal'});
+    labels.push({side:'R',x:cr.cwx,y:cr.cwy,text:'Contrapeso'});
+    labels.push({side:'L',x:X(-caseHalf+0.12*D),y:Y(bottom-0.3*D),text:'Cárter\n(sin aceite)'});
+    drawLabels(ctx,labels,P,{xl:lw-6,xr:W-lw+6,ymin:4,ymax:H-4,fs:lfs});
+  }
+  return {openE,openT,openI};
+}
+
+/* ---------- validación y cálculo ---------- */
+function validate(p){
+  const e=[], w=[];
+  Object.keys(PRM).forEach(id=>{ const d=PRM[id], v=p[id];
+    if(!Number.isFinite(v)) e.push(`${d.label}: escriba un número.`);
+    else if(v<d.vmin||v>d.vmax) e.push(`${d.label} = ${v}${d.unit==='—'?'':' '+d.unit} está fuera del rango admitido (${d.vmin} a ${d.vmax}). Corríjalo.`);
+  });
+  if(!e.length){
+    if(p.eb>0.9) w.push(`η_b = ${p.eb}: ningún 2T con barrido por cárter aprovecha tanto la carga; lo real es 0.55–0.75.`);
+    if(p.pme>13) w.push(`PME = ${p.pme} bar: valor propio de motores sobrealimentados, no de motores atmosféricos pequeños.`);
+    if(p.rpm>10000 && p.V>250) w.push(`${p.rpm} rpm con ${p.V} cm³ por cilindro: velocidad media del pistón muy alta para un motor de serie.`);
+  }
+  return {e,w};
+}
+function power(p){
+  const base=p.pme*1e5*p.V*1e-6*p.rpm/60; // W, sin dividir por i
+  const P4=base/2, P2t=base/1, P2r=P2t*p.eb;
+  return {P4,P2t,P2r,ratio:P2r/P4, M4:P4/(2*Math.PI*p.rpm/60), M2:P2r/(2*Math.PI*p.rpm/60)};
+}
+const geo=p=>{ const d=Math.cbrt(4*p.V*1000/Math.PI); return {D:d,S:d,L:1.8*d}; };
+
+/* ---------- controles ---------- */
+function buildRow(box,id){
+  const d=PRM[id], row=document.createElement('div'); row.className='prm';
+  row.innerHTML=`<div class="prm-h"><label for="in_${id}">${d.label}</label><span class="sym">${d.sym}</span></div>
+    <div class="prm-in"><input type="range" id="rg_${id}" min="${d.min}" max="${d.max}" step="${d.step}" aria-label="${d.label} (deslizador)">
+    <input type="number" id="in_${id}" step="${d.step}"><span class="unit">${d.unit}</span></div>
+    <div class="hint" id="hn_${id}"></div>`;
+  box.appendChild(row);
+  const rg=row.querySelector('input[type=range]'), nb=row.querySelector('input[type=number]');
+  rg.addEventListener('input',()=>{ S.p[id]=+rg.value; nb.value=rg.value; changed(id); });
+  nb.addEventListener('input',()=>{ const v=parseFloat(nb.value); S.p[id]=Number.isFinite(v)?v:NaN; if(Number.isFinite(v)) rg.value=v; changed(id); });
+}
+function sync(){ Object.keys(PRM).forEach(id=>{ const nb=$('#in_'+id), rg=$('#rg_'+id); if(nb&&document.activeElement!==nb) nb.value=S.p[id]; if(rg&&Number.isFinite(S.p[id])) rg.value=S.p[id]; }); }
+function changed(id){
+  if(id==='th'){ setPlaying(false); if(Number.isFinite(S.p.th)){ S.p.th=clamp(S.p.th,0,720); S.tot=S.p.th; renderDynamic(); } return; }
+  recompute();
+}
+function hints(){ Object.keys(PRM).forEach(id=>{ const h=$('#hn_'+id); if(h&&PRM[id].hint){ try{h.innerHTML=Number.isFinite(S.p[id])?PRM[id].hint(S.p[id]):'';}catch(e){h.innerHTML='';} } }); }
+function recompute(){
+  const v=validate(S.p); S.err=v.e; S.warn=v.w;
+  if(S.err.length){ document.body.classList.add('invalid'); } else { document.body.classList.remove('invalid'); S.ok=Object.assign({},S.p); }
+  renderAll();
+}
+
+/* ---------- animación ---------- */
+let lastTs=0;
+function tick(ts){
+  if(!S.playing){lastTs=0; return;}
+  if(lastTs){ const dt=Math.min(0.1,(ts-lastTs)/1000); S.tot+=dt*100*S.speed; S.p.th=wrapA(S.tot); }
+  lastTs=ts; renderDynamic(); requestAnimationFrame(tick);
+}
+function setPlaying(on){ S.playing=on; $('#playBtn').textContent=on?'❚❚ Pausar':'▶ Animar'; $('#playBtn').setAttribute('aria-pressed',on?'true':'false'); if(on) requestAnimationFrame(tick); }
+function step(d){ setPlaying(false); S.tot=Math.max(0,Math.round(S.tot)+d); S.p.th=wrapA(S.tot); renderDynamic(); }
+function counts(tot){
+  const e2=tot>=P2.IGN?Math.floor((tot-P2.IGN)/360)+1:0, e4=tot>=TM4.IGN?Math.floor((tot-TM4.IGN)/720)+1:0;
+  return {turns:Math.floor(tot/360+1e-9), e2, e4};
+}
+
+/* ---------- dibujo ---------- */
+function drawCyl(){
+  const P=pal(), g=geo(S.ok), th=S.p.th;
+  { const {ctx,W,H}=setupCanvas($('#c2T')); ctx.fillStyle=P.page; ctx.fillRect(0,0,W,H);
+    S.st2=drawEngine2T(ctx,W,H,{th,D:g.D,S:g.S,L:g.L,Rc:8},P,{labels:true});
+    ctx.font=`600 12px ${FONT_MONO}`; ctx.fillStyle=P.fg; ctx.textAlign='left'; ctx.textBaseline='top'; ctx.fillText(`α = ${fx(wrapA(th),0)}°`,8,6); }
+  { const {ctx,W,H}=setupCanvas($('#c4T')); ctx.fillStyle=P.page; ctx.fillRect(0,0,W,H);
+    drawEngine4T(ctx,W,H,{th,D:g.D,S:g.S,L:g.L,Rc:10,tm:TM4,LI:0.115*g.D,LE:0.108*g.D},P,{labels:true});
+    ctx.font=`600 12px ${FONT_MONO}`; ctx.fillStyle=P.fg; ctx.textAlign='left'; ctx.textBaseline='top'; ctx.fillText(`α = ${fx(wrapA(th),0)}°`,8,6); }
+}
+function drawTimeline(){
+  const cv=$('#cTl'), {ctx,W,H}=setupCanvas(cv), P=pal(), th=wrapA(S.p.th);
+  const narrow=W<560, lx=narrow?76:116, m={l:lx,r:12,t:8,b:36};
+  const X=a=>m.l+a/720*(W-m.l-m.r), rows=[
+    {lab:narrow?'2T cilindro':'2T · cilindro', segs:[]}, {lab:narrow?'2T cárter':'2T · cárter', segs:[]}, {lab:narrow?'4T cilindro':'4T · cilindro', segs:[]}, {lab:narrow?'4T válvulas':'4T · válvulas', segs:[]}];
+  for(let c=0;c<720;c+=360){
+    rows[0].segs.push([c,c+P2.EO,'hot','Expansión'],[c+P2.EO,c+P2.TO,'adi','Esc.'],[c+P2.TO,c+P2.TC,'cold','Barrido'],[c+P2.TC,c+P2.EC,'adi',''],[c+P2.EC,c+360,'acc','Compresión']);
+    rows[1].segs.push([c,c+P2.IO,'cold','Adm.'],[c+P2.IO,c+P2.TO,'acc','Precomp.'],[c+P2.TO,c+P2.TC,'cold','Transf.'],[c+P2.TC,c+360-P2.IO,'adi','Depresión'],[c+360-P2.IO,c+360,'cold','Adm.']);
+  }
+  PH4.forEach(p=>rows[2].segs.push([p.a,p.b,p.col,p.name]));
+  const rh=(H-m.t-m.b)/rows.length;
+  ctx.font=`600 ${narrow?10.5:12}px ${FONT_UI}`;
+  rows.forEach((row,i)=>{
+    const y=m.t+i*rh+3, h=rh-6;
+    ctx.fillStyle=P.fg; ctx.textAlign='right'; ctx.textBaseline='middle'; ctx.font=`600 ${narrow?10.5:12}px ${FONT_UI}`; ctx.fillText(row.lab,m.l-8,y+h/2);
+    if(i===3){
+      const bar=(a,d,c,yy,hh)=>{ for(let t=0;t<720;t++){ const f=liftFrac(t,a,d); if(f>0){ ctx.fillStyle=rgba(c,0.25+0.7*f); ctx.fillRect(X(t),yy,X(t+1)-X(t)+0.5,hh);} } };
+      bar(TM4.IVO,TM4.durI,P.cold,y,h/2-1); bar(TM4.EVO,TM4.durE,P.adi,y+h/2+1,h/2-1);
+      ctx.font=`600 10.5px ${FONT_UI}`; ctx.fillStyle=P.fg; ctx.textAlign='center';
+      ctx.textAlign='left'; ctx.fillText('Válv. admisión',X(0)+4,y+h/4); ctx.textAlign='right'; ctx.fillText('Válv. escape',X(720)-4,y+3*h/4);
+      return;
+    }
+    row.segs.forEach(([a,b,c,t])=>{ ctx.fillStyle=rgba(P[c],c==='adi'?0.75:0.85); ctx.fillRect(X(a)+0.5,y,X(b)-X(a)-1,h);
+      if(t){ ctx.font=`600 ${narrow?9.5:11}px ${FONT_UI}`; if(ctx.measureText(t).width<X(b)-X(a)-4){ ctx.fillStyle=P.bg; ctx.textAlign='center'; ctx.fillText(t,(X(a)+X(b))/2,y+h/2); } } });
+  });
+  // chispas
+  [[P2.IGN,0],[P2.IGN+360,0],[TM4.IGN,2]].forEach(([a,i])=>{ const y=m.t+i*rh+3+(rh-6)/2; sparkBurst(ctx,X(a),y,8); });
+  // ejes
+  ctx.strokeStyle=P.line; ctx.lineWidth=1; ctx.fillStyle=P.muted; ctx.font=`11px ${FONT_MONO}`; ctx.textAlign='center'; ctx.textBaseline='top';
+  (narrow?[0,180,360,540,720]:[0,90,180,270,360,450,540,630,720]).forEach(a=>{ ctx.beginPath(); ctx.moveTo(X(a)+0.5,m.t); ctx.lineTo(X(a)+0.5,H-m.b+4); ctx.stroke(); ctx.fillText(String(a),X(a),H-m.b+6); if(a%180===0) ctx.fillText(a%360===0?'PMS':'PMI',X(a),H-m.b+19); });
+  // cursor
+  ctx.strokeStyle=P.fg; ctx.lineWidth=2.5; ctx.beginPath(); ctx.moveTo(X(th),m.t-2); ctx.lineTo(X(th),H-m.b+2); ctx.stroke();
+  ctx.fillStyle=P.fg; ctx.beginPath(); ctx.moveTo(X(th)-6,m.t-6); ctx.lineTo(X(th)+6,m.t-6); ctx.lineTo(X(th),m.t+2); ctx.closePath(); ctx.fill();
+  cv._X={l:m.l,w:W-m.l-m.r};
+}
+
+/* ---------- paneles ---------- */
+function renderState(){
+  const th=wrapA(S.p.th), a=ph2(th), c=ph2c(th), f=ph4(th), st=S.st2||{};
+  const col=x=>`var(--${x==='acc'?'accent':x})`;
+  const lamp=(on,t)=>`<span class="lamp ${on?'on':''}">${t}: ${on?'abierta':'cerrada'}</span>`;
+  const t2=wrapA(th,360), dir=t2<180?'Baja ↓ (2.º tiempo del 2T)':'Sube ↑ (1.er tiempo del 2T)';
+  $('#st2').innerHTML=`<h3><span class="ph-dot" style="background:${col(a.col)}"></span>${a.name}</h3>
+    <p class="sub">Pistón: ${dir}</p><p>${a.txt}</p>
+    <p><b>Cárter · ${c.name}:</b> ${c.txt}</p>
+    <div class="lamps">${lamp(st.openE,'Escape')}${lamp(st.openT,'Transferencia')}${lamp(st.openI,'Admisión')}</div>`;
+  const li=liftFrac(th,TM4.IVO,TM4.durI)>0, le=liftFrac(th,TM4.EVO,TM4.durE)>0, k4=Math.min(3,Math.floor(th/180));
+  $('#st4').innerHTML=`<h3><span class="ph-dot" style="background:${col(f.col)}"></span>${['1.er','2.º','3.er','4.º'][k4]} tiempo · ${f.name}</h3>
+    <p class="sub">Pistón: ${t2<180?'Baja ↓':'Sube ↑'} · ${th<360?'1.ª':'2.ª'} vuelta</p><p>${f.txt}</p>
+    <div class="lamps"><span class="lamp ${li?'on':''}">Válvula de admisión: ${li?'abierta':'cerrada'}</span><span class="lamp ${le?'on':''}">Válvula de escape: ${le?'abierta':'cerrada'}</span></div>`;
+  const n=counts(S.tot);
+  $('#cnt').innerHTML=`<div class="kpi"><div class="l">Ángulo acumulado</div><div class="v">${fx(S.tot,0)}<small>°</small></div><div class="s">α en el ciclo: ${fx(th,0)}°</div></div>
+    <div class="kpi"><div class="l">Vueltas completas del cigüeñal</div><div class="v">${n.turns}</div><div class="s">1 vuelta = 360°</div></div>
+    <div class="kpi main"><div class="l">Explosiones · 2 tiempos</div><div class="v">${n.e2}</div><div class="s">1 por vuelta</div></div>
+    <div class="kpi main"><div class="l">Explosiones · 4 tiempos</div><div class="v">${n.e4}</div><div class="s">1 cada 2 vueltas</div></div>`;
+}
+function kpi(l,v,u,s,main){return `<div class="kpi${main?' main':''}"><div class="l">${l}</div><div class="v">${v}${u?`<small>${u}</small>`:''}</div>${s?`<div class="s">${s}</div>`:''}</div>`;}
+function renderPower(){
+  const p=S.ok, r=power(p);
+  let h='';
+  h+=kpi('Potencia teórica 4T (i = 2)',fx(r.P4/1000,2),'kW',`${fx(r.P4/1000*1.35962,1)} CV · par ${fx(r.M4,1)} N·m`);
+  h+=kpi('Potencia teórica 2T (i = 1)',fx(r.P2t/1000,2),'kW','El doble que el 4T sobre el papel');
+  h+=kpi('Potencia esperada 2T',fx(r.P2r/1000,2),'kW',`× η_b = ${p.eb} · par ${fx(r.M2,1)} N·m`,true);
+  h+=kpi('Relación 2T / 4T',fx(r.ratio,2),'','= 2 · η_b');
+  $('#pow').innerHTML=h;
+  const mx=Math.max(r.P4,r.P2t);
+  $('#bars').innerHTML=[['4T teórica',r.P4,'var(--adi)'],['2T teórica',r.P2t,'var(--line)'],['2T esperada',r.P2r,'var(--accent)']].map(([t,v,c])=>
+    `<div class="bar"><span>${t}</span><div class="tr"><i style="width:${fx(v/mx*100,1)}%;background:${c}"></i></div><b>${fx(v/1000,2)} kW</b></div>`).join('');
+  const set=(id,h)=>{const el=$('#'+id); if(el) el.innerHTML=h;};
+  set('lvP',`4T: ${p.pme}·10⁵ Pa × ${fx(p.V*1e-6,6)} m³ × ${p.rpm} / (60·2) = ${fx(r.P4,0)} W · 2T: ${fx(r.P2t,0)} W × ${p.eb} = ${fx(r.P2r,0)} W`);
+  const g=geo(p); set('lvG',`V<sub>T</sub> = ${p.V} cm³ → D = S = ∛(4·${p.V*1000}/π) = ${fx(g.D,1)} mm`);
+}
+function renderMsgs(){
+  let h=''; S.err.forEach(e=>h+=`<div class="msg err">${e}</div>`); S.warn.forEach(e=>h+=`<div class="msg warn">${e}</div>`);
+  $('#msgs').innerHTML=h;
+}
+function renderDynamic(){ sync(); drawCyl(); drawTimeline(); renderState(); }
+function renderAll(){ renderMsgs(); hints(); renderPower(); renderDynamic(); }
+
+/* ---------- inicio ---------- */
+function init(){
+  buildRow($('#rowsAnim'),'th');
+  ['V','rpm'].forEach(id=>buildRow($('#rowsMot'),id));
+  ['pme','eb'].forEach(id=>buildRow($('#rowsPow'),id));
+  sync();
+  $('#playBtn').addEventListener('click',()=>setPlaying(!S.playing));
+  $('#m10').addEventListener('click',()=>step(-10));
+  $('#p10').addEventListener('click',()=>step(10));
+  $('#speedSel').addEventListener('change',e=>S.speed=+e.target.value);
+  $('#zeroBtn').addEventListener('click',()=>{ setPlaying(false); S.tot=0; S.p.th=0; renderDynamic(); });
+  $('#resetBtn').addEventListener('click',()=>{ const th=S.p.th; S.p=Object.assign({},DEF); S.p.th=th; sync(); recompute(); });
+  const tl=$('#cTl');
+  const scrub=e=>{ if(!tl._X) return; const rc=tl.getBoundingClientRect(); S.p.th=clamp((e.clientX-rc.left-tl._X.l)/tl._X.w*720,0,720); S.tot=S.p.th; setPlaying(false); renderDynamic(); };
+  tl.addEventListener('pointerdown',e=>{ scrub(e); tl.setPointerCapture(e.pointerId); tl._drag=true; });
+  tl.addEventListener('pointermove',e=>{ if(tl._drag) scrub(e); });
+  tl.addEventListener('pointerup',()=>tl._drag=false);
+  const redraw=()=>renderDynamic();
+  if(window.ResizeObserver){ const ro=new ResizeObserver(redraw); ['#c2T','#c4T','#cTl'].forEach(id=>ro.observe($(id))); } else window.addEventListener('resize',redraw);
+  try{ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',redraw); }catch(e){}
+  new MutationObserver(redraw).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme','class','style']});
+  if(document.fonts&&document.fonts.ready) document.fonts.ready.then(redraw);
+  recompute();
+}
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
+})();
+
+</script>
+
+</body>
+</html>

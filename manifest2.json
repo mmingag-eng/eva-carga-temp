@@ -1,0 +1,374 @@
+[
+{
+"g": 3,
+"u": 1,
+"name": "Simulador web U1 - Ley de Ohm y potencia.html",
+"path": "g01.html"
+},
+{
+"g": 3,
+"u": 1,
+"name": "Simulador web U1 - Multimetro virtual.html",
+"path": "g02.html"
+},
+{
+"g": 3,
+"u": 1,
+"name": "Simulador web U1 - Metodo V4 caida de tension.html",
+"path": "g03.html"
+},
+{
+"g": 3,
+"u": 1,
+"name": "Simulador web U1 - Bateria SOC, Ri y carga.html",
+"path": "g04.html"
+},
+{
+"g": 3,
+"u": 1,
+"name": "Simulador web U1 - Fugas de corriente.html",
+"path": "g05.html"
+},
+{
+"g": 3,
+"u": 1,
+"name": "Simulador web U1 - Lector de esquemas electricos.html",
+"path": "g06.html"
+},
+{
+"g": 3,
+"u": 2,
+"name": "Simulador web U2 - Sistema de arranque.html",
+"path": "g07.html"
+},
+{
+"g": 3,
+"u": 2,
+"name": "Simulador web U2 - Alternador y regulador.html",
+"path": "g08.html"
+},
+{
+"g": 3,
+"u": 3,
+"name": "Simulador web U3 - Encendido por ruptor.html",
+"path": "g09.html"
+},
+{
+"g": 3,
+"u": 3,
+"name": "Simulador web U3 - Osciloscopio de encendido.html",
+"path": "g10.html"
+},
+{
+"g": 3,
+"u": 3,
+"name": "Simulador web U3 - Captadores inductivo y Hall.html",
+"path": "g11.html"
+},
+{
+"g": 3,
+"u": 4,
+"name": "Simulador web U4 - Alumbrado, senalizacion y limpiaparabrisas.html",
+"path": "g12.html"
+},
+{
+"g": 3,
+"u": 4,
+"name": "Simulador web U4 - Red CAN.html",
+"path": "g13.html"
+},
+{
+"g": 1,
+"u": 1,
+"name": "Simulador web U1 - Procesos de un gas.html",
+"path": "g14.html"
+},
+{
+"g": 1,
+"u": 2,
+"name": "Simulador web U2 - Ciclo de Carnot.html",
+"path": "g15.html"
+},
+{
+"g": 1,
+"u": 2,
+"name": "Simulador web U2 - Ciclo Otto.html",
+"path": "g16.html"
+},
+{
+"g": 1,
+"u": 2,
+"name": "Simulador web U2 - Ciclo Diesel.html",
+"path": "g17.html"
+},
+{
+"g": 1,
+"u": 2,
+"name": "Simulador web U2 - Ciclo Dual.html",
+"path": "g18.html"
+},
+{
+"g": 1,
+"u": 3,
+"name": "Simulador web U3 - Motor de dos y cuatro tiempos.html",
+"path": "g19.html"
+},
+{
+"g": 1,
+"u": 3,
+"name": "Simulador web U3 - Motor de cuatro tiempos.html",
+"path": "g20.html"
+},
+{
+"g": 1,
+"u": 4,
+"name": "Simulador web U4 - Mecanismo biela-manivela.html",
+"path": "g21.html"
+},
+{
+"g": 1,
+"u": 4,
+"name": "Simulador web U4 - Cilindrada y relacion de compresion.html",
+"path": "g22.html"
+},
+{
+"g": 2,
+"u": 1,
+"name": "Simulador web U1 - Metrologia de cilindros.html",
+"path": "g23.html"
+},
+{
+"g": 2,
+"u": 1,
+"name": "Simulador web U1 - Cilindrada y relacion de compresion.html",
+"path": "g24.html"
+},
+{
+"g": 2,
+"u": 1,
+"name": "Simulador web U1 - Orden de encendido.html",
+"path": "g25.html"
+},
+{
+"g": 2,
+"u": 3,
+"name": "Simulador web U3 - Ley de Hooke (muelles de valvula).html",
+"path": "g26.html"
+},
+{
+"g": 4,
+"u": 1,
+"name": "Simulador web U1 - Caja manual de 5 velocidades.html",
+"path": "g27.html"
+},
+{
+"g": 4,
+"u": 1,
+"name": "Simulador web U1 - Caja transversal (transeje) de 5 velocidades.html",
+"path": "g28.html"
+},
+{
+"g": 4,
+"u": 1,
+"name": "Simulador web U1 - Caja de cambios, traccion y prestaciones.html",
+"path": "g29.html"
+},
+{
+"g": 1,
+"u": 1,
+"name": "Simulador Excel Practica 01 - Magnitudes y unidades.xlsx",
+"path": "g30.xlsx"
+},
+{
+"g": 1,
+"u": 1,
+"name": "Simulador Excel Practica 02 - Sistemas y propiedades.xlsx",
+"path": "g31.xlsx"
+},
+{
+"g": 1,
+"u": 1,
+"name": "Simulador Excel Practica 03 - Energia, calor y trabajo.xlsx",
+"path": "g32.xlsx"
+},
+{
+"g": 1,
+"u": 1,
+"name": "Simulador Excel Practica 04 - Primera ley y eficiencia.xlsx",
+"path": "g33.xlsx"
+},
+{
+"g": 1,
+"u": 2,
+"name": "Simulador Excel Practica 05 - Maquina termica de Carnot.xlsx",
+"path": "g34.xlsx"
+},
+{
+"g": 1,
+"u": 2,
+"name": "Simulador Excel Practica 06 - Ciclo Otto.xlsx",
+"path": "g35.xlsx"
+},
+{
+"g": 1,
+"u": 2,
+"name": "Simulador Excel Practica 07 - Ciclo Diesel.xlsx",
+"path": "g36.xlsx"
+},
+{
+"g": 1,
+"u": 2,
+"name": "Simulador Excel Practica 07b - Ciclo Dual (Sabathe).xlsx",
+"path": "g37.xlsx"
+},
+{
+"g": 1,
+"u": 3,
+"name": "Simulador Excel Practica 08 - Cotas de distribucion.xlsx",
+"path": "g38.xlsx"
+},
+{
+"g": 1,
+"u": 4,
+"name": "Simulador Excel Practica 13 - Geometria del MCIA.xlsx",
+"path": "g39.xlsx"
+},
+{
+"g": 1,
+"u": 4,
+"name": "Simulador Excel Practica 14 - Cilindrada y relacion de compresion.xlsx",
+"path": "g40.xlsx"
+},
+{
+"g": 1,
+"u": 4,
+"name": "Simulador Excel Practica 15 - Curvas caracteristicas.xlsx",
+"path": "g41.xlsx"
+},
+{
+"g": 2,
+"u": 1,
+"name": "Simulador Excel Practica 03 - Metrologia de precision.xlsx",
+"path": "g42.xlsx"
+},
+{
+"g": 2,
+"u": 1,
+"name": "Simulador Excel Practica 04 - Calculos de modificacion del motor.xlsx",
+"path": "g43.xlsx"
+},
+{
+"g": 2,
+"u": 2,
+"name": "Simulador Excel Practica 05 - Alimentacion de aire y combustible.xlsx",
+"path": "g44.xlsx"
+},
+{
+"g": 2,
+"u": 2,
+"name": "Simulador Excel Practica 17 - Turbocompresor.xlsx",
+"path": "g45.xlsx"
+},
+{
+"g": 2,
+"u": 3,
+"name": "Simulador Excel Practica 10 - Elementos de distribucion.xlsx",
+"path": "g46.xlsx"
+},
+{
+"g": 2,
+"u": 3,
+"name": "Simulador Excel Practica 11 - Compresion y fugas.xlsx",
+"path": "g47.xlsx"
+},
+{
+"g": 2,
+"u": 4,
+"name": "Simulador Excel Practica 13 - Lubricacion.xlsx",
+"path": "g48.xlsx"
+},
+{
+"g": 2,
+"u": 4,
+"name": "Simulador Excel Practica 14 - Refrigeracion.xlsx",
+"path": "g49.xlsx"
+},
+{
+"g": 2,
+"u": 4,
+"name": "Simulador Excel Practica 15 - Bloque motor.xlsx",
+"path": "g50.xlsx"
+},
+{
+"g": 2,
+"u": 4,
+"name": "Simulador Excel Practica 16 - Tren alternativo.xlsx",
+"path": "g51.xlsx"
+},
+{
+"g": 2,
+"u": 4,
+"name": "Simulador Excel Practica 18 - Mantenimiento.xlsx",
+"path": "g52.xlsx"
+},
+{
+"g": 4,
+"u": 1,
+"name": "Simulador Excel Practica 01 - Par, potencia y transmision.xlsx",
+"path": "g53.xlsx"
+},
+{
+"g": 4,
+"u": 1,
+"name": "Simulador Excel Practica 02 - Caja de cambios manual.xlsx",
+"path": "g54.xlsx"
+},
+{
+"g": 4,
+"u": 1,
+"name": "Simulador Excel Practica 03 - Embrague.xlsx",
+"path": "g55.xlsx"
+},
+{
+"g": 4,
+"u": 2,
+"name": "Simulador Excel Practica 04 - Arbol, palieres y juntas.xlsx",
+"path": "g56.xlsx"
+},
+{
+"g": 4,
+"u": 2,
+"name": "Simulador Excel Practica 05 - Diferencial y caja de transferencia.xlsx",
+"path": "g57.xlsx"
+},
+{
+"g": 4,
+"u": 2,
+"name": "Simulador Excel Practica 06 - Plan de mantenimiento.xlsx",
+"path": "g58.xlsx"
+},
+{
+"g": 4,
+"u": 3,
+"name": "Simulador Excel Practica 07 - Transmision automatica.xlsx",
+"path": "g59.xlsx"
+},
+{
+"g": 4,
+"u": 3,
+"name": "Simulador Excel Practica 08 - Willis, Simpson y convertidor.xlsx",
+"path": "g60.xlsx"
+},
+{
+"g": 4,
+"u": 4,
+"name": "Simulador Excel Practica 09 - Sensores y actuadores.xlsx",
+"path": "g61.xlsx"
+},
+{
+"g": 4,
+"u": 4,
+"name": "Simulador Excel Practica 10 - CVT y eCVT.xlsx",
+"path": "g62.xlsx"
+}
+]
