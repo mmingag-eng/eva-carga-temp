@@ -1,0 +1,80 @@
+[
+{
+"g": 3,
+"u": 1,
+"name": "Simulador Excel Practica 21 - Fuente regulable LM317.xlsx",
+"path": "h01.xlsx"
+},
+{
+"g": 3,
+"u": 1,
+"name": "Simulador Excel Practica 21 (P2-P5) - Fuentes de laboratorio.xlsx",
+"path": "h02.xlsx"
+},
+{
+"g": 3,
+"u": 2,
+"name": "Simulador Excel Practica 22 - Banco probador de alternadores.xlsx",
+"path": "h03.xlsx"
+},
+{
+"g": 3,
+"u": 2,
+"name": "Simulador Excel Practica 23 - Banco probador de motores de arranque.xlsx",
+"path": "h04.xlsx"
+},
+{
+"g": 3,
+"u": 2,
+"name": "Simulador Excel Practica 26 - Zumbador para inducidos.xlsx",
+"path": "h05.xlsx"
+},
+{
+"g": 3,
+"u": 3,
+"name": "Simulador Excel Practica 10 - Encendido por ruptor (SZ).xlsx",
+"path": "h06.xlsx"
+},
+{
+"g": 3,
+"u": 3,
+"name": "Simulador Excel Practica 11 (P1) - Encendido TSZ-i.xlsx",
+"path": "h07.xlsx"
+},
+{
+"g": 3,
+"u": 3,
+"name": "Simulador Excel Practica 11 (P2) - Encendido TZ-H (Hall).xlsx",
+"path": "h08.xlsx"
+},
+{
+"g": 3,
+"u": 3,
+"name": "Simulador Excel Practica 11 (P3) - Encendido DIS.xlsx",
+"path": "h09.xlsx"
+},
+{
+"g": 3,
+"u": 3,
+"name": "Simulador Excel Practica 11 (P4) - Encendido COP.xlsx",
+"path": "h10.xlsx"
+},
+{
+"g": 3,
+"u": 3,
+"name": "Simulador Excel Practica 11 (P5) - Comparativo del encendido.xlsx",
+"path": "h11.xlsx"
+},
+{
+"g": 3,
+"u": 3,
+"name": "Simulador Excel Practica 24 - Banco de pruebas de bobinas.xlsx",
+"path": "h12.xlsx"
+},
+{
+"g": 3,
+"u": 4,
+"name": "Simulador Excel Practica 25 - Mando con temporizadores 555.xlsx",
+"path": "h13.xlsx"
+}
+]
